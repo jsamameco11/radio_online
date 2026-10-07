@@ -2,20 +2,21 @@
 
 namespace App\Domain\Stations\Support;
 
+use App\Domain\Platform\PlatformHost;
 use App\Models\Station;
 
-/** Absolute addresses of a station on both hosts. Load "frequency" first. */
+/** Absolute addresses of a station on the creators' console and the public platform. Load "frequency" first. */
 final class StationLinks
 {
-    /** https://control-…/estudio/89-30 */
+    /** https://consola-…/89-30 */
     public static function studio(Station $station): string
     {
-        return rtrim((string) config('platform.urls.control'), '/').'/estudio/'.$station->frequency->slug;
+        return PlatformHost::Studio->url($station->frequency->slug);
     }
 
     /** https://turadioonline…/radio/89-30 */
     public static function listen(Station $station): string
     {
-        return rtrim((string) config('platform.urls.public'), '/').'/radio/'.$station->frequency->slug;
+        return PlatformHost::Public->url('radio/'.$station->frequency->slug);
     }
 }

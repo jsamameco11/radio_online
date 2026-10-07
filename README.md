@@ -3,7 +3,8 @@
 Plataforma de radios por internet: cada emisora tiene su frecuencia (**89.30 FM · Radio Aurora**), un estudio profesional (consola en vivo, piloto automático, programación, biblioteca, episodios, editor de audio) y recibe regalos de sus oyentes.
 
 - **Sitio público** — `turadioonline.miacademiapreu.com`: explorar, escuchar, suscribirse, chat en vivo con mensajes destacados, regalar, billetera y "Crear mi radio".
-- **Centro de control** — `control-turadioonline.miacademiapreu.com`: panel de la plataforma (`/admin`) y estudios de cada emisora (`/estudio/{frecuencia}`).
+- **Consola de creadores** — `consola-fullradio.miacademiapreu.com`: el estudio de cada emisora (`/{frecuencia}`, por ejemplo `/89-30`) para su equipo.
+- **Administración** — `control-turadioonline.miacademiapreu.com`: panel de la plataforma (`/admin`), solo para el staff. Los enlaces antiguos `/estudio/{frecuencia}` redirigen a la consola.
 
 ## Stack
 
@@ -22,7 +23,8 @@ php artisan serve
 ```
 
 - Sitio público: <http://turadioonline.localhost:8000>
-- Centro de control: <http://control-turadioonline.localhost:8000>
+- Consola de creadores: <http://consola-fullradio.localhost:8000>
+- Administración: <http://control-turadioonline.localhost:8000>
 
 El super administrador se crea con `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD` del `.env`. En entorno local se siembran radios de demostración (contraseña `password`).
 

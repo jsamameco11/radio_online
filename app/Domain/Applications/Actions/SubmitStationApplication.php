@@ -10,6 +10,7 @@ use App\Domain\Applications\Notifications\StationApplicationSubmitted;
 use App\Domain\Applications\Support\ApplicationSubmission;
 use App\Domain\Frequencies\Actions\SubmitFrequencyRequest;
 use App\Domain\Frequencies\Enums\FrequencyRequestStatus;
+use App\Domain\Platform\PlatformHost;
 use App\Domain\Platform\PlatformSettings;
 use App\Domain\Storage\MediaFolder;
 use App\Domain\Storage\MediaStorage;
@@ -83,7 +84,7 @@ final class SubmitStationApplication
             $request->id,
             $submission->frequency->display(),
             $request->station_name,
-            rtrim((string) config('platform.urls.control'), '/')."/admin/solicitudes/{$request->id}/expediente",
+            PlatformHost::Control->url("admin/solicitudes/{$request->id}/expediente"),
         ));
 
         return $request;

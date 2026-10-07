@@ -17,16 +17,22 @@ abstract class TestCase extends BaseTestCase
         return rtrim((string) config('platform.urls.public'), '/').'/'.ltrim($path, '/');
     }
 
+    /** Absolute URL on the creators' console: $this->consoleUrl('/'). */
+    protected function consoleUrl(string $path = '/'): string
+    {
+        return rtrim((string) config('platform.urls.studio'), '/').'/'.ltrim($path, '/');
+    }
+
     /** Absolute URL on the control host: $this->controlUrl('/admin'). */
     protected function controlUrl(string $path = '/'): string
     {
         return rtrim((string) config('platform.urls.control'), '/').'/'.ltrim($path, '/');
     }
 
-    /** Absolute URL inside a station studio: $this->studioUrl($station, '/consola'). */
+    /** Absolute URL inside a station studio on the console: $this->studioUrl($station, '/consola'). */
     protected function studioUrl(Station $station, string $path = ''): string
     {
-        return $this->controlUrl('/estudio/'.$station->frequency->slug.$path);
+        return $this->consoleUrl('/'.$station->frequency->slug.$path);
     }
 
     /** A staff member with confirmed two-factor authentication, as the admin panel requires. */

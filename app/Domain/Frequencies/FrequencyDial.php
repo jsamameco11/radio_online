@@ -26,6 +26,9 @@ final class FrequencyDial
         'other' => 0.005,
     ];
 
+    /** What a slug looks like in a route: "89-30", "101-70". */
+    public const SLUG_PATTERN = '[0-9]{2,3}-[0-9]{2}';
+
     public function __construct(
         private readonly float $min,
         private readonly float $max,

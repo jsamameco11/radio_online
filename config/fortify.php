@@ -14,7 +14,7 @@ return [
 
     'lowercase_usernames' => true,
 
-    // Both hosts land on "/": listeners on the public home, staff and station teams on their control home.
+    // Every host lands on "/": listeners on the public home, creators on their console, staff on the platform panel.
     'home' => '/',
 
     'prefix' => '',

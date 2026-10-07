@@ -6,6 +6,28 @@ import type { SharedProps } from "@/types";
 
 const showcase = ["89.30", "92.10", "95.50", "97.30", "101.70", "103.30", "105.10", "107.10"];
 
+/** What the brand panel says to each audience. */
+const pitch: Record<SharedProps["app"]["host"], { area: string | null; eyebrow: string; heading: string; text: string }> = {
+  public: {
+    area: null,
+    eyebrow: "Radio por internet",
+    heading: "Cientos de frecuencias. Una sola señal: la tuya.",
+    text: "Sintoniza radios en vivo, descubre programas y apoya a tus locutores favoritos.",
+  },
+  studio: {
+    area: "Consola de creadores",
+    eyebrow: "Tu frecuencia, tu estudio",
+    heading: "Tu cabina te está esperando.",
+    text: "Consola en vivo, programación, biblioteca, chat con tu audiencia y ganancias de tu emisora en un solo lugar.",
+  },
+  control: {
+    area: "Administración",
+    eyebrow: "Operación de la plataforma",
+    heading: "Toda la señal, bajo control.",
+    text: "Frecuencias, emisoras, solicitudes, pagos y moderación de toda la red.",
+  },
+};
+
 interface AuthLayoutProps {
   title: string;
   heading: ReactNode;
@@ -14,10 +36,10 @@ interface AuthLayoutProps {
   children: ReactNode;
 }
 
-/** Sign-in, registration and recovery screens on both hosts: brand panel and form side by side. */
+/** Sign-in, registration and recovery screens on every host: brand panel and form side by side. */
 export default function AuthLayout({ title, heading, description, footer, children }: AuthLayoutProps) {
   const { app } = usePage<SharedProps>().props;
-  const control = app.host === "control";
+  const copy = pitch[app.host];
 
   return (
     <div className="grid min-h-screen bg-canvas text-ink lg:grid-cols-[1.05fr_1fr]">
@@ -28,21 +50,15 @@ export default function AuthLayout({ title, heading, description, footer, childr
           <BrandMark className="size-10" />
           <span className="space-y-1">
             <BrandName className="block text-lg" />
-            {control && <span className="block text-xs text-muted">Centro de control</span>}
+            {copy.area && <span className="block text-xs text-muted">{copy.area}</span>}
           </span>
         </Link>
 
         <div className="space-y-8">
           <div className="space-y-4">
-            <p className="text-xs font-semibold tracking-[0.2em] text-signal uppercase">{control ? "Estudios y administración" : "Radio por internet"}</p>
-            <h2 className="max-w-md font-display text-5xl leading-[1.05] font-semibold">
-              {control ? "Tu cabina te está esperando." : "Cientos de frecuencias. Una sola señal: la tuya."}
-            </h2>
-            <p className="max-w-md text-muted">
-              {control
-                ? "Consola en vivo, programación, biblioteca y finanzas de tu emisora en un solo lugar."
-                : "Sintoniza radios en vivo, descubre programas y apoya a tus locutores favoritos."}
-            </p>
+            <p className="text-xs font-semibold tracking-[0.2em] text-signal uppercase">{copy.eyebrow}</p>
+            <h2 className="max-w-md font-display text-5xl leading-[1.05] font-semibold">{copy.heading}</h2>
+            <p className="max-w-md text-muted">{copy.text}</p>
           </div>
 
           <div className="relative rounded-3xl border border-line bg-surface p-6" aria-hidden>
@@ -66,7 +82,10 @@ export default function AuthLayout({ title, heading, description, footer, childr
       <main className="flex flex-col px-5 py-8 sm:px-10">
         <Link href="/" className="flex items-center gap-2.5 lg:hidden">
           <BrandMark />
-          <BrandName />
+          <span>
+            <BrandName className="block" />
+            {copy.area && <span className="block text-xs text-muted">{copy.area}</span>}
+          </span>
         </Link>
         <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-10">
           <div className="space-y-2">

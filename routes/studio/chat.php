@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 | Studio › live chat: the team reads, answers and moderates the chat of the
-| station while it is on air (/estudio/{frequency}/…, names "studio.*").
+| station while it is on air (console host, /{frequency}/…, names "studio.*").
 */
 
 Route::middleware('studio.can:console.operate')->group(function () {

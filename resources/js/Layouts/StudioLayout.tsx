@@ -30,10 +30,10 @@ import { FrequencyTitle, StationLogo, StreamStatusBadge } from "@/Components/sta
 import { LiveChatDock } from "@/Components/studio/chat/live-chat-dock";
 import type { SharedProps, StationPermission } from "@/types";
 
-/** Base URL of the open studio: "/estudio/89-30". */
+/** Base URL of the open studio on the creators' console: "/89-30". */
 export function useStudioUrl(): (path?: string) => string {
   const { studio } = usePage<SharedProps>().props;
-  return (path = "") => `/estudio/${studio?.station.frequency.slug}${path}`;
+  return (path = "") => `/${studio?.station.frequency.slug}${path}`;
 }
 
 export function useStudioCan(): (permission: StationPermission) => boolean {
@@ -156,7 +156,7 @@ export default function StudioLayout({ title, children }: { title: string; child
           <div className="space-y-1">
             <p className="px-3 text-[0.68rem] font-semibold tracking-[0.14em] text-faint uppercase">Mis emisoras</p>
             {studio.stations.map((own) => (
-              <Link key={own.slug} href={`/estudio/${own.slug}`} className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted hover:bg-raised hover:text-ink">
+              <Link key={own.slug} href={`/${own.slug}`} className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted hover:bg-raised hover:text-ink">
                 <span className="font-display tabular">{own.frequency}</span>
                 <span className="truncate">{own.name}</span>
               </Link>

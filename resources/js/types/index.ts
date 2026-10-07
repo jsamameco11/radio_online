@@ -2,8 +2,9 @@
 export interface SharedProps {
   app: {
     name: string;
-    host: "public" | "control";
-    urls: { public: string; control: string };
+    /** Which application answered: listeners, the creators' console or the platform staff. */
+    host: "public" | "studio" | "control";
+    urls: { public: string; studio: string; control: string };
     currency: string;
   };
   auth: { user: AuthUser | null };

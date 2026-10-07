@@ -12,6 +12,7 @@ use App\Domain\Applications\Support\ApplicationLimits;
 use App\Domain\Discovery\Queries\CategoryCatalog;
 use App\Domain\Frequencies\Actions\CancelFrequencyRequest;
 use App\Domain\Frequencies\Enums\FrequencyRequestKind;
+use App\Domain\Platform\PlatformHost;
 use App\Domain\Platform\PlatformSettings;
 use App\Domain\Stations\Enums\StationRole;
 use App\Domain\Stations\Support\Locales;
@@ -33,7 +34,6 @@ class StationApplicationController extends Controller
     public function create(Request $request, CategoryCatalog $categories, PlatformSettings $settings): Response
     {
         $user = $request->user();
-        $controlUrl = rtrim((string) config('platform.urls.control'), '/');
         $options = fn (array $cases) => array_map(fn ($case) => ['value' => $case->value, 'label' => $case->label()], $cases);
 
         return Inertia::render('Public/CreateStation', [
@@ -85,7 +85,7 @@ class StationApplicationController extends Controller
                     'id' => $station->id,
                     'display_name' => $station->displayName(),
                     'role' => StationRole::from($station->pivot->role)->label(),
-                    'studio_url' => $controlUrl.'/estudio/'.$station->frequency->slug,
+                    'studio_url' => PlatformHost::Studio->url($station->frequency->slug),
                     'public_url' => '/radio/'.$station->frequency->slug,
                 ])
                 ->values()

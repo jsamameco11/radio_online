@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 | Studio › goals and growth, monetization request and withdrawals
-| (/estudio/{frequency}/…, names "studio.*").
+| (console host, /{frequency}/…, names "studio.*").
 */
 
 Route::get('/crecimiento', GrowthController::class)->middleware('studio.can:analytics.view')->name('growth');

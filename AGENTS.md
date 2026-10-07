@@ -7,11 +7,14 @@ Internet radio platform: every station owns an FM-style frequency ("89.30 FM · 
 | Host | Purpose | Route files |
 |---|---|---|
 | `PUBLIC_HOST` (`turadioonline.miacademiapreu.com`) | Listeners: discover, listen, follow, gifts, wallet, "Crear mi radio" | `routes/public/*.php` |
-| `CONTROL_HOST` (`control-turadioonline.miacademiapreu.com`) | Platform admin (`/admin/*`) and station studios (`/estudio/{frequency}/*`) | `routes/control/*.php`, `routes/studio/*.php` |
+| `STUDIO_HOST` (`consola-fullradio.miacademiapreu.com`) | Creators' console: station teams (and staff with `studios.enter`) run each studio at `/{frequency}/*` (`/89-30/consola`) | `routes/studio/*.php` |
+| `CONTROL_HOST` (`control-turadioonline.miacademiapreu.com`) | Platform staff only: admin (`/admin/*`); old `/estudio/*` links redirect 301 to the console | `routes/control/*.php` |
 
-`routes/account.php` (profile, security) is registered on both hosts; `routes/webhooks.php` has no session middleware. Routing is wired in `bootstrap/app.php` — add routes to the file of your area, never to `bootstrap/app.php`.
+`App\Domain\Platform\PlatformHost` tells which host answered and builds absolute URLs (`PlatformHost::Studio->url('89-30')`); the frontend gets it as `app.host` / `app.urls`. Links to another host are plain `<a href>`, never Inertia `<Link>`. Each host keeps its own session cookie.
 
-Locally: `turadioonline.localhost:8000` and `control-turadioonline.localhost:8000` (`php artisan serve`).
+`routes/account.php` (profile, security) and `routes/auth.php` are registered on every host; `routes/webhooks.php` has no session middleware. Routing is wired in `bootstrap/app.php` — add routes to the file of your area, never to `bootstrap/app.php`.
+
+Locally: `turadioonline.localhost:8000`, `consola-fullradio.localhost:8000` and `control-turadioonline.localhost:8000` (`php artisan serve`).
 
 ## Architecture
 
@@ -24,7 +27,7 @@ Locally: `turadioonline.localhost:8000` and `control-turadioonline.localhost:800
 ### Multi-station tenancy
 
 - Station-owned models use `App\Models\Concerns\BelongsToStation`: they are filtered by `CurrentStation` and get `station_id` filled automatically. Use `Model::acrossStations()` only in admin code.
-- `App\Domain\Stations\Support\CurrentStation` is set by the `ResolveStudioStation` middleware for every `/estudio/{frequency}` route (the `studio` route parameter is removed, so controllers do not receive it). Background jobs must call `$current->within($station, fn () => ...)`.
+- `App\Domain\Stations\Support\CurrentStation` is set by the `ResolveStudioStation` middleware for every `/{frequency}` route of the console host (the `studio` route parameter is removed, so controllers do not receive it). Background jobs must call `$current->within($station, fn () => ...)`.
 - Cache keys of station data: `$current->key('timeline')` → `station:{id}:timeline`.
 
 ### Authorization
@@ -73,4 +76,4 @@ npx tsc --noEmit
 npm run build
 ```
 
-Tests: `tests/Unit` for pure logic, `tests/Feature/<Area>` for HTTP/authorization. `tests/TestCase.php` provides `publicUrl()`, `controlUrl()`, `studioUrl()`, `staff()` and `teamMember()`.
+Tests: `tests/Unit` for pure logic, `tests/Feature/<Area>` for HTTP/authorization. `tests/TestCase.php` provides `publicUrl()`, `consoleUrl()`, `controlUrl()`, `studioUrl()` (a station's studio on the console), `staff()` and `teamMember()`.

@@ -5,7 +5,7 @@
 | Tu Radio Online
 |--------------------------------------------------------------------------
 |
-| Platform-wide settings: the two hosts the application answers on, the
+| Platform-wide settings: the three hosts the application answers on, the
 | virtual FM dial, the wallet limits and the timezone used to schedule
 | programs. Secrets never live here, only references to the environment.
 |
@@ -25,16 +25,19 @@ return [
     ],
 
     /*
-    | Listeners use the public host; the platform staff and every station
-    | team work from the control host (super admin panel and studios).
+    | One host per audience (see App\Domain\Platform\PlatformHost): listeners
+    | use the public host, creators run their stations from the console host
+    | and the platform staff works from the control host.
     */
     'hosts' => [
         'public' => env('PUBLIC_HOST', 'turadioonline.miacademiapreu.com'),
+        'studio' => env('STUDIO_HOST', 'consola-fullradio.miacademiapreu.com'),
         'control' => env('CONTROL_HOST', 'control-turadioonline.miacademiapreu.com'),
     ],
 
     'urls' => [
         'public' => env('PUBLIC_URL', 'https://turadioonline.miacademiapreu.com'),
+        'studio' => env('STUDIO_URL', 'https://consola-fullradio.miacademiapreu.com'),
         'control' => env('CONTROL_URL', 'https://control-turadioonline.miacademiapreu.com'),
     ],
 

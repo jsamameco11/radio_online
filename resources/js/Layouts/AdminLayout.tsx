@@ -85,7 +85,7 @@ export default function AdminLayout({ title, children }: { title: string; childr
           </span>
           <span className="leading-tight">
             <span className="block font-display text-sm font-semibold">{app.name}</span>
-            <span className="block text-xs text-muted">Centro de control</span>
+            <span className="block text-xs text-muted">Administración</span>
           </span>
         </Link>
       }
@@ -94,9 +94,9 @@ export default function AdminLayout({ title, children }: { title: string; childr
           <h1 className="truncate text-sm font-semibold">{title}</h1>
           <div className="flex items-center gap-2">
             {auth.user?.has_studio && (
-              <Link href="/" className="hidden rounded-xl px-3 py-1.5 text-sm text-muted hover:bg-raised hover:text-ink sm:block">
-                Mis estudios
-              </Link>
+              <a href={app.urls.studio} className="hidden rounded-xl px-3 py-1.5 text-sm text-muted hover:bg-raised hover:text-ink sm:block">
+                Mi consola
+              </a>
             )}
             <UserMenu />
           </div>

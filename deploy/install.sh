@@ -6,13 +6,14 @@
 #   /opt/turadioonline/.env       production environment, created by hand from .env.example
 #                                 (Supabase, Wasabi, Culqi, Google, Reverb and mail credentials live only there)
 #
-# Sets up PHP-FPM, Apache for both hosts with HTTPS, the queue worker, Reverb and the scheduler.
+# Sets up PHP-FPM, Apache for the three hosts with HTTPS, the queue worker, Reverb and the scheduler.
 # Everyday code changes go through release.ps1 (release.sh), which never touches data.
 set -euo pipefail
 
 APP_DIR=/opt/turadioonline
 ARCHIVE=/tmp/turadioonline.tgz
 PUBLIC_HOST=turadioonline.miacademiapreu.com
+STUDIO_HOST=consola-fullradio.miacademiapreu.com
 CONTROL_HOST=control-turadioonline.miacademiapreu.com
 ADMIN_EMAIL=${CERTBOT_EMAIL:-admin@miacademiapreu.com}
 
@@ -128,7 +129,7 @@ a2enconf turadioonline-storage >/dev/null
 cat > /etc/apache2/sites-available/turadioonline.conf <<APACHE
 <VirtualHost *:80>
   ServerName ${PUBLIC_HOST}
-  ServerAlias ${CONTROL_HOST}
+  ServerAlias ${STUDIO_HOST} ${CONTROL_HOST}
 
   Alias /.well-known/acme-challenge/ /var/www/letsencrypt/.well-known/acme-challenge/
   <Directory /var/www/letsencrypt/.well-known/acme-challenge/>
@@ -144,16 +145,16 @@ mkdir -p /var/www/letsencrypt
 a2ensite turadioonline >/dev/null
 systemctl reload apache2
 
-if [[ ! -f /etc/letsencrypt/live/${PUBLIC_HOST}/fullchain.pem ]]; then
-  certbot certonly --webroot -w /var/www/letsencrypt -d "${PUBLIC_HOST}" -d "${CONTROL_HOST}" \
-    --non-interactive --agree-tos -m "${ADMIN_EMAIL}"
-fi
+# One certificate for the three hosts; --expand adds a host to an existing certificate.
+certbot certonly --webroot -w /var/www/letsencrypt --cert-name "${PUBLIC_HOST}" \
+  -d "${PUBLIC_HOST}" -d "${STUDIO_HOST}" -d "${CONTROL_HOST}" \
+  --expand --keep-until-expiring --non-interactive --agree-tos -m "${ADMIN_EMAIL}"
 
 cat > /etc/apache2/sites-available/turadioonline-le-ssl.conf <<APACHE
 <IfModule mod_ssl.c>
 <VirtualHost *:443>
   ServerName ${PUBLIC_HOST}
-  ServerAlias ${CONTROL_HOST}
+  ServerAlias ${STUDIO_HOST} ${CONTROL_HOST}
   DocumentRoot ${APP_DIR}/public
 
   <Directory ${APP_DIR}/public>
@@ -199,7 +200,7 @@ systemctl reload apache2
 
 echo "==> Health checks"
 sleep 1
-for host in "${PUBLIC_HOST}" "${CONTROL_HOST}"; do
+for host in "${PUBLIC_HOST}" "${STUDIO_HOST}" "${CONTROL_HOST}"; do
   curl -s -o /dev/null -w "${host}/up %{http_code}\n" --resolve "${host}:443:127.0.0.1" "https://${host}/up" -k
 done
 

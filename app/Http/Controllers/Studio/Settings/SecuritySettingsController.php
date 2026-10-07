@@ -98,7 +98,7 @@ class SecuritySettingsController extends Controller
         $name = $station->displayName();
         $close->handle($station, $request->user());
 
-        return redirect()->route('control.home')->with('success', "Cerraste {$name}. La frecuencia quedó reservada.");
+        return redirect()->route('studio.home')->with('success', "Cerraste {$name}. La frecuencia quedó reservada.");
     }
 
     /**

@@ -8,7 +8,7 @@ use App\Http\Controllers\Account\SessionController;
 use Illuminate\Support\Facades\Route;
 
 /*
-| Profile and security pages, on both hosts. The password and two-factor
+| Profile and security pages, on every host. The password and two-factor
 | changes themselves are Fortify endpoints (config/fortify.php paths).
 */
 

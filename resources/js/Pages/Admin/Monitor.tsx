@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { monitorCellClasses, monitorDotClasses } from "@/Components/admin/status-tones";
 import { StationLogo, StreamStatusBadge } from "@/Components/station/station-identity";
 import { Badge } from "@/Components/ui/badge";
-import { ButtonLink } from "@/Components/ui/button";
+import { ButtonLink, buttonClasses } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/field";
 import { PageHeader } from "@/Components/ui/page-header";
 import AdminLayout from "@/Layouts/AdminLayout";
@@ -171,6 +171,7 @@ export default function Monitor({ cells: initialCells, statuses, staleSeconds, g
 }
 
 function DetailDrawer({ slug, onClose, permissions }: { slug: string; onClose: () => void; permissions: string[] }) {
+  const { app } = usePage<SharedProps>().props;
   const [detail, setDetail] = useState<MonitorDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -274,9 +275,9 @@ function DetailDrawer({ slug, onClose, permissions }: { slug: string; onClose: (
                     </ButtonLink>
                   )}
                   {permissions.includes("studios.enter") && (
-                    <ButtonLink href={`/estudio/${detail.frequency.slug}`} size="sm" variant="ghost">
+                    <a href={`${app.urls.studio}/${detail.frequency.slug}`} target="_blank" rel="noreferrer" className={buttonClasses("ghost", "sm")}>
                       Entrar al estudio
-                    </ButtonLink>
+                    </a>
                   )}
                 </div>
               </div>

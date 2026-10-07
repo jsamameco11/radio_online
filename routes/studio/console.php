@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 | Studio — broadcast: the live console, the schedule and the broadcast
-| settings (/estudio/{frequency}/…, names "studio.*"). Console and schedule
+| settings (console host, /{frequency}/…, names "studio.*"). Console and schedule
 | actions answer JSON; ids are resolved inside the controllers, scoped to the
 | current station.
 */

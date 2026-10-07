@@ -2,13 +2,14 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Platform\PlatformHost;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * The control host is only for the platform staff and station teams.
- * Listeners are sent back to the public platform.
+ * The control host is only for the platform staff. Creators are sent to
+ * their console and listeners back to the public platform.
  */
 class EnsureControlAccess
 {
@@ -16,10 +17,12 @@ class EnsureControlAccess
     {
         $user = $request->user();
 
-        if ($user === null || $user->isStaff() || $user->memberships()->exists()) {
+        if ($user === null || $user->isStaff()) {
             return $next($request);
         }
 
-        return redirect()->away(rtrim((string) config('platform.urls.public'), '/').'/crear-mi-radio');
+        return redirect()->away($user->memberships()->exists()
+            ? PlatformHost::Studio->url()
+            : PlatformHost::Public->url('/crear-mi-radio'));
     }
 }

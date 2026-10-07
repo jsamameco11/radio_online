@@ -8,7 +8,7 @@ import { PageErrors } from "@/Components/forms/page-errors";
 import { FrequencyTitle, StationLogo, StreamStatusBadge } from "@/Components/station/station-identity";
 import { Avatar } from "@/Components/ui/avatar";
 import { Badge } from "@/Components/ui/badge";
-import { Button, ButtonLink } from "@/Components/ui/button";
+import { Button, buttonClasses } from "@/Components/ui/button";
 import { Field, Input, Select, Textarea } from "@/Components/ui/field";
 import { Modal } from "@/Components/ui/modal";
 import { Panel, Stat } from "@/Components/ui/panel";
@@ -86,9 +86,9 @@ export default function StationShow({ station, team, stats, settings, reports, b
               </a>
             )}
             {can.enterStudio && (
-              <ButtonLink href={`/estudio/${station.frequency.slug}`} variant="secondary">
+              <a href={`${app.urls.studio}/${station.frequency.slug}`} target="_blank" rel="noreferrer" className={buttonClasses("secondary")}>
                 Entrar al estudio
-              </ButtonLink>
+              </a>
             )}
             {can.update && (
               <Button variant="secondary" icon={<Pencil className="size-4" />} onClick={() => setEditing(true)}>

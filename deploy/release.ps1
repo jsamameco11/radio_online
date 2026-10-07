@@ -4,7 +4,7 @@
 #   powershell -ExecutionPolicy Bypass -File deploy\release.ps1 -Install    # first installation (see install.sh)
 param(
   [string]$Server = "root@161.132.51.100",
-  [string[]]$Sites = @("https://turadioonline.miacademiapreu.com", "https://control-turadioonline.miacademiapreu.com"),
+  [string[]]$Sites = @("https://turadioonline.miacademiapreu.com", "https://consola-fullradio.miacademiapreu.com", "https://control-turadioonline.miacademiapreu.com"),
   [switch]$SkipBuild,
   [switch]$Install
 )

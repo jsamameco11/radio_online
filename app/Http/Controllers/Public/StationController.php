@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Public;
 use App\Domain\Chat\ChatFeed;
 use App\Domain\Discovery\Queries\EpisodeCatalog;
 use App\Domain\Discovery\Queries\StationDirectory;
+use App\Domain\Stations\Support\StationLinks;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Public\ReportContentRequest;
 use App\Http\Resources\EpisodeResource;
@@ -60,13 +61,11 @@ class StationController extends Controller
      */
     public static function context(User $user, Station $station): array
     {
-        $slug = $station->frequency->slug;
-
         return [
             'station' => StationResource::make($station)->resolve(),
             'isFollowing' => $user->follows()->whereKey($station->id)->exists(),
-            'studioUrl' => $user->roleIn($station) === null ? null : rtrim((string) config('platform.urls.control'), '/').'/estudio/'.$slug,
-            'shareUrl' => rtrim((string) config('platform.urls.public'), '/').'/radio/'.$slug,
+            'studioUrl' => $user->roleIn($station) === null ? null : StationLinks::studio($station),
+            'shareUrl' => StationLinks::listen($station),
             'reportReasons' => ReportContentRequest::reasonOptions(),
         ];
     }

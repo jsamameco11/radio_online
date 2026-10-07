@@ -6,6 +6,7 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
+use App\Domain\Platform\PlatformHost;
 use App\Domain\Platform\PlatformSettings;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -33,13 +34,13 @@ class FortifyServiceProvider extends ServiceProvider
     private function registerViews(): void
     {
         Fortify::loginView(fn (Request $request) => Inertia::render('Auth/Login', [
-            'canRegister' => ! $this->onControlHost($request) && $this->registrationsOpen(),
+            'canRegister' => $this->onPublicHost($request) && $this->registrationsOpen(),
             'status' => $request->session()->get('status'),
         ]));
 
         Fortify::registerView(function (Request $request) {
-            if ($this->onControlHost($request)) {
-                return redirect()->away(rtrim((string) config('platform.urls.public'), '/').'/registro');
+            if (! $this->onPublicHost($request)) {
+                return redirect()->away(PlatformHost::Public->url('/registro'));
             }
 
             return Inertia::render('Auth/Register', ['open' => $this->registrationsOpen()]);
@@ -81,8 +82,9 @@ class FortifyServiceProvider extends ServiceProvider
         return (bool) $this->app->make(PlatformSettings::class)->get('registrations_open');
     }
 
-    private function onControlHost(Request $request): bool
+    /** Accounts are created where listeners arrive; the console and the control panel only sign in. */
+    private function onPublicHost(Request $request): bool
     {
-        return strtolower($request->getHost()) === strtolower((string) config('platform.hosts.control'));
+        return PlatformHost::of($request) === PlatformHost::Public;
     }
 }

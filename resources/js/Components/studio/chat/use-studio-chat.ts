@@ -25,7 +25,7 @@ function upsert(list: StudioChatMessage[], message: StudioChatMessage): StudioCh
 export function useStudioChat({ initial, onIncoming }: { initial?: StudioChatFeed; onIncoming?: (message: StudioChatMessage) => void } = {}) {
   const { studio } = usePage<SharedProps>().props;
   const stationId = studio?.station.id;
-  const base = studio ? `/estudio/${studio.station.frequency.slug}/chat` : null;
+  const base = studio ? `/${studio.station.frequency.slug}/chat` : null;
   const [feed, setFeed] = useState<StudioChatFeed | null>(initial ?? null);
   const known = useRef<Set<string>>(new Set(initial?.messages.map((message) => message.id) ?? []));
   const loaded = useRef(initial !== undefined);

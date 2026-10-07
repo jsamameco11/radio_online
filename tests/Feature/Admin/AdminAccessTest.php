@@ -70,7 +70,7 @@ class AdminAccessTest extends TestCase
 
         $this->actingAs(Station::factory()->create()->owner)
             ->get($this->controlUrl('/admin/radios'))
-            ->assertForbidden();
+            ->assertRedirect($this->consoleUrl());
     }
 
     #[Test]

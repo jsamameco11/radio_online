@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Domain\Access\Enums\Permission;
+use App\Domain\Platform\PlatformHost;
 use App\Domain\Platform\PlatformSettings;
 use App\Domain\Stations\Enums\StationPermission;
 use App\Domain\Stations\Support\CurrentStation;
@@ -24,7 +25,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'app' => [
                 'name' => config('platform.name'),
-                'host' => $this->hostKind($request),
+                'host' => PlatformHost::of($request)->value,
                 'urls' => config('platform.urls'),
                 'currency' => config('platform.wallet.currency'),
             ],
@@ -39,12 +40,6 @@ class HandleInertiaRequests extends Middleware
             'studio' => fn () => $user ? $this->studioPayload($request, $user) : null,
             'notice' => fn () => app(PlatformSettings::class)->get('maintenance_banner'),
         ];
-    }
-
-    /** "public" or "control": which of the two applications answered. */
-    private function hostKind(Request $request): string
-    {
-        return strtolower($request->getHost()) === strtolower((string) config('platform.hosts.control')) ? 'control' : 'public';
     }
 
     /**

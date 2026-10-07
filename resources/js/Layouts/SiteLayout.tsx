@@ -41,8 +41,8 @@ function StudioCta({ className }: { className?: string }) {
   const { auth, app } = usePage<SharedProps>().props;
   if (auth.user?.has_studio) {
     return (
-      <a href={app.urls.control} className={buttonClasses("secondary", "md", className)}>
-        <Mic2 className="size-4" /> Mi estudio
+      <a href={app.urls.studio} className={buttonClasses("secondary", "md", className)}>
+        <Mic2 className="size-4" /> Mi consola
       </a>
     );
   }

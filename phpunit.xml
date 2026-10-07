@@ -34,8 +34,10 @@
         <env name="WASABI_BUCKET" value=""/>
         <env name="PAYMENTS_DRIVER" value="sandbox"/>
         <env name="PUBLIC_HOST" value="turadioonline.test"/>
+        <env name="STUDIO_HOST" value="consola-fullradio.test"/>
         <env name="CONTROL_HOST" value="control-turadioonline.test"/>
         <env name="PUBLIC_URL" value="http://turadioonline.test"/>
+        <env name="STUDIO_URL" value="http://consola-fullradio.test"/>
         <env name="CONTROL_URL" value="http://control-turadioonline.test"/>
         <env name="DIAL_SIZE" value="500"/>
         <env name="SUPERADMIN_EMAIL" value=""/>

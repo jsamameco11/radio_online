@@ -47,7 +47,7 @@ function AccountBody({ title, description, children }: { title: string; descript
   );
 }
 
-/** Frame of the account pages: the public site layout on the public host, a light bar on the control host. */
+/** Frame of the account pages: the public site layout for listeners, a light bar on the console and the control panel. */
 export function AccountShell({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   const { app } = usePage<SharedProps>().props;
 
@@ -71,7 +71,7 @@ export function AccountShell({ title, description, children }: { title: string; 
               <BrandMark />
               <span className="hidden sm:block">
                 <BrandName className="block" />
-                <span className="block text-xs text-muted">Centro de control</span>
+                <span className="block text-xs text-muted">{app.host === "studio" ? "Consola de creadores" : "Administración"}</span>
               </span>
             </Link>
             <Link href="/" className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-muted hover:bg-raised hover:text-ink">

@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 | Studio › media: library, recordings, playlists, music catalog, episodes and
-| the audio editor (/estudio/{frequency}/…, names "studio.*").
+| the audio editor (console host, /{frequency}/…, names "studio.*").
 | Ids are resolved inside the controllers, scoped to the current station.
 */
 

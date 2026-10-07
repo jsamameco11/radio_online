@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 | Studio › gifts, listener messages, finances and their settings
-| (/estudio/{frequency}/…, names "studio.*").
+| (console host, /{frequency}/…, names "studio.*").
 */
 
 Route::middleware('studio.can:gifts.view')->group(function () {

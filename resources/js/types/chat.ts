@@ -73,7 +73,7 @@ export interface ChatMuteEntry {
   until: string | null;
 }
 
-/** GET /estudio/{frequency}/chat/mensajes */
+/** GET /{frequency}/chat/mensajes on the creators' console */
 export interface StudioChatFeed {
   open: boolean;
   messages: StudioChatMessage[];

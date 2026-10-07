@@ -29,7 +29,7 @@ interface PlayedEvent {
 export function StudioGiftInbox({ className }: { className?: string }) {
   const { studio, app } = usePage<SharedProps>().props;
   const stationId = studio?.station.id;
-  const base = studio ? `/estudio/${studio.station.frequency.slug}` : null;
+  const base = studio ? `/${studio.station.frequency.slug}` : null;
   const [gifts, setGifts] = useState<ReceivedGift[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
