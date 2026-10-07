@@ -7,6 +7,7 @@ use App\Domain\Wallet\WalletLedger;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Wallet\AdjustWalletRequest;
 use App\Http\Resources\WalletTransactionResource;
+use App\Models\ChatMessage;
 use App\Models\GiftTransaction;
 use App\Models\Station;
 use App\Models\User;
@@ -55,7 +56,8 @@ class LedgerController extends Controller
             'summary' => [
                 'listener_balances_cents' => (int) Wallet::query()->where('owner_type', 'user')->sum('balance_cents'),
                 'station_balances_cents' => (int) Wallet::query()->where('owner_type', 'station')->sum('balance_cents'),
-                'platform_fees_cents' => (int) GiftTransaction::query()->sum('platform_fee_cents'),
+                'platform_fees_cents' => (int) GiftTransaction::query()->sum('platform_fee_cents') + (int) ChatMessage::acrossStations()->sum('platform_fee_cents'),
+                'processor_fees_cents' => (int) GiftTransaction::query()->sum('processor_fee_cents') + (int) ChatMessage::acrossStations()->sum('processor_fee_cents'),
                 'deposits_cents' => (int) WalletTransaction::query()->where('type', WalletTransactionType::Deposit->value)->sum('amount_cents'),
             ],
             'transactions' => $transactions,

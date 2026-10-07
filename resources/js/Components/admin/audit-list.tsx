@@ -45,6 +45,11 @@ const ACTION_LABELS: Record<string, string> = {
   "gift_message.hidden": "Ocultó un mensaje de regalo",
   "gift_message.restored": "Volvió a mostrar un mensaje de regalo",
   "gift_message.reported": "Reportó un mensaje de regalo",
+  "chat.highlighted": "Destacó un mensaje en el chat",
+  "chat.hidden": "Ocultó un mensaje del chat",
+  "chat.restored": "Volvió a mostrar un mensaje del chat",
+  "chat.muted": "Silenció a un oyente en el chat",
+  "chat.unmuted": "Quitó el silencio a un oyente en el chat",
   "platform.settings_updated": "Cambió la configuración de la plataforma",
 };
 

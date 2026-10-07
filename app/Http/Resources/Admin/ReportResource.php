@@ -2,7 +2,9 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Domain\Chat\Enums\ChatAuthor;
 use App\Domain\Gifts\Enums\GiftMessageStatus;
+use App\Models\ChatMessage;
 use App\Models\Episode;
 use App\Models\GiftMessage;
 use App\Models\Report;
@@ -68,6 +70,14 @@ class ReportResource extends JsonResource
                 'excerpt' => $content->body ?? ($content->voice_path ? 'Nota de voz' : null),
                 'station' => $content->giftTransaction->station === null ? null : $this->station($content->giftTransaction->station),
                 'hidden' => $content->status === GiftMessageStatus::Hidden,
+            ],
+            $content instanceof ChatMessage => [
+                'type' => 'chat_message',
+                'type_label' => 'Mensaje del chat',
+                'title' => $content->author === ChatAuthor::Station ? 'Respuesta de la emisora' : 'Mensaje de '.($content->user->name ?? 'un oyente'),
+                'excerpt' => $content->body,
+                'station' => $content->station === null ? null : $this->station($content->station),
+                'hidden' => ! $content->isVisible(),
             ],
             default => [
                 'type' => $this->reportable_type,

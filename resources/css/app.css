@@ -35,6 +35,8 @@
   --color-warning-soft: var(--warning-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-royal: var(--royal);
+  --color-royal-soft: var(--royal-soft);
 }
 
 :root {
@@ -60,6 +62,8 @@
   --warning-soft: #fff4e5;
   --danger: #dc2626;
   --danger-soft: #fdecec;
+  --royal: #7c3aed;
+  --royal-soft: #f3edff;
   color-scheme: light;
 }
 
@@ -80,6 +84,7 @@
   --info-soft: #141d3a;
   --warning-soft: #33220a;
   --danger-soft: #3a1416;
+  --royal-soft: #221638;
   color-scheme: dark;
 }
 
@@ -124,9 +129,22 @@ body {
 .animate-equalizer > span:nth-child(2) { animation-delay: -0.3s; }
 .animate-equalizer > span:nth-child(3) { animation-delay: -0.6s; }
 
+/* A light sweep across the most valuable highlighted chat messages. */
+@keyframes sheen {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.animate-sheen {
+  background-image: linear-gradient(110deg, transparent 35%, color-mix(in oklab, currentColor 12%, transparent) 50%, transparent 65%);
+  background-size: 200% 100%;
+  animation: sheen 3.2s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-onair,
-  .animate-equalizer > span {
+  .animate-equalizer > span,
+  .animate-sheen {
     animation: none;
   }
 }

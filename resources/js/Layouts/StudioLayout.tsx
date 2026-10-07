@@ -1,6 +1,7 @@
 import { Head, Link, usePage } from "@inertiajs/react";
 import {
   AudioLines,
+  BadgeDollarSign,
   BarChart3,
   CalendarClock,
   Disc3,
@@ -11,11 +12,13 @@ import {
   Library,
   ListMusic,
   Mail,
+  MessagesSquare,
   Mic2,
   Podcast,
   Radio,
   Scissors,
   Settings2,
+  Trophy,
   Users,
   Wallet,
 } from "lucide-react";
@@ -24,6 +27,7 @@ import type { NavGroup, NavItem } from "@/Components/shell/sidebar-shell";
 import { SidebarShell } from "@/Components/shell/sidebar-shell";
 import { UserMenu } from "@/Components/shell/user-menu";
 import { FrequencyTitle, StationLogo, StreamStatusBadge } from "@/Components/station/station-identity";
+import { LiveChatDock } from "@/Components/studio/chat/live-chat-dock";
 import type { SharedProps, StationPermission } from "@/types";
 
 /** Base URL of the open studio: "/estudio/89-30". */
@@ -53,7 +57,9 @@ export default function StudioLayout({ title, children }: { title: string; child
     {
       items: [
         { label: "Resumen", href: url(), icon: LayoutDashboard, prefix: false },
+        { label: "Metas y crecimiento", href: url("/crecimiento"), icon: Trophy, permission: "analytics.view" },
         { label: "Consola en vivo", href: url("/consola"), icon: Radio, permission: "console.operate" },
+        { label: "Chat en vivo", href: url("/chat"), icon: MessagesSquare, permission: "console.operate" },
         { label: "Programación", href: url("/programacion"), icon: CalendarClock, permission: "schedule.manage" },
       ],
     },
@@ -77,6 +83,7 @@ export default function StudioLayout({ title, children }: { title: string; child
         { label: "Estadísticas", href: url("/estadisticas"), icon: BarChart3, permission: "analytics.view" },
         { label: "Audiencia", href: url("/audiencia"), icon: Users, permission: "analytics.view" },
         { label: "Finanzas", href: url("/finanzas"), icon: Wallet, permission: "finance.view" },
+        { label: "Monetización", href: url("/monetizacion"), icon: BadgeDollarSign, permission: "finance.withdraw" },
       ],
     },
     {
@@ -160,6 +167,7 @@ export default function StudioLayout({ title, children }: { title: string; child
     >
       <Head title={`${title} · ${station.frequency.display}`} />
       {children}
+      <LiveChatDock />
     </SidebarShell>
   );
 }

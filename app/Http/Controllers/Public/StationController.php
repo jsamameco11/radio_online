@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Domain\Chat\ChatFeed;
 use App\Domain\Discovery\Queries\EpisodeCatalog;
 use App\Domain\Discovery\Queries\StationDirectory;
 use App\Http\Controllers\Controller;
@@ -20,7 +21,7 @@ use Inertia\Response;
 /** The page of a station: /radio/89-30. */
 class StationController extends Controller
 {
-    public function show(Request $request, Frequency $frequency, StationDirectory $stations, EpisodeCatalog $episodes): Response
+    public function show(Request $request, Frequency $frequency, StationDirectory $stations, EpisodeCatalog $episodes, ChatFeed $chat): Response
     {
         $station = $stations->onFrequencyOrFail($frequency);
 
@@ -47,6 +48,7 @@ class StationController extends Controller
                 ->withQueryString()
                 ->through(fn (Episode $episode) => EpisodeResource::make($episode)->resolve($request)),
             'related' => StationResource::collection($related)->resolve($request),
+            'chat' => $chat->forListeners($station, $request->user()),
         ]);
     }
 

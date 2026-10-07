@@ -1,5 +1,6 @@
 import { Link } from "@inertiajs/react";
 import { Podcast } from "lucide-react";
+import { LiveChat } from "@/Components/chat/live-chat";
 import { GiftLauncher } from "@/Components/gifts/gift-launcher";
 import { usePlayer } from "@/Components/player";
 import { EpisodeRow } from "@/Components/site/episode-card";
@@ -11,8 +12,10 @@ import { EmptyState } from "@/Components/ui/empty-state";
 import { Pagination } from "@/Components/ui/pagination";
 import { Panel } from "@/Components/ui/panel";
 import SiteLayout from "@/Layouts/SiteLayout";
+import { cn } from "@/lib/cn";
 import { ago, dateTime } from "@/lib/format";
 import type { Paginated, Station as StationData } from "@/types";
+import type { ChatSnapshot } from "@/types/chat";
 import type { EpisodeCard, StationContext } from "@/types/site";
 
 interface StationProps extends StationContext {
@@ -26,6 +29,7 @@ interface StationProps extends StationContext {
   };
   episodes: Paginated<EpisodeCard>;
   related: StationData[];
+  chat: ChatSnapshot;
 }
 
 const languages: Record<string, string> = { es: "Español", en: "Inglés", pt: "Portugués", qu: "Quechua", ay: "Aimara", fr: "Francés", it: "Italiano" };
@@ -50,7 +54,7 @@ function NowOnAir({ station }: { station: StationData }) {
   );
 }
 
-export default function Station({ about, episodes, related, ...context }: StationProps) {
+export default function Station({ about, episodes, related, chat, ...context }: StationProps) {
   const { station } = context;
   const latest = episodes.current_page === 1 ? episodes.data[0] : undefined;
   const rest = latest ? episodes.data.slice(1) : episodes.data;
@@ -88,7 +92,8 @@ export default function Station({ about, episodes, related, ...context }: Statio
             )}
           </section>
 
-          <aside className="space-y-4">
+          <aside className={cn("space-y-4", chat.open && "order-first lg:order-none")}>
+            <LiveChat key={station.id} station={station} initial={chat} reportReasons={context.reportReasons} />
             <NowOnAir station={station} />
             <Panel title="Acerca de la radio">
               <div className="space-y-4 text-sm">

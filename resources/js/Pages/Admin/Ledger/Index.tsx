@@ -29,7 +29,7 @@ interface Filters {
 interface Props {
   filters: Filters;
   types: Labeled<WalletTransactionType>[];
-  summary: { listener_balances_cents: number; station_balances_cents: number; platform_fees_cents: number; deposits_cents: number };
+  summary: { listener_balances_cents: number; station_balances_cents: number; platform_fees_cents: number; processor_fees_cents: number; deposits_cents: number };
   transactions: Paginated<WalletTransaction>;
   canAdjust: boolean;
 }
@@ -78,7 +78,12 @@ export default function LedgerIndex({ filters, types, summary, transactions, can
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Stat label="Saldo de oyentes" value={money(summary.listener_balances_cents, app.currency)} icon={<Users className="size-4" />} />
           <Stat label="Saldo de radios" value={money(summary.station_balances_cents, app.currency)} icon={<Landmark className="size-4" />} />
-          <Stat label="Comisiones de la plataforma" value={money(summary.platform_fees_cents, app.currency)} icon={<Percent className="size-4" />} />
+          <Stat
+            label="Ganancia de la plataforma"
+            value={money(summary.platform_fees_cents, app.currency)}
+            icon={<Percent className="size-4" />}
+            hint={`Costo del procesador: ${money(summary.processor_fees_cents, app.currency)}`}
+          />
           <Stat label="Recargas acreditadas" value={money(summary.deposits_cents, app.currency)} icon={<Wallet className="size-4" />} />
         </div>
 
