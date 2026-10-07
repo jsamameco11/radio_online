@@ -4,7 +4,7 @@
 # Expects:
 #   /tmp/turadioonline.tgz       the code packed by release.ps1 -Install
 #   /opt/turadioonline/.env       production environment, created by hand from .env.example
-#                                 (Supabase, Wasabi, Stripe, Reverb and mail credentials live only there)
+#                                 (Supabase, Wasabi, Culqi, Google, Reverb and mail credentials live only there)
 #
 # Sets up PHP-FPM, Apache for both hosts with HTTPS, the queue worker, Reverb and the scheduler.
 # Everyday code changes go through release.ps1 (release.sh), which never touches data.
@@ -82,6 +82,21 @@ Restart=always
 WantedBy=multi-user.target
 UNIT
 
+cat > /etc/systemd/system/turadioonline-media.service <<UNIT
+[Unit]
+Description=Tu Radio Online audio renders (ffmpeg)
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=${APP_DIR}
+ExecStart=/usr/bin/php artisan queue:work media --queue=media --timeout=10800 --tries=1 --sleep=3
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
 cat > /etc/systemd/system/turadioonline-reverb.service <<UNIT
 [Unit]
 Description=Tu Radio Online realtime server (Reverb)
@@ -101,7 +116,7 @@ UNIT
 echo "* * * * * www-data cd ${APP_DIR} && php artisan schedule:run >> /dev/null 2>&1" > /etc/cron.d/turadioonline
 
 systemctl daemon-reload
-systemctl enable --now turadioonline-queue turadioonline-reverb
+systemctl enable --now turadioonline-queue turadioonline-media turadioonline-reverb
 
 echo "==> Apache"
 a2enmod proxy proxy_fcgi proxy_http proxy_wstunnel rewrite headers setenvif ssl >/dev/null

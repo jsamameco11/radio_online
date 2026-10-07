@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AccessSeeder::class,
             CategorySeeder::class,
+            CatalogSeeder::class,
             DialSeeder::class,
             GiftSeeder::class,
             SuperAdminSeeder::class,

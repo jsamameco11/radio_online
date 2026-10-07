@@ -76,8 +76,47 @@ return [
     ],
 
     'payments' => [
-        // "stripe" in production; "sandbox" credits deposits at once for local development.
+        // "culqi" in production; "sandbox" simulates an approved card for local development.
         'driver' => env('PAYMENTS_DRIVER', 'sandbox'),
+    ],
+
+    /*
+    | Studio media: the audio library, episodes and the audio editor. With
+    | Wasabi, audio goes from the browser straight to the bucket in parts;
+    | without it, the file travels with the form up to max_form_upload_mb.
+    */
+    'media' => [
+        'ffmpeg' => env('FFMPEG_BINARY') ?: 'ffmpeg',
+        'max_form_upload_mb' => 75,
+        'max_direct_upload_mb' => 2048,
+        'max_cover_mb' => 8,
+        'max_episode_hashtags' => 8,
+        // Longest audio a library accepts, in seconds.
+        'max_duration' => 6 * 3600,
+        'identify' => [
+            'user_agent' => env('MUSIC_LOOKUP_USER_AGENT') ?: 'TuRadioOnline/1.0 (https://turadioonline.miacademiapreu.com)',
+            'timeout' => 8,
+            'store_country' => env('MUSIC_LOOKUP_COUNTRY', 'US'),
+            // MusicBrainz allows one request per second per client.
+            'musicbrainz_gap_ms' => 1100,
+        ],
+    ],
+
+    /*
+    | Listening: the live microphone reaches listeners over WebRTC (a TURN
+    | relay lets it cross strict networks), presence windows and the checks
+    | that keep broken library files off the air.
+    */
+    'streaming' => [
+        'stun_urls' => ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'],
+        'turn_url' => env('TURN_URL'),
+        'turn_username' => env('TURN_USERNAME'),
+        'turn_credential' => env('TURN_CREDENTIAL'),
+        // Seconds without a heartbeat after which a listener counts as gone.
+        'listener_window' => 45,
+        'verify_files' => (bool) env('STREAMING_VERIFY_FILES', true),
+        // Days an unsaved live recording is kept before it is deleted.
+        'recording_days' => 2,
     ],
 
 ];

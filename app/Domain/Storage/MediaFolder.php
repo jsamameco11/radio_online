@@ -20,9 +20,20 @@ enum MediaFolder: string
     case Avatars = 'avatars';
     case Gifts = 'gifts';
     case GiftMessages = 'gift-messages';
+    case ApplicantPhotos = 'applicant-photos';
+    case IdentityDocuments = 'identity-documents';
+    case Resumes = 'resumes';
+    case Certificates = 'certificates';
 
     public function isPrivate(): bool
     {
-        return in_array($this, [self::Recordings, self::GiftMessages], true);
+        return in_array($this, [
+            self::Recordings,
+            self::GiftMessages,
+            self::ApplicantPhotos,
+            self::IdentityDocuments,
+            self::Resumes,
+            self::Certificates,
+        ], true);
     }
 }

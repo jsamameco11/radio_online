@@ -37,6 +37,8 @@ class StationResource extends JsonResource
             'tagline' => $this->tagline,
             'logo_url' => $storage->url($this->logo_path),
             'cover_url' => $storage->url($this->cover_path),
+            'avatar_url' => $storage->url($this->avatar_path),
+            'banner_url' => $storage->url($this->banner_path),
             'accent_color' => $this->accent_color,
             'status' => $this->status->value,
             'stream_status' => [

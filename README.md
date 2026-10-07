@@ -7,7 +7,7 @@ Plataforma de radios por internet: cada emisora tiene su frecuencia (**89.30 FM 
 
 ## Stack
 
-Laravel 13 · Inertia 3 · React 19 · TypeScript · Tailwind 4 · Fortify (2FA) · spatie/laravel-permission · Reverb · Stripe · Wasabi (S3) · PostgreSQL (Supabase).
+Laravel 13 · Inertia 3 · React 19 · TypeScript · Tailwind 4 · Fortify (2FA) · Socialite (Google) · spatie/laravel-permission · Reverb · Culqi · Wasabi (S3) · PostgreSQL (Supabase).
 
 ## Desarrollo local
 

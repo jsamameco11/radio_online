@@ -9,6 +9,8 @@ export interface SharedProps {
   auth: { user: AuthUser | null };
   flash: { success: string | null; error: string | null; status: string | null };
   studio: StudioContext | null;
+  /** Platform-wide maintenance notice set by the staff. */
+  notice: string | null;
   [key: string]: unknown;
 }
 
@@ -36,6 +38,8 @@ export interface Station {
   tagline: string | null;
   logo_url: string | null;
   cover_url: string | null;
+  avatar_url?: string | null;
+  banner_url?: string | null;
   accent_color: string | null;
   status: "active" | "suspended";
   stream_status: { value: StreamStatusValue; label: string; audible: boolean };

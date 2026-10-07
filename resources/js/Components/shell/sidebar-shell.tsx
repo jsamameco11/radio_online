@@ -3,6 +3,7 @@ import { Menu, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { PlatformNotice } from "@/Components/shell/platform-notice";
 import { Flash } from "@/Components/ui/flash";
 import { cn } from "@/lib/cn";
 
@@ -111,6 +112,7 @@ export function SidebarShell({ brand, groups, topbar, footer, dark = false, chil
       )}
 
       <div className="lg:pl-68">
+        <PlatformNotice />
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-surface/85 px-4 backdrop-blur sm:px-6">
           <button type="button" onClick={() => setOpen(true)} className="rounded-lg p-1.5 text-muted hover:text-ink lg:hidden" aria-label="Abrir menú">
             <Menu className="size-5" />

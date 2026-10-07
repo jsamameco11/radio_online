@@ -1,12 +1,13 @@
 import { usePage } from "@inertiajs/react";
 import { CheckCircle2, AlertCircle, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { statusMessage } from "@/lib/status-messages";
 import type { SharedProps } from "@/types";
 
 /** Shows the session flash ("success" / "error" / "status") as a toast for a few seconds. */
 export function Flash() {
   const { flash } = usePage<SharedProps>().props;
-  const message = flash.error ?? flash.success ?? flash.status;
+  const message = flash.error ?? flash.success ?? statusMessage(flash.status);
   const isError = Boolean(flash.error);
   const [visible, setVisible] = useState(Boolean(message));
 

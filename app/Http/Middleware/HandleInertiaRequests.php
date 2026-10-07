@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Domain\Access\Enums\Permission;
+use App\Domain\Platform\PlatformSettings;
 use App\Domain\Stations\Enums\StationPermission;
 use App\Domain\Stations\Support\CurrentStation;
 use App\Domain\Storage\MediaStorage;
@@ -36,6 +37,7 @@ class HandleInertiaRequests extends Middleware
                 'status' => fn () => $request->session()->get('status'),
             ],
             'studio' => fn () => $user ? $this->studioPayload($request, $user) : null,
+            'notice' => fn () => app(PlatformSettings::class)->get('maintenance_banner'),
         ];
     }
 

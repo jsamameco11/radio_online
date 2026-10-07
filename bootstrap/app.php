@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureControlAccess;
 use App\Http\Middleware\EnsureStaffTwoFactor;
+use App\Http\Middleware\EnsureStationTwoFactor;
 use App\Http\Middleware\EnsureStudioPermission;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ResolveStudioStation;
@@ -24,9 +25,11 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::middleware('web')->group(function () {
                 // Sign-in, profile and security pages answer on both hosts.
                 Route::group([], base_path('routes/account.php'));
+                Route::group([], base_path('routes/auth.php'));
 
                 Route::domain(config('platform.hosts.public'))->group(function () {
                     Route::group([], base_path('routes/public/site.php'));
+                    Route::group([], base_path('routes/public/apply.php'));
                     Route::group([], base_path('routes/public/listen.php'));
                     Route::group([], base_path('routes/public/wallet.php'));
                 });
@@ -39,9 +42,10 @@ return Application::configure(basePath: dirname(__DIR__))
                         Route::prefix('admin')->name('admin.')->middleware(EnsureStaffTwoFactor::class)->group(function () {
                             Route::group([], base_path('routes/control/admin.php'));
                             Route::group([], base_path('routes/control/admin-finance.php'));
+                            Route::group([], base_path('routes/control/admin-applications.php'));
                         });
 
-                        Route::prefix('estudio/{studio}')->name('studio.')->middleware(ResolveStudioStation::class)->group(function () {
+                        Route::prefix('estudio/{studio}')->name('studio.')->middleware([ResolveStudioStation::class, EnsureStationTwoFactor::class])->group(function () {
                             Route::group([], base_path('routes/studio/station.php'));
                             Route::group([], base_path('routes/studio/console.php'));
                             Route::group([], base_path('routes/studio/media.php'));
@@ -52,6 +56,9 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Cloudflare sits in front of Apache: the visitor's IP and scheme come in its forwarded headers.
+        $middleware->trustProxies(at: '*');
+
         $middleware->web(append: [
             EnsureAccountIsActive::class,
             HandleInertiaRequests::class,
