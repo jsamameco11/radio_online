@@ -135,7 +135,7 @@ export default function Security({ settings, team, tracksSessions, userHasTwoFac
             <form onSubmit={submitClose}>
               <Panel
                 title="Cerrar la radio"
-                description="Se detiene la transmisión, la radio desaparece del dial y la frecuencia queda libre. Tus seguidores ya no podrán encontrarte."
+                description="Se detiene la transmisión, la radio desaparece del dial y la frecuencia queda libre. Tus suscriptores ya no podrán encontrarte."
                 footer={
                   <Button type="submit" variant="danger" loading={close.processing} disabled={close.data.confirmation !== frequencyLabel || close.data.password === ""}>
                     Cerrar la radio

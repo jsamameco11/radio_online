@@ -65,7 +65,7 @@ export function StationCard({ station, className }: { station: Station; classNam
               <Headphones className="size-3.5" aria-hidden /> {count(station.listener_count, true)}
             </span>
           )}
-          <span className="flex items-center gap-1" title="Seguidores">
+          <span className="flex items-center gap-1" title="Suscriptores">
             <Heart className="size-3.5" aria-hidden /> {count(station.follower_count, true)}
           </span>
           {station.categories?.[0] && <span className="ml-auto truncate">{station.categories[0].name}</span>}

@@ -112,7 +112,7 @@ export default function FrequencyShow({ frequency, station, closedStations, requ
                       <StreamStatusBadge status={station.stream_status.value} />
                       {station.status === "suspended" && <Badge tone="danger">Suspendida</Badge>}
                       <span>{count(station.listener_count)} oyentes</span>
-                      <span>{count(station.follower_count)} seguidores</span>
+                      <span>{count(station.follower_count)} suscriptores</span>
                       <span>
                         {station.owner.name} · {station.owner.email}
                       </span>

@@ -16,7 +16,7 @@ interface Settings {
 
 const OPTIONS: { key: keyof Settings; label: string; description: string }[] = [
   { key: "show_listener_count", label: "Mostrar oyentes en vivo", description: "El contador de personas escuchando ahora." },
-  { key: "show_follower_count", label: "Mostrar seguidores", description: "La cantidad de seguidores en tu página." },
+  { key: "show_follower_count", label: "Mostrar suscriptores", description: "La cantidad de suscriptores en tu página." },
   { key: "show_top_supporters", label: "Mostrar a quienes más te apoyan", description: "El ranking de regalos en tu página." },
   { key: "allow_anonymous_gifts", label: "Permitir regalos anónimos", description: "El oyente puede ocultar su nombre al enviar un regalo." },
   { key: "show_team", label: "Mostrar el equipo", description: "Los nombres y roles de tu equipo en la página pública." },

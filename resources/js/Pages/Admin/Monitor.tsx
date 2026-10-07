@@ -235,7 +235,7 @@ function DetailDrawer({ slug, onClose, permissions }: { slug: string; onClose: (
                 <dl className="grid grid-cols-2 gap-3">
                   <Metric label="Oyentes" value={count(station.listeners)} />
                   <Metric label="Pico" value={count(station.peak_listeners)} />
-                  <Metric label="Seguidores" value={count(station.followers)} />
+                  <Metric label="Suscriptores" value={count(station.followers)} />
                   <Metric label="Última señal" value={station.last_heartbeat_at ? ago(station.last_heartbeat_at) : "—"} />
                   <Metric label="Latencia" value={station.latency_ms !== null ? `${station.latency_ms} ms` : "—"} />
                   <Metric label="Calidad" value={station.bitrate_kbps !== null ? `${station.bitrate_kbps} kbps` : "—"} />

@@ -55,9 +55,9 @@ export function StationHero({ context, peak, extra }: { context: StationContext;
           </div>
           <div className="flex items-center gap-1.5">
             <Heart className="size-4" />
-            <dt className="sr-only">Seguidores</dt>
+            <dt className="sr-only">Suscriptores</dt>
             <dd className="tabular">
-              <strong className="font-semibold text-ink">{count(station.follower_count)}</strong> seguidores
+              <strong className="font-semibold text-ink">{count(station.follower_count)}</strong> {station.follower_count === 1 ? "suscriptor" : "suscriptores"}
             </dd>
           </div>
           {peak !== undefined && peak > 0 && (

@@ -36,8 +36,8 @@ class FollowAndReportTest extends TestCase
     #[Test]
     public function listeners_follow_a_station_once(): void
     {
-        $this->actingAs($this->listener)->post($this->stationUrl('/seguir'))->assertRedirect()->assertSessionHas('success');
-        $this->actingAs($this->listener)->post($this->stationUrl('/seguir'))->assertRedirect();
+        $this->actingAs($this->listener)->post($this->stationUrl('/suscribirme'))->assertRedirect()->assertSessionHas('success');
+        $this->actingAs($this->listener)->post($this->stationUrl('/suscribirme'))->assertRedirect();
 
         $this->assertSame(1, $this->station->fresh()->follower_count);
         $this->assertTrue($this->station->followers()->whereKey($this->listener->id)->exists());
@@ -50,9 +50,9 @@ class FollowAndReportTest extends TestCase
     #[Test]
     public function listeners_unfollow_a_station(): void
     {
-        $this->actingAs($this->listener)->post($this->stationUrl('/seguir'));
-        $this->actingAs($this->listener)->delete($this->stationUrl('/seguir'))->assertRedirect();
-        $this->actingAs($this->listener)->delete($this->stationUrl('/seguir'))->assertRedirect();
+        $this->actingAs($this->listener)->post($this->stationUrl('/suscribirme'));
+        $this->actingAs($this->listener)->delete($this->stationUrl('/suscribirme'))->assertRedirect();
+        $this->actingAs($this->listener)->delete($this->stationUrl('/suscribirme'))->assertRedirect();
 
         $this->assertSame(0, $this->station->fresh()->follower_count);
         $this->assertFalse($this->station->followers()->whereKey($this->listener->id)->exists());
@@ -87,7 +87,7 @@ class FollowAndReportTest extends TestCase
     #[Test]
     public function guests_cannot_follow_or_report(): void
     {
-        $this->post($this->stationUrl('/seguir'))->assertRedirect($this->publicUrl('/ingresar'));
+        $this->post($this->stationUrl('/suscribirme'))->assertRedirect($this->publicUrl('/ingresar'));
         $this->post($this->stationUrl('/reportar'), ['reason' => 'spam'])->assertRedirect($this->publicUrl('/ingresar'));
 
         $this->assertSame(0, Report::query()->count());

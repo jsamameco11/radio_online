@@ -2,7 +2,7 @@
 
 Plataforma de radios por internet: cada emisora tiene su frecuencia (**89.30 FM · Radio Aurora**), un estudio profesional (consola en vivo, piloto automático, programación, biblioteca, episodios, editor de audio) y recibe regalos de sus oyentes.
 
-- **Sitio público** — `turadioonline.miacademiapreu.com`: explorar, escuchar, seguir, regalar, billetera y "Crear mi radio".
+- **Sitio público** — `turadioonline.miacademiapreu.com`: explorar, escuchar, suscribirse, chat en vivo con mensajes destacados, regalar, billetera y "Crear mi radio".
 - **Centro de control** — `control-turadioonline.miacademiapreu.com`: panel de la plataforma (`/admin`) y estudios de cada emisora (`/estudio/{frecuencia}`).
 
 ## Stack

@@ -1,4 +1,4 @@
-import { Heart } from "lucide-react";
+import { BellPlus } from "lucide-react";
 import { StationGrid } from "@/Components/site/station-card";
 import { ButtonLink } from "@/Components/ui/button";
 import { EmptyState } from "@/Components/ui/empty-state";
@@ -14,12 +14,12 @@ export default function Following({ stations }: { stations: Paginated<Station> }
   return (
     <SiteLayout title="Mis radios">
       <div className="space-y-8">
-        <PageHeader eyebrow="Tu colección" title="Mis radios" description="Las radios que sigues, con las que están al aire primero." />
+        <PageHeader eyebrow="Tu colección" title="Mis radios" description="Tus suscripciones, con las radios al aire primero." />
         {stations.total === 0 ? (
           <EmptyState
-            icon={<Heart className="size-6" />}
-            title="Aún no sigues ninguna radio"
-            description="Pulsa «Seguir» en la página de una radio para tenerla siempre a mano."
+            icon={<BellPlus className="size-6" />}
+            title="Todavía no tienes suscripciones"
+            description="Pulsa «Suscribirme» en la página de una radio para tenerla siempre a mano."
             action={<ButtonLink href="/explorar">Explorar radios</ButtonLink>}
           />
         ) : (

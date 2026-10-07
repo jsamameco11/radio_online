@@ -66,7 +66,7 @@ export default function FrequencySettings({ frequency, pending, requests, histor
           <form onSubmit={submit}>
             <Panel
               title="Pedir un cambio de frecuencia"
-              description={open ? "Al aprobarse, tu radio se muda y la frecuencia actual queda libre. Tus seguidores te siguen encontrando." : "Las solicitudes están cerradas por ahora."}
+              description={open ? "Al aprobarse, tu radio se muda y la frecuencia actual queda libre. Tus suscriptores te siguen encontrando." : "Las solicitudes están cerradas por ahora."}
               footer={
                 <Button type="submit" loading={form.processing} disabled={!open || form.data.frequency === "" || form.data.reason.trim().length < 20}>
                   Enviar solicitud

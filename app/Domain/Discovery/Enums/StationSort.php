@@ -13,7 +13,7 @@ enum StationSort: string
     {
         return match ($this) {
             self::Listeners => 'Más escuchadas',
-            self::Followers => 'Más seguidas',
+            self::Followers => 'Más suscriptores',
             self::Newest => 'Nuevas',
         };
     }

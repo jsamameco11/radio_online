@@ -120,7 +120,7 @@ export default function StationShow({ station, team, stats, settings, reports, b
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Stat label="Oyentes ahora" value={count(stats.listeners_now)} hint={`Pico 30 días: ${count(stats.peak_listeners)}`} />
           <Stat label="Horas escuchadas" value={count(stats.hours)} hint={`${count(stats.sessions)} sesiones en 30 días`} />
-          <Stat label="Seguidores" value={count(stats.followers)} hint={`+${count(stats.new_followers)} en 30 días`} />
+          <Stat label="Suscriptores" value={count(stats.followers)} hint={`+${count(stats.new_followers)} en 30 días`} />
           <Stat label="Regalos recibidos" value={money(stats.gift_earnings_cents, app.currency)} hint={`${count(stats.gifts)} regalos en total`} />
         </div>
 

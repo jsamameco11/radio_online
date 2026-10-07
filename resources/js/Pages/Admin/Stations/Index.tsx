@@ -34,7 +34,7 @@ interface Props {
 const SORTS = [
   { value: "frecuencia", label: "Por frecuencia" },
   { value: "oyentes", label: "Más oyentes ahora" },
-  { value: "seguidores", label: "Más seguidores" },
+  { value: "suscriptores", label: "Más suscriptores" },
   { value: "recientes", label: "Más recientes" },
 ];
 
@@ -114,7 +114,7 @@ export default function StationsIndex({ stations, filters, statuses, streams, ca
                     <th className="px-5 py-3 font-medium">Propietario</th>
                     <th className="px-5 py-3 font-medium">Transmisión</th>
                     <th className="px-5 py-3 text-right font-medium">Oyentes</th>
-                    <th className="px-5 py-3 text-right font-medium">Seguidores</th>
+                    <th className="px-5 py-3 text-right font-medium">Suscriptores</th>
                     <th className="px-5 py-3 font-medium">Alta</th>
                   </tr>
                 </thead>

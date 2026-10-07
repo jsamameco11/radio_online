@@ -1,5 +1,5 @@
 import { router, useForm } from "@inertiajs/react";
-import { Check, Flag, Heart, Link2, Share2 } from "lucide-react";
+import { BellPlus, Check, Flag, Link2, Share2 } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { Button } from "@/Components/ui/button";
@@ -10,7 +10,7 @@ import type { Option } from "@/types/site";
 
 export function FollowButton({ station, following }: { station: Station; following: boolean }) {
   const [busy, setBusy] = useState(false);
-  const url = `/radio/${station.frequency.slug}/seguir`;
+  const url = `/radio/${station.frequency.slug}/suscribirme`;
   const options = { preserveScroll: true, onStart: () => setBusy(true), onFinish: () => setBusy(false) };
 
   return (
@@ -18,10 +18,11 @@ export function FollowButton({ station, following }: { station: Station; followi
       variant={following ? "secondary" : "primary"}
       loading={busy}
       onClick={() => (following ? router.delete(url, options) : router.post(url, {}, options))}
-      icon={following ? <Check className="size-4" /> : <Heart className="size-4" />}
+      icon={following ? <Check className="size-4" /> : <BellPlus className="size-4" />}
       aria-pressed={following}
+      title={following ? "Cancelar suscripción" : undefined}
     >
-      {following ? "Siguiendo" : "Seguir"}
+      {following ? "Suscrito" : "Suscribirme"}
     </Button>
   );
 }

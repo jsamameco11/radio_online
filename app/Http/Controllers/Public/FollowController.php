@@ -17,7 +17,7 @@ class FollowController extends Controller
         $station = $stations->onFrequencyOrFail($frequency);
         $follow->handle($request->user(), $station);
 
-        return back()->with('success', "Ahora sigues {$station->displayName()}.");
+        return back()->with('success', "Te suscribiste a {$station->displayName()}.");
     }
 
     public function destroy(Request $request, Frequency $frequency, StationDirectory $stations, UnfollowStation $unfollow): RedirectResponse
@@ -25,6 +25,6 @@ class FollowController extends Controller
         $station = $stations->onFrequencyOrFail($frequency);
         $unfollow->handle($request->user(), $station);
 
-        return back()->with('success', "Dejaste de seguir {$station->displayName()}.");
+        return back()->with('success', "Cancelaste tu suscripción a {$station->displayName()}.");
     }
 }

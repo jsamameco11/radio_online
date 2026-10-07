@@ -37,7 +37,7 @@ export default function Register({ open }: { open: boolean }) {
     <AuthLayout
       title="Crear cuenta"
       heading="Crea tu cuenta"
-      description="Es gratis. Con tu cuenta escuchas, sigues radios y puedes pedir tu propia frecuencia."
+      description="Es gratis. Con tu cuenta escuchas, te suscribes a tus radios, escribes en sus chats en vivo y puedes pedir tu propia frecuencia."
       footer={footer}
     >
       <GoogleSignInButton label="Registrarme con Google" />

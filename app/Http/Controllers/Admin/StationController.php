@@ -39,7 +39,7 @@ class StationController extends Controller
     private const SORTS = [
         'frecuencia' => ['frequencies.frequency', 'asc'],
         'oyentes' => ['stations.listener_count', 'desc'],
-        'seguidores' => ['stations.follower_count', 'desc'],
+        'suscriptores' => ['stations.follower_count', 'desc'],
         'recientes' => ['stations.created_at', 'desc'],
     ];
 

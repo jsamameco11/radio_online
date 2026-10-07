@@ -33,8 +33,8 @@ Route::middleware(['auth', 'verified'])->name('site.')->group(function () {
 
     Route::prefix('/radio/{frequency:slug}')->name('stations.')->group(function () {
         Route::get('/', [StationController::class, 'show'])->name('show');
-        Route::post('/seguir', [FollowController::class, 'store'])->name('follow');
-        Route::delete('/seguir', [FollowController::class, 'destroy'])->name('unfollow');
+        Route::post('/suscribirme', [FollowController::class, 'store'])->middleware('throttle:30,1')->name('follow');
+        Route::delete('/suscribirme', [FollowController::class, 'destroy'])->middleware('throttle:30,1')->name('unfollow');
         Route::post('/reportar', [ReportController::class, 'station'])->middleware('throttle:10,1')->name('report');
         Route::get('/episodios/{episode}', [EpisodeController::class, 'show'])->whereUuid('episode')->name('episodes.show');
         Route::post('/episodios/{episode}/reportar', [ReportController::class, 'episode'])->whereUuid('episode')->middleware('throttle:10,1')->name('episodes.report');

@@ -18,7 +18,7 @@ interface Settings {
 
 const EMAILS: { key: Exclude<keyof Settings, "recipients">; label: string; description: string }[] = [
   { key: "email_gift_received", label: "Regalos recibidos", description: "Un correo por cada regalo." },
-  { key: "email_new_follower", label: "Nuevos seguidores", description: "Un correo cada vez que alguien te sigue." },
+  { key: "email_new_follower", label: "Nuevos suscriptores", description: "Un correo cada vez que alguien se suscribe." },
   { key: "email_report_received", label: "Reportes", description: "Cuando un oyente reporta contenido de tu radio." },
   { key: "email_stream_problems", label: "Problemas de transmisión", description: "Si tu radio pierde la señal mientras está al aire." },
   { key: "email_weekly_summary", label: "Resumen semanal", description: "Oyentes, horas y regalos de la semana, cada lunes." },

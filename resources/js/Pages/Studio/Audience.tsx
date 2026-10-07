@@ -30,13 +30,13 @@ export default function Audience({ range, ranges, summary, countries, devices, g
         <PageHeader eyebrow="Análisis" title="Audiencia" description="Quiénes te escuchan, desde dónde y cómo crece tu comunidad." actions={<RangeTabs range={range} ranges={ranges} />} />
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <Stat label="Seguidores" value={count(summary.followers)} hint={`+${count(summary.new_followers)} en ${range} días`} />
+          <Stat label="Suscriptores" value={count(summary.followers)} hint={`+${count(summary.new_followers)} en ${range} días`} />
           <Stat label="Oyentes únicos" value={count(summary.listeners)} />
           <Stat label="Países" value={count(countries.filter((country) => country.code).length)} />
         </div>
 
-        <Panel title="Crecimiento de seguidores">
-          <AreaChart ariaLabel="Seguidores acumulados" tone="text-onair" points={growth.map((day) => ({ label: dayLabel(day.day), value: day.total }))} format={(value) => `${count(value)} seguidores`} />
+        <Panel title="Crecimiento de suscriptores">
+          <AreaChart ariaLabel="Suscriptores acumulados" tone="text-onair" points={growth.map((day) => ({ label: dayLabel(day.day), value: day.total }))} format={(value) => `${count(value)} suscriptores`} />
         </Panel>
 
         <div className="grid gap-6 lg:grid-cols-2">
@@ -56,9 +56,9 @@ export default function Audience({ range, ranges, summary, countries, devices, g
           </Panel>
         </div>
 
-        <Panel title="Seguidores más fieles" description="Quienes más te escucharon en el periodo." padded={topFollowers.length === 0}>
+        <Panel title="Suscriptores más fieles" description="Quienes más te escucharon en el periodo." padded={topFollowers.length === 0}>
           {topFollowers.length === 0 ? (
-            <EmptyState icon={<Users className="size-6" />} title="Todavía no tienes seguidores" />
+            <EmptyState icon={<Users className="size-6" />} title="Todavía no tienes suscriptores" />
           ) : (
             <ul className="divide-y divide-line text-sm">
               {topFollowers.map((follower, index) => (
