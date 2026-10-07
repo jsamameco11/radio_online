@@ -74,17 +74,23 @@ class StudioGiftsTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Studio/Gifts/Index')
                 ->where('totals.gifts', 2)
-                ->where('totals.gross_cents', 600)
-                ->where('totals.earned_cents', 420)
+                ->where('totals.earned_cents', 510)
+                ->missing('totals.gross_cents')
                 ->has('supporters', 1)
-                ->has('gifts.data', 2));
+                ->where('supporters.0.earned_cents', 255)
+                ->has('gifts.data', 2)
+                ->where('gifts.data.0.station_amount_cents', 255)
+                ->missing('gifts.data.0.total_cents')
+                ->missing('gifts.data.0.platform_fee_cents'));
 
         $this->actingAs($host)
             ->getJson($this->studioUrl($this->station, '/regalos/recientes'))
             ->assertOk()
             ->assertJsonCount(2, 'gifts')
             ->assertJsonPath('gifts.0.sender', null)
-            ->assertJsonPath('gifts.1.message.body', 'Hola cabina');
+            ->assertJsonPath('gifts.1.message.body', 'Hola cabina')
+            ->assertJsonMissingPath('gifts.0.total_cents')
+            ->assertJsonMissingPath('gifts.0.platform_fee_cents');
     }
 
     #[Test]
@@ -158,9 +164,10 @@ class StudioGiftsTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Studio/Gifts/Finances')
-                ->where('wallet.balance_cents', 210)
-                ->where('summary.lifetime_earned_cents', 210)
-                ->where('summary.lifetime_fees_cents', 90)
+                ->where('wallet.balance_cents', 255)
+                ->where('summary.lifetime_earned_cents', 255)
+                ->where('summary.lifetime_supports', 1)
+                ->missing('summary.lifetime_fees_cents')
                 ->has('series', 30)
                 ->has('transactions.data', 1));
     }

@@ -3,20 +3,26 @@
 namespace App\Http\Controllers\Studio;
 
 use App\Domain\Stations\Support\CurrentStation;
+use App\Domain\Wallet\Enums\WalletTransactionType;
 use App\Domain\Wallet\WalletLedger;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\WalletTransactionResource;
-use App\Models\GiftTransaction;
 use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** Studio › Finanzas: the station wallet, what gifts earned day by day, and every movement. */
+/**
+ * Studio › Finanzas: the station wallet, what its audience added day by day
+ * (gifts and highlighted chat messages) and every movement. The station only
+ * sees what was credited to it.
+ */
 class FinanceController extends Controller
 {
     private const DAYS = 30;
+
+    private const EARNINGS = [WalletTransactionType::GiftEarning, WalletTransactionType::HighlightEarning];
 
     public function __invoke(Request $request, CurrentStation $current, WalletLedger $ledger): Response
     {
@@ -27,17 +33,19 @@ class FinanceController extends Controller
         $today = now($timezone)->startOfDay();
         $from = $today->copy()->subDays(self::DAYS - 1);
 
-        $gifts = GiftTransaction::query()->where('station_id', $station->id);
+        $earnings = WalletTransaction::query()
+            ->where('wallet_id', $wallet->id)
+            ->whereIn('type', array_map(fn (WalletTransactionType $type) => $type->value, self::EARNINGS));
 
-        $lifetime = (clone $gifts)->toBase()
-            ->selectRaw('count(*) as gifts, coalesce(sum(station_amount_cents), 0) as earned, coalesce(sum(platform_fee_cents), 0) as fees')
+        $lifetime = (clone $earnings)->toBase()
+            ->selectRaw('count(*) as supports, coalesce(sum(amount_cents), 0) as earned')
             ->first();
 
-        $month = (int) (clone $gifts)->where('created_at', '>=', $today->copy()->startOfMonth()->setTimezone($appTimezone))->sum('station_amount_cents');
+        $month = (int) (clone $earnings)->where('created_at', '>=', $today->copy()->startOfMonth()->setTimezone($appTimezone))->sum('amount_cents');
 
-        $daily = (clone $gifts)->toBase()
+        $daily = (clone $earnings)->toBase()
             ->where('created_at', '>=', $from->copy()->setTimezone($appTimezone))
-            ->get(['created_at', 'station_amount_cents', 'quantity'])
+            ->get(['created_at', 'amount_cents'])
             ->groupBy(fn (object $row) => Carbon::parse($row->created_at, $appTimezone)->setTimezone($timezone)->toDateString());
 
         $series = collect(range(0, self::DAYS - 1))->map(function (int $offset) use ($from, $daily) {
@@ -46,8 +54,8 @@ class FinanceController extends Controller
 
             return [
                 'date' => $day,
-                'earned_cents' => (int) $rows->sum('station_amount_cents'),
-                'gifts' => $rows->count(),
+                'earned_cents' => (int) $rows->sum('amount_cents'),
+                'supports' => $rows->count(),
             ];
         });
 
@@ -55,10 +63,9 @@ class FinanceController extends Controller
             'wallet' => ['balance_cents' => $wallet->balance_cents, 'currency' => $wallet->currency, 'status' => $wallet->status->label()],
             'summary' => [
                 'lifetime_earned_cents' => (int) $lifetime->earned,
-                'lifetime_fees_cents' => (int) $lifetime->fees,
-                'lifetime_gifts' => (int) $lifetime->gifts,
+                'lifetime_supports' => (int) $lifetime->supports,
                 'month_earned_cents' => $month,
-                'fee_percent' => (int) config('platform.wallet.platform_fee_percent'),
+                'min_withdrawal_cents' => (int) config('platform.monetization.min_withdrawal_cents'),
             ],
             'series' => $series,
             'transactions' => $wallet->transactions()

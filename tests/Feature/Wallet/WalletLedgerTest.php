@@ -130,7 +130,7 @@ class WalletLedgerTest extends TestCase
 
         $this->assertSame(-700, $debit->amount_cents);
         $this->assertSame(490, $credit->amount_cents);
-        $this->assertSame(210, $debit->meta['platform_fee_cents']);
+        $this->assertSame(210, $debit->meta['deducted_cents']);
         $this->assertSame(300, $from->fresh()->balance_cents);
         $this->assertSame(490, $to->fresh()->balance_cents);
 

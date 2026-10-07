@@ -37,7 +37,7 @@ Locally: `turadioonline.localhost:8000` and `control-turadioonline.localhost:800
 ### Money
 
 - Integer cents, currency `USD`. Never mutate a balance directly: every change is a `wallet_transactions` row with `balance_before_cents`, `balance_after_cents` and a unique `idempotency_key`, written inside a DB transaction with the wallet row locked.
-- Minimum deposit and presets come from `config('platform.wallet')`; gift fee from `config('platform.wallet.platform_fee_percent')`. All financial validation happens in the backend.
+- Minimum deposit and presets come from `config('platform.wallet')`. Every gift and highlighted chat message is split with `GiftFee::split()`: `processor_fee_percent` (card processor) + `platform_fee_percent` (platform) are deducted and the station is credited the rest. Stations only ever see the amount credited to them — never prices paid, percentages or deductions. Withdrawals start at `config('platform.monetization.min_withdrawal_cents')`. All financial validation happens in the backend.
 
 ### Files
 
@@ -53,6 +53,7 @@ Locally: `turadioonline.localhost:8000` and `control-turadioonline.localhost:800
 - Use the UI kit (`Components/ui/*`), `Components/station/station-identity.tsx`, layouts `Layouts/{AdminLayout,StudioLayout}` (and `SiteLayout` for the public site). Studio pages use `useStudioUrl()` and `useStudioCan()`.
 - Design tokens are in `resources/css/app.css` (`bg-surface`, `text-muted`, `text-signal`, `bg-onair-soft`…). Do not hard-code colors. The studio uses the dark theme.
 - HTTP calls outside Inertia visits: `resources/js/lib/http.ts`. Realtime: `resources/js/lib/realtime.ts`. Formatting: `resources/js/lib/format.ts`.
+- Browser audio: `resources/js/lib/radio/` (listener, live link, Opus tuning) and `resources/js/lib/dj/` (DJ engine; Web Audio nodes and effects in `audio/`, USB controllers in `midi/`). Their UI: `Components/studio/console/` and `Components/studio/dj/{deck,mixer,waveform,controls}/`.
 - All UI copy and public URLs are in Spanish; code, identifiers, enum values and database columns are in English.
 
 ## Conventions

@@ -8,9 +8,10 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * A gift a station received. Anonymous senders stay anonymous for the
- * station team too. Load "gift", "sender" and "message" (with "message.player"
- * to know who played it).
+ * A gift a station received. The station only sees what was credited to its
+ * wallet, never the price paid or the deductions. Anonymous senders stay
+ * anonymous for the station team too. Load "gift", "sender" and "message"
+ * (with "message.player" to know who played it).
  *
  * @mixin GiftTransaction
  */
@@ -21,9 +22,6 @@ class GiftTransactionResource extends JsonResource
         return [
             'id' => $this->id,
             'quantity' => $this->quantity,
-            'unit_price_cents' => $this->unit_price_cents,
-            'total_cents' => $this->total_cents,
-            'platform_fee_cents' => $this->platform_fee_cents,
             'station_amount_cents' => $this->station_amount_cents,
             'anonymous' => $this->anonymous,
             'gift' => $this->whenLoaded('gift', fn () => [

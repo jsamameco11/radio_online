@@ -25,6 +25,8 @@ enum Permission: string
     case ViewPayments = 'payments.view';
     case RefundPayments = 'payments.refund';
     case AdjustWallets = 'wallets.adjust';
+    case ReviewMonetization = 'monetization.review';
+    case ManagePayouts = 'payouts.manage';
     case ManageModeration = 'moderation.manage';
     case ViewAudit = 'audit.view';
     case ViewAnalytics = 'analytics.view';

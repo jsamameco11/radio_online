@@ -40,7 +40,7 @@ enum PlatformRole: string
             self::SuperAdmin => Permission::cases(),
             self::Admin => array_values(array_filter(
                 Permission::cases(),
-                fn (Permission $permission) => ! in_array($permission, [Permission::ManageRoles, Permission::ManageSettings, Permission::AdjustWallets], true),
+                fn (Permission $permission) => ! in_array($permission, [Permission::ManageRoles, Permission::ManageSettings, Permission::AdjustWallets, Permission::ManagePayouts], true),
             )),
             self::Moderator => [
                 Permission::ViewStations,

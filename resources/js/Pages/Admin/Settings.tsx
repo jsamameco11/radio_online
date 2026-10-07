@@ -23,7 +23,9 @@ interface Props {
     currency: string;
     min_deposit_cents: number;
     max_deposit_cents: number;
+    processor_fee_percent: number;
     platform_fee_percent: number;
+    min_withdrawal_cents: number;
     dial_size: number;
     max_categories: number;
     max_permanent_hashtags: number;
@@ -86,7 +88,10 @@ export default function PlatformSettings({ settings, lastChange, fixed }: Props)
         <Panel title="Valores fijos" description="Vienen de la configuración del servidor; se cambian en el entorno y requieren un despliegue.">
           <dl className="grid gap-4 text-sm sm:grid-cols-2">
             <Fixed label="Moneda" value={fixed.currency} />
-            <Fixed label="Comisión por regalo" value={`${fixed.platform_fee_percent}%`} />
+            <Fixed label="Costo del procesador de pagos" value={`${fixed.processor_fee_percent}% de cada regalo o destacado`} />
+            <Fixed label="Ganancia de la plataforma" value={`${fixed.platform_fee_percent}% de cada regalo o destacado`} />
+            <Fixed label="La radio recibe" value={`${100 - fixed.processor_fee_percent - fixed.platform_fee_percent}%`} />
+            <Fixed label="Retiro mínimo de una radio" value={money(fixed.min_withdrawal_cents, app.currency)} />
             <Fixed label="Recarga mínima" value={money(fixed.min_deposit_cents, app.currency)} />
             <Fixed label="Recarga máxima" value={money(fixed.max_deposit_cents, app.currency)} />
             <Fixed label="Tamaño del dial (DIAL_SIZE)" value={count(fixed.dial_size)} />

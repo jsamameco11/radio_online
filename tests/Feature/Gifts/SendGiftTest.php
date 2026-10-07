@@ -44,7 +44,7 @@ class SendGiftTest extends TestCase
     }
 
     #[Test]
-    public function a_gift_debits_the_listener_and_credits_the_station_minus_the_platform_fee(): void
+    public function a_gift_debits_the_listener_and_credits_the_station_its_eighty_five_percent(): void
     {
         Event::fake([GiftReceived::class, GiftCelebrated::class]);
         $listener = $this->listenerWith(1000);
@@ -58,14 +58,15 @@ class SendGiftTest extends TestCase
 
         $gift = GiftTransaction::query()->with('message')->sole();
         $this->assertSame(300, $gift->total_cents);
-        $this->assertSame(90, $gift->platform_fee_cents);
-        $this->assertSame(210, $gift->station_amount_cents);
-        $this->assertSame($gift->total_cents, $gift->platform_fee_cents + $gift->station_amount_cents);
+        $this->assertSame(15, $gift->processor_fee_cents);
+        $this->assertSame(30, $gift->platform_fee_cents);
+        $this->assertSame(255, $gift->station_amount_cents);
+        $this->assertSame($gift->total_cents, $gift->processor_fee_cents + $gift->platform_fee_cents + $gift->station_amount_cents);
         $this->assertSame('¡Saludos desde Arequipa!', $gift->message->body);
 
         $ledger = app(WalletLedger::class);
         $this->assertSame(700, $ledger->balance($listener));
-        $this->assertSame(210, $ledger->balance($this->station));
+        $this->assertSame(255, $ledger->balance($this->station));
 
         Event::assertDispatched(GiftReceived::class, fn (GiftReceived $event) => $event->broadcastOn()[0] instanceof PrivateChannel
             && $event->broadcastOn()[0]->name === 'private-studio.'.$this->station->id

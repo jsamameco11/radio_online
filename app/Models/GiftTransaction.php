@@ -10,11 +10,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * A gift a listener sent to a station: the debit from the listener, the
- * credit to the station and the platform fee, tied together.
+ * credit to the station and the deductions (processor and platform), tied together.
  */
 #[Fillable([
-    'gift_id', 'sender_id', 'station_id', 'quantity', 'unit_price_cents', 'total_cents', 'platform_fee_cents',
-    'station_amount_cents', 'debit_transaction_id', 'credit_transaction_id', 'anonymous', 'idempotency_key',
+    'gift_id', 'sender_id', 'station_id', 'quantity', 'unit_price_cents', 'total_cents', 'processor_fee_cents',
+    'platform_fee_cents', 'station_amount_cents', 'debit_transaction_id', 'credit_transaction_id', 'anonymous',
+    'idempotency_key',
 ])]
 class GiftTransaction extends Model
 {
@@ -26,6 +27,7 @@ class GiftTransaction extends Model
             'quantity' => 'integer',
             'unit_price_cents' => 'integer',
             'total_cents' => 'integer',
+            'processor_fee_cents' => 'integer',
             'platform_fee_cents' => 'integer',
             'station_amount_cents' => 'integer',
             'anonymous' => 'boolean',

@@ -10,10 +10,10 @@ import type { SharedProps } from "@/types";
 
 interface Props {
   settings: { enabled: boolean; min_gift_cents: number; thank_you_message: string };
-  feePercent: number;
+  minWithdrawalCents: number;
 }
 
-export default function GiftSettings({ settings, feePercent }: Props) {
+export default function GiftSettings({ settings, minWithdrawalCents }: Props) {
   const { app } = usePage<SharedProps>().props;
   const url = useStudioUrl();
   const canEdit = useStudioCan()("station.settings");
@@ -25,9 +25,6 @@ export default function GiftSettings({ settings, feePercent }: Props) {
     event.preventDefault();
     form.put(url("/configuracion/regalos"), { preserveScroll: true });
   };
-
-  const example = Math.max(settings.min_gift_cents, 1000);
-  const exampleFee = Math.floor((example * feePercent + 50) / 100);
 
   return (
     <StudioLayout title="Configuración de regalos">
@@ -91,12 +88,10 @@ export default function GiftSettings({ settings, feePercent }: Props) {
           </div>
         </Panel>
 
-        <Panel title="Cómo se reparte un regalo">
+        <Panel title="Tus ganancias">
           <p className="text-sm text-muted">
-            La plataforma retiene el {feePercent}% de cada regalo y el resto llega a la billetera de la radio al instante. Por ejemplo, de un regalo de{" "}
-            <span className="font-medium text-ink">{money(example, app.currency)}</span>, la radio recibe{" "}
-            <span className="font-medium text-onair">{money(example - exampleFee, app.currency)}</span> y la comisión es de{" "}
-            <span className="font-medium text-ink">{money(exampleFee, app.currency)}</span>.
+            Cada regalo suma a la billetera de tu radio al instante y puedes ver el monto exacto en Finanzas. Tus ganancias son tuyas desde el primer día: puedes
+            retirarlas a partir de <span className="font-medium text-onair">{money(minWithdrawalCents, app.currency)}</span>.
           </p>
         </Panel>
       </form>

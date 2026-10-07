@@ -7,6 +7,7 @@ use App\Domain\Access\Listeners\RecordSignIn;
 use App\Domain\Stations\Support\CurrentStation;
 use App\Domain\Streaming\Monitor\PublishMonitorChanges;
 use App\Models\Category;
+use App\Models\ChatMessage;
 use App\Models\CurrentTopic;
 use App\Models\Episode;
 use App\Models\Frequency;
@@ -14,12 +15,14 @@ use App\Models\FrequencyRequest;
 use App\Models\Gift;
 use App\Models\GiftMessage;
 use App\Models\GiftTransaction;
+use App\Models\MonetizationRequest;
 use App\Models\Payment;
 use App\Models\Report;
 use App\Models\Station;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
+use App\Models\WithdrawalRequest;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -56,6 +59,9 @@ class AppServiceProvider extends ServiceProvider
             'gift' => Gift::class,
             'wallet' => Wallet::class,
             'wallet_transaction' => WalletTransaction::class,
+            'chat_message' => ChatMessage::class,
+            'monetization_request' => MonetizationRequest::class,
+            'withdrawal_request' => WithdrawalRequest::class,
         ]);
 
         Frequency::observe(PublishMonitorChanges::class);

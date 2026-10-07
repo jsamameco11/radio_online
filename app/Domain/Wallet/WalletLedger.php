@@ -128,7 +128,7 @@ final class WalletLedger
                 $debit->description,
                 $debit->source,
                 $debit->actor,
-                [...$debit->meta, 'platform_fee_cents' => $feeCents, 'credited_cents' => $creditCents],
+                [...$debit->meta, 'deducted_cents' => $feeCents, 'credited_cents' => $creditCents],
             );
 
             $rows = [

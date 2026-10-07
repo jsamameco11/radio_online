@@ -65,14 +65,48 @@ return [
         'min_deposit_cents' => 500,
         'max_deposit_cents' => 100_000,
         'deposit_presets_cents' => [500, 1000, 2000, 5000, 10_000],
-        // Share of every gift kept by the platform; the rest is credited to the station.
-        'platform_fee_percent' => (int) env('GIFT_PLATFORM_FEE_PERCENT', 30),
+        // Deducted from every gift and highlighted message: the card processor's cost and the
+        // platform's share. The station is credited the rest and never sees these deductions.
+        'processor_fee_percent' => (int) env('PROCESSOR_FEE_PERCENT', 5),
+        'platform_fee_percent' => (int) env('PLATFORM_FEE_PERCENT', 10),
     ],
 
     'gifts' => [
         'max_message_length' => 280,
         'max_voice_seconds' => 60,
         'max_voice_kilobytes' => 4096,
+    ],
+
+    /*
+    | Live chat: signed-in listeners write to a station while it is live. A
+    | highlighted message is paid from the wallet (same fee as gifts); the
+    | higher the tier, the longer it stays pinned in the chat.
+    */
+    'chat' => [
+        'max_message_length' => 200,
+        // Messages kept and shown when someone opens the chat.
+        'history' => 60,
+        'highlight_tiers' => [
+            ['cents' => 100, 'pin_seconds' => 0],
+            ['cents' => 200, 'pin_seconds' => 60],
+            ['cents' => 500, 'pin_seconds' => 180],
+            ['cents' => 1000, 'pin_seconds' => 300],
+            ['cents' => 2000, 'pin_seconds' => 600],
+            ['cents' => 5000, 'pin_seconds' => 1200],
+        ],
+    ],
+
+    /*
+    | Growth and monetization: a station can ask to be monetized once it has
+    | min_subscribers and, on live_days consecutive days, a live broadcast
+    | reached live_listeners simultaneous listeners. Earnings can be withdrawn
+    | from day one, starting at min_withdrawal_cents.
+    */
+    'monetization' => [
+        'min_subscribers' => 5000,
+        'live_listeners' => 800,
+        'live_days' => 3,
+        'min_withdrawal_cents' => 5000,
     ],
 
     'payments' => [

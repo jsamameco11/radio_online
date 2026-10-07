@@ -16,5 +16,6 @@ enum StationPermission: string
     case ManageMembers = 'station.members';
     case ViewGifts = 'gifts.view';
     case ViewFinance = 'finance.view';
+    case WithdrawEarnings = 'finance.withdraw';
     case ViewAnalytics = 'analytics.view';
 }

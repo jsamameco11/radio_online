@@ -60,6 +60,7 @@ export type StationPermission =
   | "station.members"
   | "gifts.view"
   | "finance.view"
+  | "finance.withdraw"
   | "analytics.view";
 
 export interface StudioContext {

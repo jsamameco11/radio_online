@@ -1,5 +1,5 @@
 import { router, usePage } from "@inertiajs/react";
-import { Coins, Gift, HandHeart, Mic, Package } from "lucide-react";
+import { Gift, HandHeart, Mic, Package } from "lucide-react";
 import { Avatar } from "@/Components/ui/avatar";
 import { EmptyState } from "@/Components/ui/empty-state";
 import { Checkbox, Select } from "@/Components/ui/field";
@@ -16,9 +16,9 @@ type Period = "7" | "30" | "90" | "todo";
 
 interface Props {
   filters: { periodo: Period; regalo: number | null; con_mensaje: boolean };
-  totals: { gifts: number; units: number; gross_cents: number; earned_cents: number };
-  supporters: { id: number; name: string; gifts: number; total_cents: number }[];
-  breakdown: { gift: { id: number; name: string; emoji: string | null } | null; units: number; total_cents: number }[];
+  totals: { gifts: number; units: number; earned_cents: number };
+  supporters: { id: number; name: string; gifts: number; earned_cents: number }[];
+  breakdown: { gift: { id: number; name: string; emoji: string | null } | null; units: number; earned_cents: number }[];
   catalog: { id: number; name: string; emoji: string | null }[];
   gifts: Paginated<ReceivedGift>;
 }
@@ -34,7 +34,7 @@ export default function GiftsIndex({ filters, totals, supporters, breakdown, cat
   const { app } = usePage<SharedProps>().props;
   const url = useStudioUrl();
   const formatMoney = (cents: number) => money(cents, app.currency);
-  const topBreakdown = Math.max(1, ...breakdown.map((row) => row.total_cents));
+  const topBreakdown = Math.max(1, ...breakdown.map((row) => row.earned_cents));
 
   const filter = (changes: Partial<Props["filters"]>) => {
     const next = { ...filters, ...changes };
@@ -55,11 +55,10 @@ export default function GiftsIndex({ filters, totals, supporters, breakdown, cat
           actions={<Tabs value={filters.periodo} onChange={(periodo) => filter({ periodo })} items={periods} />}
         />
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-3">
           <Stat label="Regalos" value={count(totals.gifts)} icon={<Gift className="size-4" />} hint={`${count(totals.units)} unidades`} />
-          <Stat label="Total enviado" value={formatMoney(totals.gross_cents)} icon={<Coins className="size-4" />} hint="Lo que pagaron los oyentes" />
-          <Stat label="Para la radio" value={formatMoney(totals.earned_cents)} icon={<HandHeart className="size-4" />} hint="Después de la comisión de la plataforma" />
-          <Stat label="Mejor apoyo" value={supporters[0]?.name ?? "—"} icon={<Package className="size-4" />} hint={supporters[0] ? formatMoney(supporters[0].total_cents) : "Aún sin regalos"} />
+          <Stat label="Sumado a tu billetera" value={formatMoney(totals.earned_cents)} icon={<HandHeart className="size-4" />} hint="Disponible para retirar" />
+          <Stat label="Mejor apoyo" value={supporters[0]?.name ?? "—"} icon={<Package className="size-4" />} hint={supporters[0] ? formatMoney(supporters[0].earned_cents) : "Aún sin regalos"} />
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
@@ -110,8 +109,7 @@ export default function GiftsIndex({ filters, totals, supporters, breakdown, cat
                       <p className="text-xs text-faint">{dateTime(gift.created_at)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold tabular">{formatMoney(gift.station_amount_cents)}</p>
-                      <p className="text-xs text-faint tabular">de {formatMoney(gift.total_cents)}</p>
+                      <p className="font-semibold text-onair tabular">+{formatMoney(gift.station_amount_cents)}</p>
                     </div>
                   </li>
                 ))}
@@ -135,7 +133,7 @@ export default function GiftsIndex({ filters, totals, supporters, breakdown, cat
                           {supporter.gifts} {supporter.gifts === 1 ? "regalo" : "regalos"}
                         </span>
                       </span>
-                      <span className="text-sm font-semibold tabular">{formatMoney(supporter.total_cents)}</span>
+                      <span className="text-sm font-semibold tabular">{formatMoney(supporter.earned_cents)}</span>
                     </li>
                   ))}
                 </ol>
@@ -153,10 +151,10 @@ export default function GiftsIndex({ filters, totals, supporters, breakdown, cat
                         <span>
                           {row.gift?.emoji} {row.gift?.name ?? "Regalo"} <span className="text-xs text-muted">×{count(row.units)}</span>
                         </span>
-                        <span className="font-medium tabular">{formatMoney(row.total_cents)}</span>
+                        <span className="font-medium tabular">{formatMoney(row.earned_cents)}</span>
                       </div>
                       <div className="h-1.5 overflow-hidden rounded-full bg-raised">
-                        <div className="h-full rounded-full bg-gold" style={{ width: `${(row.total_cents / topBreakdown) * 100}%` }} />
+                        <div className="h-full rounded-full bg-gold" style={{ width: `${(row.earned_cents / topBreakdown) * 100}%` }} />
                       </div>
                     </li>
                   ))}

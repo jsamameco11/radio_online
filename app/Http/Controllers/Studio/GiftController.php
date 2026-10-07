@@ -34,22 +34,22 @@ class GiftController extends Controller
             ->when($giftId, fn (Builder $query, int $giftId) => $query->where('gift_id', $giftId));
 
         $totals = (clone $base)->toBase()
-            ->selectRaw('count(*) as gifts, coalesce(sum(quantity), 0) as units, coalesce(sum(total_cents), 0) as gross, coalesce(sum(station_amount_cents), 0) as earned')
+            ->selectRaw('count(*) as gifts, coalesce(sum(quantity), 0) as units, coalesce(sum(station_amount_cents), 0) as earned')
             ->first();
 
         $supporters = (clone $base)->toBase()
             ->where('anonymous', false)
-            ->selectRaw('sender_id, count(*) as gifts, sum(total_cents) as total')
+            ->selectRaw('sender_id, count(*) as gifts, sum(station_amount_cents) as earned')
             ->groupBy('sender_id')
-            ->orderByDesc('total')
+            ->orderByDesc('earned')
             ->limit(5)
             ->get();
         $names = User::query()->whereKey($supporters->pluck('sender_id'))->pluck('name', 'id');
 
         $byGift = (clone $base)->toBase()
-            ->selectRaw('gift_id, sum(quantity) as units, sum(total_cents) as total')
+            ->selectRaw('gift_id, sum(quantity) as units, sum(station_amount_cents) as earned')
             ->groupBy('gift_id')
-            ->orderByDesc('total')
+            ->orderByDesc('earned')
             ->get();
         $catalog = Gift::query()->orderBy('sort_order')->get(['id', 'name', 'emoji']);
 
@@ -58,19 +58,18 @@ class GiftController extends Controller
             'totals' => [
                 'gifts' => (int) $totals->gifts,
                 'units' => (int) $totals->units,
-                'gross_cents' => (int) $totals->gross,
                 'earned_cents' => (int) $totals->earned,
             ],
             'supporters' => $supporters->map(fn (object $row) => [
                 'id' => (int) $row->sender_id,
                 'name' => $names[$row->sender_id] ?? 'Oyente',
                 'gifts' => (int) $row->gifts,
-                'total_cents' => (int) $row->total,
+                'earned_cents' => (int) $row->earned,
             ])->values(),
             'breakdown' => $byGift->map(fn (object $row) => [
                 'gift' => $catalog->firstWhere('id', $row->gift_id)?->only(['id', 'name', 'emoji']),
                 'units' => (int) $row->units,
-                'total_cents' => (int) $row->total,
+                'earned_cents' => (int) $row->earned,
             ])->values(),
             'catalog' => $catalog->map->only(['id', 'name', 'emoji'])->values(),
             'gifts' => (clone $base)

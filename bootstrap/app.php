@@ -40,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     Route::group([], base_path('routes/public/apply.php'));
                     Route::group([], base_path('routes/public/listen.php'));
                     Route::group([], base_path('routes/public/wallet.php'));
+                    Route::group([], base_path('routes/public/chat.php'));
                 });
 
                 Route::domain(config('platform.hosts.control'))
@@ -51,6 +52,7 @@ return Application::configure(basePath: dirname(__DIR__))
                             Route::group([], base_path('routes/control/admin.php'));
                             Route::group([], base_path('routes/control/admin-finance.php'));
                             Route::group([], base_path('routes/control/admin-applications.php'));
+                            Route::group([], base_path('routes/control/admin-monetization.php'));
                         });
 
                         Route::prefix('estudio/{studio}')->name('studio.')->middleware([ResolveStudioStation::class, EnsureStationTwoFactor::class])->group(function () {
@@ -58,6 +60,8 @@ return Application::configure(basePath: dirname(__DIR__))
                             Route::group([], base_path('routes/studio/console.php'));
                             Route::group([], base_path('routes/studio/media.php'));
                             Route::group([], base_path('routes/studio/gifts.php'));
+                            Route::group([], base_path('routes/studio/chat.php'));
+                            Route::group([], base_path('routes/studio/growth.php'));
                         });
                     });
             });

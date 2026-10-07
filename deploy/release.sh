@@ -36,6 +36,8 @@ fi
 
 php artisan optimize:clear >/dev/null
 php artisan migrate --force
+# Roles follow their enums: new permissions reach existing roles on every release.
+php artisan db:seed --class=AccessSeeder --force
 php artisan optimize >/dev/null
 chown -R www-data:www-data storage bootstrap/cache public/build
 systemctl restart php8.3-fpm

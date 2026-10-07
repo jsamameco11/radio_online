@@ -25,7 +25,7 @@ class GiftSettingsController extends Controller
     {
         return Inertia::render('Studio/Gifts/GiftSettings', [
             'settings' => $this->preferences->gifts($this->current->get()),
-            'feePercent' => (int) config('platform.wallet.platform_fee_percent'),
+            'minWithdrawalCents' => (int) config('platform.monetization.min_withdrawal_cents'),
         ]);
     }
 

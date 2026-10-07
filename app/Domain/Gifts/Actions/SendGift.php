@@ -99,6 +99,7 @@ final class SendGift
             'gift' => $gift->slug,
             'quantity' => $quantity,
             'total_cents' => $fee->totalCents,
+            'processor_fee_cents' => $fee->processorFeeCents,
             'platform_fee_cents' => $fee->platformFeeCents,
             'with_voice' => $voicePath !== null,
         ], $sender, $station);
@@ -135,7 +136,7 @@ final class SendGift
             $from,
             $to,
             $fee->totalCents,
-            $fee->platformFeeCents,
+            $fee->deductedCents(),
             new LedgerEntry($key.':debit', 'Regalo para '.$station->displayName().': '.$label, $transaction, $sender, $meta),
             new LedgerEntry($key.':credit', 'Regalo de '.($anonymous ? 'un oyente anónimo' : $sender->name).': '.$label, $transaction, $sender, $meta),
         );
@@ -152,6 +153,7 @@ final class SendGift
             'quantity' => $quantity,
             'unit_price_cents' => $gift->price_cents,
             'total_cents' => $fee->totalCents,
+            'processor_fee_cents' => $fee->processorFeeCents,
             'platform_fee_cents' => $fee->platformFeeCents,
             'station_amount_cents' => $fee->stationAmountCents,
             'debit_transaction_id' => $debit->id,

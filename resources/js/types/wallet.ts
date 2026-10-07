@@ -5,7 +5,16 @@ export interface Labeled<T extends string = string> {
   label: string;
 }
 
-export type WalletTransactionType = "deposit" | "gift_purchase" | "gift_earning" | "refund" | "admin_adjustment" | "withdrawal";
+export type WalletTransactionType =
+  | "deposit"
+  | "gift_purchase"
+  | "gift_earning"
+  | "refund"
+  | "admin_adjustment"
+  | "withdrawal"
+  | "withdrawal_reversal"
+  | "highlight_purchase"
+  | "highlight_earning";
 
 /** App\Http\Resources\WalletTransactionResource */
 export interface WalletTransaction {
@@ -82,13 +91,10 @@ export interface GiftMessage {
   created_at: string;
 }
 
-/** App\Http\Resources\GiftTransactionResource: a gift a station received. */
+/** App\Http\Resources\GiftTransactionResource: a gift a station received (only its credited amount). */
 export interface ReceivedGift {
   id: string;
   quantity: number;
-  unit_price_cents: number;
-  total_cents: number;
-  platform_fee_cents: number;
   station_amount_cents: number;
   anonymous: boolean;
   gift?: { id: number; name: string; emoji: string | null; animation: string | null };
