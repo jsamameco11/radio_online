@@ -9,6 +9,7 @@ use App\Domain\Stations\Enums\StationPermission;
 use App\Domain\Stations\Support\CurrentStation;
 use App\Domain\Storage\MediaStorage;
 use App\Http\Resources\StationResource;
+use App\Models\Station;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -56,10 +57,13 @@ class HandleInertiaRequests extends Middleware
             'two_factor_enabled' => $user->hasTwoFactorEnabled(),
             'is_staff' => $user->isStaff(),
             'roles' => $user->getRoleNames()->values()->all(),
-            'permissions' => $user->isSuperAdmin()
-                ? array_map(fn (Permission $permission) => $permission->value, Permission::cases())
-                : $user->getAllPermissions()->pluck('name')->values()->all(),
-            'has_studio' => $user->memberships()->exists(),
+            'permissions' => array_values(array_map(
+                fn (Permission $permission) => $permission->value,
+                $user->isSuperAdmin()
+                    ? Permission::cases()
+                    : array_filter(Permission::cases(), fn (Permission $permission) => $user->checkPermissionTo($permission->value)),
+            )),
+            'has_studio' => $user->hasStudio(),
         ];
     }
 
@@ -88,9 +92,9 @@ class HandleInertiaRequests extends Middleware
                 array_filter(StationPermission::cases(), fn (StationPermission $permission) => $everything || $user->canInStation($station, $permission)),
             )),
             'stations' => $user->stations()
-                ->with('frequency')
-                ->get()
-                ->map(fn ($own) => ['name' => $own->name, 'frequency' => $own->frequency->label, 'slug' => $own->frequency->slug])
+                ->join('frequencies', 'frequencies.id', '=', 'stations.frequency_id')
+                ->get(['stations.name', 'frequencies.label', 'frequencies.slug'])
+                ->map(fn (Station $own) => ['name' => $own->name, 'frequency' => $own->getAttribute('label'), 'slug' => $own->getAttribute('slug')])
                 ->values()
                 ->all(),
         ];

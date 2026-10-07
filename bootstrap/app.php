@@ -3,7 +3,6 @@
 use App\Domain\Frequencies\FrequencyDial;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureControlAccess;
-use App\Http\Middleware\EnsureStaffTwoFactor;
 use App\Http\Middleware\EnsureStationTwoFactor;
 use App\Http\Middleware\EnsureStudioAccess;
 use App\Http\Middleware\EnsureStudioPermission;
@@ -70,7 +69,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     Route::middleware(['auth', 'verified', EnsureControlAccess::class])->group(function () {
                         Route::group([], base_path('routes/control/home.php'));
 
-                        Route::prefix('admin')->name('admin.')->middleware(EnsureStaffTwoFactor::class)->group(function () {
+                        Route::prefix('admin')->name('admin.')->group(function () {
                             Route::group([], base_path('routes/control/admin.php'));
                             Route::group([], base_path('routes/control/admin-finance.php'));
                             Route::group([], base_path('routes/control/admin-applications.php'));

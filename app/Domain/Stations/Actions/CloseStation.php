@@ -31,7 +31,7 @@ final class CloseStation
                 'current_topic_id' => null,
             ])->save();
             CurrentTopic::acrossStations()->where('station_id', $station->id)->whereNull('ended_at')->update(['ended_at' => now()]);
-            $station->members()->delete();
+            $station->members()->get()->each->delete();
             $station->delete();
 
             Frequency::query()->lockForUpdate()->findOrFail($station->frequency_id)

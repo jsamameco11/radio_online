@@ -15,7 +15,7 @@ import AdminLayout from "@/Layouts/AdminLayout";
 import { cn } from "@/lib/cn";
 import { count, dateTime } from "@/lib/format";
 import type { Paginated, StreamStatusValue } from "@/types";
-import type { DialCell, FrequencyStatusValue, Option } from "@/types/admin";
+import type { DialSegment, FrequencyStatusValue, Option } from "@/types/admin";
 
 interface FrequencyRow {
   id: number;
@@ -33,10 +33,13 @@ interface Props {
   frequencies: Paginated<FrequencyRow>;
   filters: { status: string; min: string; max: string; q: string };
   statuses: (Option<FrequencyStatusValue> & { total: number })[];
-  dial: DialCell[];
+  dial: DialSegment[];
   band: { min: number; max: number };
   canExpand: boolean;
 }
+
+/** The dial map and the status totals do not change with the filters. */
+const FILTERED = ["frequencies", "filters"];
 
 export default function FrequenciesIndex({ frequencies, filters, statuses, dial, band, canExpand }: Props) {
   const [values, setValues] = useState(filters);
@@ -44,7 +47,7 @@ export default function FrequenciesIndex({ frequencies, filters, statuses, dial,
 
   const apply = (next: typeof values) => {
     setValues(next);
-    router.get("/admin/frecuencias", Object.fromEntries(Object.entries(next).filter(([, value]) => value !== "")), { preserveState: true, preserveScroll: true, replace: true });
+    router.get("/admin/frecuencias", Object.fromEntries(Object.entries(next).filter(([, value]) => value !== "")), { only: FILTERED, preserveState: true, preserveScroll: true, replace: true });
   };
 
   const submit = (event: FormEvent) => {
@@ -189,32 +192,21 @@ function FilterChip({ active, onClick, label, total, dot }: { active: boolean; o
   );
 }
 
-const SEGMENTS = 40;
-
 /** The band split in equal ranges; each range is colored by how its frequencies are used. */
-function DialStrip({ dial, band, onPick }: { dial: DialCell[]; band: { min: number; max: number }; onPick: (min: string, max: string) => void }) {
-  const width = (band.max - band.min) / SEGMENTS;
-  const segments = Array.from({ length: SEGMENTS }, (_, index) => {
-    const from = band.min + index * width;
-    const to = index === SEGMENTS - 1 ? band.max : from + width;
-    const inside = dial.filter((cell) => cell.mhz >= from && (index === SEGMENTS - 1 ? cell.mhz <= to : cell.mhz < to));
-    const used = inside.filter((cell) => cell.status !== "available").length;
-    return { from, to, total: inside.length, used, onAir: inside.filter((cell) => cell.status === "active").length };
-  });
-
+function DialStrip({ dial, band, onPick }: { dial: DialSegment[]; band: { min: number; max: number }; onPick: (min: string, max: string) => void }) {
   return (
     <div className="space-y-2">
       <div className="flex h-12 items-end gap-0.5">
-        {segments.map((segment) => (
+        {dial.map((segment) => (
           <button
             key={segment.from}
             type="button"
             onClick={() => onPick(segment.from.toFixed(2), segment.to.toFixed(2))}
-            title={`${segment.from.toFixed(2)}–${segment.to.toFixed(2)} · ${segment.total} frecuencias, ${segment.onAir} activas, ${segment.total - segment.used} libres`}
+            title={`${segment.from.toFixed(2)}–${segment.to.toFixed(2)} · ${segment.total} frecuencias, ${segment.on_air} activas, ${segment.total - segment.used} libres`}
             className="group relative flex h-full flex-1 flex-col justify-end overflow-hidden rounded-sm bg-raised hover:ring-2 hover:ring-ink"
           >
-            <span className="w-full bg-info/60" style={{ height: `${segment.total ? ((segment.used - segment.onAir) / segment.total) * 100 : 0}%` }} />
-            <span className="w-full bg-onair" style={{ height: `${segment.total ? (segment.onAir / segment.total) * 100 : 0}%` }} />
+            <span className="w-full bg-info/60" style={{ height: `${segment.total ? ((segment.used - segment.on_air) / segment.total) * 100 : 0}%` }} />
+            <span className="w-full bg-onair" style={{ height: `${segment.total ? (segment.on_air / segment.total) * 100 : 0}%` }} />
           </button>
         ))}
       </div>

@@ -2,12 +2,12 @@
 
 namespace App\Providers;
 
-use App\Actions\Fortify\CreateNewUser;
-use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
+use App\Domain\Access\Actions\AuthenticateStaff;
 use App\Domain\Platform\PlatformHost;
-use App\Domain\Platform\PlatformSettings;
+use App\Http\Responses\LoginResponse;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -15,45 +15,61 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
+use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use Laravel\Fortify\Fortify;
 
+/**
+ * Listeners and creators sign in with Google (see GoogleController); the username and password
+ * form only answers on the control host, for the platform staff.
+ */
 class FortifyServiceProvider extends ServiceProvider
 {
+    public function register(): void
+    {
+        $this->app->singleton(LoginResponseContract::class, LoginResponse::class);
+    }
+
     public function boot(): void
     {
-        Fortify::createUsersUsing(CreateNewUser::class);
         Fortify::updateUserProfileInformationUsing(UpdateUserProfileInformation::class);
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
-        Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorAuthenticatable::class);
+
+        Fortify::authenticateUsing(fn (Request $request): ?User => $this->staffSigningIn($request));
 
         $this->registerViews();
         $this->registerRateLimiters();
     }
 
+    /**
+     * Fortify asks twice per sign-in (the two-factor check, then the sign-in itself);
+     * the username and password are verified once per request.
+     */
+    private function staffSigningIn(Request $request): ?User
+    {
+        if (PlatformHost::of($request) !== PlatformHost::Control) {
+            return null;
+        }
+
+        if (! $request->attributes->has('staff')) {
+            $request->attributes->set('staff', $this->app->make(AuthenticateStaff::class)->handle(
+                $request->string(Fortify::username())->toString(),
+                $request->string('password')->toString(),
+            ));
+        }
+
+        return $request->attributes->get('staff');
+    }
+
     private function registerViews(): void
     {
-        Fortify::loginView(fn (Request $request) => Inertia::render('Auth/Login', [
-            'canRegister' => $this->onPublicHost($request) && $this->registrationsOpen(),
-            'status' => $request->session()->get('status'),
-        ]));
+        Fortify::loginView(function (Request $request) {
+            $this->rememberWayBack($request);
 
-        Fortify::registerView(function (Request $request) {
-            if (! $this->onPublicHost($request)) {
-                return redirect()->away(PlatformHost::Public->url('/registro'));
-            }
-
-            return Inertia::render('Auth/Register', ['open' => $this->registrationsOpen()]);
+            return Inertia::render('Auth/Login', [
+                'status' => $request->session()->get('status'),
+            ]);
         });
-
-        Fortify::requestPasswordResetLinkView(fn (Request $request) => Inertia::render('Auth/ForgotPassword', [
-            'status' => $request->session()->get('status'),
-        ]));
-
-        Fortify::resetPasswordView(fn (Request $request) => Inertia::render('Auth/ResetPassword', [
-            'email' => $request->string('email')->toString(),
-            'token' => $request->route('token'),
-        ]));
 
         Fortify::verifyEmailView(fn (Request $request) => Inertia::render('Auth/VerifyEmail', [
             'status' => $request->session()->get('status'),
@@ -62,6 +78,19 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::twoFactorChallengeView(fn () => Inertia::render('Auth/TwoFactorChallenge'));
 
         Fortify::confirmPasswordView(fn () => Inertia::render('Auth/ConfirmPassword'));
+    }
+
+    /**
+     * "/ingresar?volver=/radio/89-30": a guest who wanted to follow, gift or chat returns to that
+     * page once signed in. Only paths of the same host are accepted.
+     */
+    private function rememberWayBack(Request $request): void
+    {
+        $path = $request->string('volver')->toString();
+
+        if (preg_match('#^/(?![/\\\\])#', $path) === 1) {
+            redirect()->setIntendedUrl(url($path));
+        }
     }
 
     private function registerRateLimiters(): void
@@ -75,16 +104,5 @@ class FortifyServiceProvider extends ServiceProvider
         RateLimiter::for('two-factor', function (Request $request) {
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
         });
-    }
-
-    private function registrationsOpen(): bool
-    {
-        return (bool) $this->app->make(PlatformSettings::class)->get('registrations_open');
-    }
-
-    /** Accounts are created where listeners arrive; the console and the control panel only sign in. */
-    private function onPublicHost(Request $request): bool
-    {
-        return PlatformHost::of($request) === PlatformHost::Public;
     }
 }

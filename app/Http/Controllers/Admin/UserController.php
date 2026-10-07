@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Domain\Access\Actions\ChangePlatformRole;
 use App\Domain\Access\Actions\ReactivateUser;
+use App\Domain\Access\Actions\SetStaffCredentials;
 use App\Domain\Access\Actions\SuspendUser;
 use App\Domain\Access\Enums\Permission;
 use App\Domain\Access\Enums\PlatformRole;
@@ -11,6 +12,7 @@ use App\Domain\Access\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ChangeUserRoleRequest;
 use App\Http\Requests\Admin\SuspensionRequest;
+use App\Http\Requests\Admin\UpdateStaffCredentialsRequest;
 use App\Http\Resources\Admin\AuditLogResource;
 use App\Http\Resources\Admin\FrequencyRequestResource;
 use App\Http\Resources\Admin\UserRowResource;
@@ -38,6 +40,7 @@ class UserController extends Controller
             ->withCount('memberships')
             ->when($q !== '', fn (Builder $query) => $query->where(fn (Builder $search) => $search
                 ->where('name', 'like', "%{$q}%")
+                ->orWhere('username', 'like', "%{$q}%")
                 ->orWhere('email', 'like', "%{$q}%")))
             ->when($role, fn (Builder $query, PlatformRole $role) => $role === PlatformRole::Listener
                 ? $query->whereDoesntHave('roles', fn (Builder $roles) => $roles->where('name', '!=', PlatformRole::Listener->value))
@@ -146,6 +149,13 @@ class UserController extends Controller
         $change->handle($user, $request->role(), $request->user());
 
         return back()->with('success', "{$user->name} ahora es {$request->role()->label()}.");
+    }
+
+    public function access(UpdateStaffCredentialsRequest $request, User $user, SetStaffCredentials $set): RedirectResponse
+    {
+        $set->handle($user, $request->username(), $request->password(), $request->user());
+
+        return back()->with('success', "{$user->name} ya puede entrar al panel como «{$user->username}».");
     }
 
     /**

@@ -21,7 +21,7 @@ class EnsureControlAccess
             return $next($request);
         }
 
-        return redirect()->away($user->memberships()->exists()
+        return redirect()->away($user->hasStudio()
             ? PlatformHost::Studio->url()
             : PlatformHost::Public->url('/crear-mi-radio'));
     }

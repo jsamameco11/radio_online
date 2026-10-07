@@ -54,17 +54,17 @@ class StationController extends Controller
     }
 
     /**
-     * What every page of a station needs: the station, whether the viewer
-     * follows it, its studio for its team, and how to share and report it.
+     * What every page of a station needs: the station, whether the viewer (a guest
+     * when null) follows it, its studio for its team, and how to share and report it.
      *
      * @return array<string, mixed>
      */
-    public static function context(User $user, Station $station): array
+    public static function context(?User $user, Station $station): array
     {
         return [
             'station' => StationResource::make($station)->resolve(),
-            'isFollowing' => $user->follows()->whereKey($station->id)->exists(),
-            'studioUrl' => $user->roleIn($station) === null ? null : StationLinks::studio($station),
+            'isFollowing' => $user !== null && $user->follows()->whereKey($station->id)->exists(),
+            'studioUrl' => $user?->roleIn($station) === null ? null : StationLinks::studio($station),
             'shareUrl' => StationLinks::listen($station),
             'reportReasons' => ReportContentRequest::reasonOptions(),
         ];

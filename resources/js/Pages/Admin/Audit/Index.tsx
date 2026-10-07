@@ -31,13 +31,16 @@ interface Props {
 
 const EMPTY: Filters = { actor: "", action: "", station: "", from: "", to: "" };
 
+/** The action and area lists do not change with the filters. */
+const FILTERED = ["logs", "filters"];
+
 export default function AuditIndex({ logs, filters, actions, areas }: Props) {
   const [values, setValues] = useState(filters);
   const [open, setOpen] = useState<number | null>(null);
 
   const apply = (next: Filters) => {
     setValues(next);
-    router.get("/admin/auditoria", Object.fromEntries(Object.entries(next).filter(([, value]) => value !== "")), { preserveState: true, replace: true });
+    router.get("/admin/auditoria", Object.fromEntries(Object.entries(next).filter(([, value]) => value !== "")), { only: FILTERED, preserveState: true, replace: true });
   };
 
   const submit = (event: FormEvent) => {

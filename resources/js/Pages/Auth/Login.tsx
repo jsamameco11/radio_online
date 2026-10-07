@@ -1,31 +1,36 @@
-import { Link, useForm } from "@inertiajs/react";
+import { Link, useForm, usePage } from "@inertiajs/react";
 import type { FormEvent } from "react";
-import { AuthDivider, GoogleSignInButton } from "@/Components/site/google-sign-in";
+import { GoogleSignInButton } from "@/Components/site/google-sign-in";
 import { PasswordInput } from "@/Components/site/password-input";
 import { StatusNotice } from "@/Components/site/site-flash";
 import { Button } from "@/Components/ui/button";
 import { Checkbox, Field, Input } from "@/Components/ui/field";
 import AuthLayout from "@/Layouts/AuthLayout";
+import type { SharedProps } from "@/types";
 
-export default function Login({ canRegister, status }: { canRegister: boolean; status: string | null }) {
-  const form = useForm({ email: "", password: "", remember: false });
+/** Listeners (public host) and creators (console host) sign in with Google; the platform staff, with a username on the control host. */
+export default function Login({ status }: { status: string | null }) {
+  const { app } = usePage<SharedProps>().props;
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    form.post("/ingresar", { onFinish: () => form.reset("password") });
-  };
+  if (app.host === "control") {
+    return <StaffSignIn status={status} />;
+  }
+
+  const listener = app.host === "public";
 
   return (
     <AuthLayout
       title="Ingresar"
-      heading="Bienvenido de vuelta"
-      description={canRegister ? "Ingresa para escuchar tus radios favoritas." : "Ingresa a tu estudio o al panel de la plataforma."}
+      heading={listener ? "Ingresa a tu cuenta" : "Entra a tu consola"}
+      description={
+        listener ? "Con tu cuenta de Google puedes enviar regalos, seguir tus radios y escribir en el chat." : "Los creadores ingresan con la cuenta de Google con la que crearon su radio."
+      }
       footer={
-        canRegister && (
+        listener && (
           <>
-            ¿Aún no tienes cuenta?{" "}
-            <Link href="/registro" className="font-medium text-ink underline-offset-4 hover:underline">
-              Crea una gratis
+            Para escuchar no necesitas cuenta.{" "}
+            <Link href="/" className="font-medium text-ink underline-offset-4 hover:underline">
+              Seguir escuchando
             </Link>
           </>
         )
@@ -33,24 +38,39 @@ export default function Login({ canRegister, status }: { canRegister: boolean; s
     >
       <StatusNotice status={status} />
       <GoogleSignInButton />
-      <AuthDivider label="o ingresa con tu correo" />
+      <p className="mt-4 text-center text-xs text-muted">Si es tu primera vez, tu cuenta se crea al continuar.</p>
+    </AuthLayout>
+  );
+}
+
+function StaffSignIn({ status }: { status: string | null }) {
+  const form = useForm({ username: "", password: "", remember: false });
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    form.post("/ingresar", { onFinish: () => form.reset("password") });
+  };
+
+  return (
+    <AuthLayout title="Ingresar" heading="Panel de administración" description="Ingresa con tu usuario y contraseña del personal de la plataforma.">
+      <StatusNotice status={status} />
       <form onSubmit={submit} className="space-y-5">
-        <Field label="Correo" error={form.errors.email}>
+        <Field label="Usuario" error={form.errors.username}>
           {(id, invalid) => (
-            <Input id={id} type="email" autoComplete="username" autoFocus invalid={invalid} value={form.data.email} onChange={(event) => form.setData("email", event.target.value)} required />
+            <Input
+              id={id}
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              autoFocus
+              invalid={invalid}
+              value={form.data.username}
+              onChange={(event) => form.setData("username", event.target.value)}
+              required
+            />
           )}
         </Field>
-        <Field
-          label={
-            <span className="flex items-center justify-between">
-              Contraseña
-              <Link href="/recuperar-clave" className="text-xs font-normal text-muted hover:text-ink">
-                ¿La olvidaste?
-              </Link>
-            </span>
-          }
-          error={form.errors.password}
-        >
+        <Field label="Contraseña" error={form.errors.password}>
           {(id, invalid) => (
             <PasswordInput id={id} autoComplete="current-password" invalid={invalid} value={form.data.password} onChange={(event) => form.setData("password", event.target.value)} required />
           )}

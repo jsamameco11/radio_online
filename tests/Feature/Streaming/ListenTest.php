@@ -89,13 +89,28 @@ class ListenTest extends TestCase
     }
 
     #[Test]
-    public function unknown_and_suspended_stations_are_not_found_and_guests_must_sign_in(): void
+    public function unknown_and_suspended_stations_are_not_found(): void
     {
         $suspended = Station::factory()->suspended()->create();
 
-        $this->getJson($this->radio('/estado'))->assertUnauthorized();
+        $this->getJson($this->publicUrl('/radio/00-00/estado'))->assertNotFound();
         $this->actingAs($this->listener)->getJson($this->publicUrl('/radio/00-00/estado'))->assertNotFound();
         $this->actingAs($this->listener)->getJson($this->radio('/estado', $suspended))->assertNotFound();
+    }
+
+    #[Test]
+    public function guests_listen_and_count_in_the_audience_without_an_account(): void
+    {
+        $this->getJson($this->radio('/estado'))->assertOk()->assertJsonStructure(['on_air', 'queue', 'now']);
+
+        $this->postJson($this->radio('/escucha'), ['oyente' => self::LISTENER])
+            ->assertOk()
+            ->assertJsonPath('listeners', 1);
+
+        $this->assertDatabaseHas(ListenerSession::class, ['station_id' => $this->station->id, 'user_id' => null, 'token' => self::LISTENER, 'ended_at' => null]);
+
+        $this->postJson($this->radio('/salir'), ['oyente' => self::LISTENER])->assertOk();
+        $this->assertSame(0, $this->station->refresh()->listener_count);
     }
 
     #[Test]

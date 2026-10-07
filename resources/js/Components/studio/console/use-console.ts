@@ -5,7 +5,7 @@ import { http, HttpError } from "@/lib/http";
 import { LiveCapture } from "@/lib/radio/capture";
 import { ServerClock } from "@/lib/radio/clock";
 import { ProgramPlayer } from "@/lib/radio/program-player";
-import { Broadcaster } from "@/lib/radio/voice";
+import { Broadcaster, type InputMode } from "@/lib/radio/voice";
 import type { BroadcastTrack, CaptureBrief, ConsoleSignal, ConsoleSnapshot, LiveMode, ProgramLayer } from "@/types/studio";
 
 export type Notice = { tone: "error" | "info"; text: string } | null;
@@ -25,10 +25,12 @@ export interface PlayOptions {
 }
 
 /**
- * Microphone of this console: level, music bed while talking, self monitoring, input device,
- * voice processing, «Detectar voz» (the program drops while the voice is heard) and «Hablar al iniciar».
+ * Input of this console: microphone, line input or none (DJ decks only), level, music bed while
+ * talking, self monitoring, input device, voice processing, «Detectar voz» (the program drops
+ * while the voice is heard) and «Hablar al iniciar».
  */
 export interface MicSettings {
+  input: InputMode;
   level: number;
   autoBed: boolean;
   selfMonitor: boolean;
@@ -45,7 +47,9 @@ export const PLAYERS = ["A", "B", "C"] as const;
 
 const MIC_KEY = "turadio.console.mic";
 
-const MIC_DEFAULTS: MicSettings = { level: 1, autoBed: true, selfMonitor: false, deviceId: "", processing: true, voiceDuck: true, talkOnStart: true };
+const MIC_DEFAULTS: MicSettings = { input: "mic", level: 1, autoBed: true, selfMonitor: false, deviceId: "", processing: true, voiceDuck: true, talkOnStart: true };
+
+const INPUTS: InputMode[] = ["mic", "line", "none"];
 
 const POLL_MS = 1500;
 
@@ -54,7 +58,8 @@ function savedMic(): MicSettings {
   try {
     const saved = JSON.parse(window.localStorage.getItem(MIC_KEY) ?? "{}") as Partial<MicSettings>;
     const pick = (key: "autoBed" | "processing" | "voiceDuck" | "talkOnStart") => (typeof saved[key] === "boolean" ? saved[key] : MIC_DEFAULTS[key]);
-    return { ...MIC_DEFAULTS, autoBed: pick("autoBed"), processing: pick("processing"), voiceDuck: pick("voiceDuck"), talkOnStart: pick("talkOnStart") };
+    const input = INPUTS.find((mode) => mode === saved.input) ?? MIC_DEFAULTS.input;
+    return { ...MIC_DEFAULTS, input, autoBed: pick("autoBed"), processing: pick("processing"), voiceDuck: pick("voiceDuck"), talkOnStart: pick("talkOnStart") };
   } catch {
     return MIC_DEFAULTS;
   }
@@ -183,8 +188,8 @@ export function useConsole(initial: ConsoleSnapshot, host: string, pending: Capt
   }, [mic.voiceDuck]);
 
   useEffect(() => {
-    const { autoBed, processing, voiceDuck, talkOnStart } = mic;
-    window.localStorage.setItem(MIC_KEY, JSON.stringify({ autoBed, processing, voiceDuck, talkOnStart }));
+    const { input, autoBed, processing, voiceDuck, talkOnStart } = mic;
+    window.localStorage.setItem(MIC_KEY, JSON.stringify({ input, autoBed, processing, voiceDuck, talkOnStart }));
   }, [mic]);
 
   useEffect(
@@ -318,7 +323,7 @@ export function useConsole(initial: ConsoleSnapshot, host: string, pending: Capt
     const engine = caster.current;
     if (!engine) return false;
     try {
-      await engine.openMic(settings.deviceId || null, settings.processing);
+      await engine.openMic(settings.deviceId || null, settings.processing, settings.input);
       engine.setLevel(settings.level);
       engine.setTalking(talking);
       engine.setReturn(settings.selfMonitor);
@@ -327,7 +332,13 @@ export function useConsole(initial: ConsoleSnapshot, host: string, pending: Capt
       setDevices(list.filter((device) => device.kind === "audioinput"));
       return true;
     } catch {
-      setNotice({ tone: "error", text: "No pudimos usar el micrófono. Permite el acceso al micrófono en el navegador (ícono del candado junto a la dirección) e inténtalo otra vez." });
+      setNotice({
+        tone: "error",
+        text:
+          settings.input === "line"
+            ? "No pudimos usar la entrada de línea. Conecta la mezcladora o el controlador, permite el acceso al audio en el navegador y elige su entrada."
+            : "No pudimos usar el micrófono. Permite el acceso al micrófono en el navegador (ícono del candado junto a la dirección) e inténtalo otra vez.",
+      });
       return false;
     }
   }
@@ -337,7 +348,7 @@ export function useConsole(initial: ConsoleSnapshot, host: string, pending: Capt
     setMic(merged);
     if (next.level !== undefined) caster.current?.setLevel(next.level);
     if (next.selfMonitor !== undefined) caster.current?.setReturn(next.selfMonitor);
-    if ((next.deviceId !== undefined || next.processing !== undefined) && micOpen) void openMic(merged);
+    if ((next.deviceId !== undefined || next.processing !== undefined || next.input !== undefined) && micOpen) void openMic(merged);
   }
 
   async function beginCapture(session: string) {
@@ -395,9 +406,18 @@ export function useConsole(initial: ConsoleSnapshot, host: string, pending: Capt
     if (await openMic()) {
       const data = await run<Answer>("post", "/vivo", { host: hostName, title }, true);
       const session = data?.snapshot?.live.session;
-      if (session && mic.talkOnStart) {
+      if (session && mic.input === "none") setNotice({ tone: "info", text: "¡Transmisión abierta! Pon la mezcla de la consola DJ al aire cuando quieras." });
+      else if (session && mic.talkOnStart) {
         await talk(true);
-        setNotice({ tone: "info", text: mic.voiceDuck ? "¡Estás al aire! Habla cuando quieras: la música baja sola mientras se oye tu voz." : "¡Estás al aire con tu voz! Usa «Hablar» para cerrar o abrir el micrófono." });
+        setNotice({
+          tone: "info",
+          text:
+            mic.input === "line"
+              ? "¡Estás al aire! Todo lo que sale de tu mezcladora o controlador llega a los oyentes."
+              : mic.voiceDuck
+                ? "¡Estás al aire! Habla cuando quieras: la música baja sola mientras se oye tu voz."
+                : "¡Estás al aire con tu voz! Usa «Hablar» para cerrar o abrir el micrófono.",
+        });
       }
       if (session && record) await beginCapture(session);
       if (!session) {

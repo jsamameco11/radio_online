@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Audit\AuditActions;
 use App\Domain\Stations\Analytics\LocalTime;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\AuditLogResource;
@@ -16,7 +17,7 @@ use Throwable;
 /** Admin > Auditoría: who did what, on which station and when. */
 class AuditLogController extends Controller
 {
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request, AuditActions $actions): Response
     {
         $actor = $request->string('actor')->trim()->limit(80, '')->toString();
         $action = $request->string('action')->trim()->limit(60, '')->toString();
@@ -45,7 +46,9 @@ class AuditLogController extends Controller
             ->withQueryString()
             ->through(fn (AuditLog $log) => AuditLogResource::make($log)->resolve($request));
 
-        $actions = AuditLog::query()->distinct()->orderBy('action')->pluck('action');
+        $kinds = function () use (&$recorded, $actions): array {
+            return $recorded ??= $actions->all();
+        };
 
         return Inertia::render('Admin/Audit/Index', [
             'logs' => $page,
@@ -56,8 +59,8 @@ class AuditLogController extends Controller
                 'from' => $from?->setTimezone(LocalTime::timezone())->toDateString() ?? '',
                 'to' => $to?->setTimezone(LocalTime::timezone())->toDateString() ?? '',
             ],
-            'actions' => $actions->all(),
-            'areas' => $actions->map(fn (string $item) => explode('.', $item)[0].'.')->unique()->values()->all(),
+            'actions' => $kinds,
+            'areas' => fn () => collect($kinds())->map(fn (string $item) => explode('.', $item)[0].'.')->unique()->values()->all(),
         ]);
     }
 

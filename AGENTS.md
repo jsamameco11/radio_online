@@ -33,7 +33,8 @@ Locally: `turadioonline.localhost:8000`, `consola-fullradio.localhost:8000` and 
 ### Authorization
 
 - Platform roles/permissions (spatie): `App\Domain\Access\Enums\{PlatformRole, Permission}`. Super admin passes every Gate. Check permissions (`$user->can(Permission::UsersManage->value)`), never role names or `is_admin` flags.
-- Staff (`/admin`) requires confirmed 2FA (`EnsureStaffTwoFactor`).
+- Sign-in: listeners and creators only use "Continuar con Google" (`SignInWithGoogle`); there is no registration form. The staff signs in to the control host with a username and password (`AuthenticateStaff`, wired in `FortifyServiceProvider`); credentials are set from Admin > Usuarios, the first super admin comes from `SUPERADMIN_*` in `.env`.
+- Listening is public (guests get a player session token); following, reporting, chat posts, the wallet and gifts require a signed-in, verified account.
 - Station team roles live in `station_members`: `App\Domain\Stations\Enums\{StationRole, StationPermission}`. Protect studio routes with `->middleware('studio.can:library.manage')`; in code use `$user->canInStation($station, StationPermission::X)`.
 - Use Policies (`app/Policies`) for model-level rules.
 

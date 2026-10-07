@@ -64,17 +64,84 @@ class DiscoveryPagesTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->component($component));
     }
 
+    /** @return array<string, array{string, string}> */
+    public static function openPages(): array
+    {
+        return [
+            'home' => ['/', 'Public/Home'],
+            'explore' => ['/explorar', 'Public/Explore'],
+            'live' => ['/en-vivo', 'Public/Live'],
+            'dial' => ['/dial', 'Public/Dial'],
+            'categories' => ['/categorias', 'Public/Categories'],
+            'search' => ['/buscar?q=aurora', 'Public/Search'],
+            'station' => ['/radio/89-30', 'Public/Station'],
+        ];
+    }
+
     #[Test]
-    #[DataProvider('pages')]
-    public function guests_are_sent_to_sign_in(string $path): void
+    #[DataProvider('openPages')]
+    public function guests_discover_and_listen_without_an_account(string $path, string $component): void
+    {
+        $this->get($this->publicUrl($path))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component($component)->where('auth.user', null));
+    }
+
+    #[Test]
+    public function a_guest_sees_the_station_without_follow_state_or_studio_link(): void
+    {
+        $this->get($this->publicUrl('/radio/89-30'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('isFollowing', false)
+                ->where('studioUrl', null)
+                ->where('chat.viewer.signed_in', false));
+    }
+
+    /** @return array<string, array{string}> */
+    public static function personalPages(): array
+    {
+        return [
+            'following' => ['/mis-radios'],
+            'history' => ['/historial'],
+            'create station' => ['/crear-mi-radio'],
+            'wallet' => ['/billetera'],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('personalPages')]
+    public function personal_pages_ask_guests_to_sign_in(string $path): void
     {
         $this->get($this->publicUrl($path))->assertRedirect($this->publicUrl('/ingresar'));
     }
 
     #[Test]
+    public function guests_cannot_follow_report_chat_or_send_gifts(): void
+    {
+        $this->post($this->publicUrl('/radio/89-30/suscribirme'))->assertRedirect($this->publicUrl('/ingresar'));
+        $this->post($this->publicUrl('/radio/89-30/reportar'), ['reason' => 'spam'])->assertRedirect($this->publicUrl('/ingresar'));
+        $this->postJson($this->publicUrl('/radio/89-30/regalos'), ['gift_id' => 1, 'quantity' => 1])->assertUnauthorized();
+        $this->postJson($this->publicUrl('/radio/89-30/chat'), ['body' => 'Hola'])->assertUnauthorized();
+
+        $this->assertSame(0, $this->station->fresh()->follower_count);
+    }
+
+    #[Test]
+    public function signing_in_brings_the_guest_back_to_the_page_they_were_on(): void
+    {
+        $this->get($this->publicUrl('/ingresar?volver=/radio/89-30'))->assertOk();
+        $this->assertSame($this->publicUrl('/radio/89-30'), session('url.intended'));
+
+        session()->forget('url.intended');
+        $this->get($this->publicUrl('/ingresar?volver=//sitio-ajeno.com'))->assertOk();
+        $this->get($this->publicUrl('/ingresar?volver=https://sitio-ajeno.com'))->assertOk();
+        $this->assertNull(session('url.intended'));
+    }
+
+    #[Test]
     public function unverified_listeners_must_confirm_their_email_first(): void
     {
-        $response = $this->actingAs(User::factory()->unverified()->create())->get($this->publicUrl('/explorar'));
+        $response = $this->actingAs(User::factory()->unverified()->create())->get($this->publicUrl('/mis-radios'));
 
         $response->assertRedirect();
         $this->assertStringEndsWith(route('verification.notice', absolute: false), (string) $response->headers->get('Location'));

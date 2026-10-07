@@ -16,6 +16,7 @@ import { cn } from "@/lib/cn";
 import { dateTime, money } from "@/lib/format";
 import { HttpError, http } from "@/lib/http";
 import { realtime } from "@/lib/realtime";
+import { useSignInUrl } from "@/lib/sign-in";
 import type { SharedProps, Station } from "@/types";
 import type { ChatMessage, ChatSnapshot, ChatVisibilityEvent, PostedChatMessage } from "@/types/chat";
 import type { Option } from "@/types/site";
@@ -183,6 +184,7 @@ function Composer({ chat, url, formatMoney, onPosted }: { chat: ChatSnapshot; ur
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<{ text: string; topUp: boolean } | null>(null);
   const clientKey = useRef<string | null>(null);
+  const signInUrl = useSignInUrl();
 
   useEffect(() => {
     clientKey.current = null;
@@ -202,7 +204,7 @@ function Composer({ chat, url, formatMoney, onPosted }: { chat: ChatSnapshot; ur
     return (
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-raised px-4 py-3">
         <p className="text-sm text-muted">Inicia sesión para escribirle a la cabina.</p>
-        <ButtonLink href="/ingresar" size="sm" icon={<LogIn className="size-3.5" />}>
+        <ButtonLink href={signInUrl} size="sm" icon={<LogIn className="size-3.5" />}>
           Ingresar
         </ButtonLink>
       </footer>

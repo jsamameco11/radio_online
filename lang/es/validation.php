@@ -136,6 +136,7 @@ return [
 
     'attributes' => [
         'name' => 'nombre',
+        'username' => 'usuario',
         'email' => 'correo',
         'password' => 'contraseña',
         'password_confirmation' => 'confirmación de la contraseña',

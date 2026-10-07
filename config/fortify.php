@@ -8,7 +8,9 @@ return [
 
     'passwords' => 'users',
 
-    'username' => 'email',
+    // Only the platform staff signs in with a password, by username, on the control host (see FortifyServiceProvider).
+    // Listeners and creators sign in with Google.
+    'username' => 'username',
 
     'email' => 'email',
 
@@ -34,12 +36,7 @@ return [
     'paths' => [
         'login' => '/ingresar',
         'logout' => '/salir',
-        'register' => '/registro',
         'password' => [
-            'request' => '/recuperar-clave',
-            'email' => '/recuperar-clave',
-            'reset' => '/restablecer-clave/{token}',
-            'update' => '/restablecer-clave',
             'confirm' => '/cuenta/confirmar-clave',
             'confirmation' => '/cuenta/confirmar-clave/estado',
         ],
@@ -65,9 +62,8 @@ return [
         ],
     ],
 
+    // Accounts are created by "Continuar con Google" (App\Domain\Access\Actions\SignInWithGoogle), not by a form.
     'features' => [
-        Features::registration(),
-        Features::resetPasswords(),
         Features::emailVerification(),
         Features::updateProfileInformation(),
         Features::updatePasswords(),

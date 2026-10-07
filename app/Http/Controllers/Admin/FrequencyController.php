@@ -7,6 +7,7 @@ use App\Domain\Frequencies\Actions\AssignFrequency;
 use App\Domain\Frequencies\Actions\ReleaseFrequency;
 use App\Domain\Frequencies\Actions\ReserveFrequency;
 use App\Domain\Frequencies\Actions\SetFrequencyMaintenance;
+use App\Domain\Frequencies\DialMap;
 use App\Domain\Frequencies\Enums\FrequencyStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AssignFrequencyRequest;
@@ -28,7 +29,7 @@ use Inertia\Response;
 /** Admin > Frecuencias: the dial, one frequency, and what the staff can do with it. */
 class FrequencyController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, DialMap $dial): Response
     {
         $filters = [
             'status' => FrequencyStatus::tryFrom($request->string('status')->toString())?->value,
@@ -36,6 +37,11 @@ class FrequencyController extends Controller
             'max' => is_numeric($request->query('max')) ? (float) $request->query('max') : null,
             'q' => $request->string('q')->trim()->limit(80, '')->toString() ?: null,
         ];
+
+        $map = function () use (&$usage, $dial): array {
+            return $usage ??= $dial->handle();
+        };
+        $unfiltered = array_filter($filters, fn (mixed $value) => $value !== null) === [];
 
         $page = Frequency::query()
             ->with(['station.owner'])
@@ -46,7 +52,7 @@ class FrequencyController extends Controller
                 ->where('label', 'like', str_replace(',', '.', $q).'%')
                 ->orWhereHas('station', fn (Builder $station) => $station->where('name', 'like', "%{$q}%"))))
             ->onDial()
-            ->paginate(50)
+            ->paginate(50, total: $unfiltered ? fn () => array_sum($map()['totals']) : null)
             ->withQueryString()
             ->through(fn (Frequency $frequency) => [
                 'id' => $frequency->id,
@@ -66,8 +72,6 @@ class FrequencyController extends Controller
                 ],
             ]);
 
-        $counts = Frequency::query()->toBase()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
-
         return Inertia::render('Admin/Frequencies/Index', [
             'frequencies' => $page,
             'filters' => [
@@ -76,14 +80,10 @@ class FrequencyController extends Controller
                 'max' => $filters['max'] === null ? '' : number_format($filters['max'], 2, '.', ''),
                 'q' => $filters['q'] ?? '',
             ],
-            'statuses' => collect(FrequencyStatus::cases())
-                ->map(fn (FrequencyStatus $status) => ['value' => $status->value, 'label' => $status->label(), 'total' => (int) ($counts[$status->value] ?? 0)])
+            'statuses' => fn () => collect(FrequencyStatus::cases())
+                ->map(fn (FrequencyStatus $status) => ['value' => $status->value, 'label' => $status->label(), 'total' => $map()['totals'][$status->value]])
                 ->all(),
-            'dial' => Frequency::query()
-                ->onDial()
-                ->get(['id', 'frequency', 'label', 'slug', 'status'])
-                ->map(fn (Frequency $frequency) => ['label' => $frequency->label, 'slug' => $frequency->slug, 'mhz' => (float) $frequency->frequency, 'status' => $frequency->status->value])
-                ->all(),
+            'dial' => fn () => $map()['segments'],
             'band' => ['min' => (float) config('platform.dial.min'), 'max' => (float) config('platform.dial.max')],
             'canExpand' => $request->user()->can(Permission::ManageSettings->value),
         ]);

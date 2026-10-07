@@ -3,6 +3,8 @@
 namespace Tests\Feature\Admin;
 
 use App\Domain\Access\Enums\PlatformRole;
+use App\Domain\Streaming\Enums\StreamStatus;
+use App\Models\Frequency;
 use App\Models\Station;
 use App\Models\User;
 use Database\Seeders\AccessSeeder;
@@ -60,6 +62,35 @@ class AdminAccessTest extends TestCase
     }
 
     #[Test]
+    public function the_dashboard_sends_its_figures_first_and_defers_the_charts_and_lists(): void
+    {
+        $station = Station::factory()->create(['stream_status' => StreamStatus::Live, 'listener_count' => 12]);
+        User::factory()->count(2)->create();
+
+        $this->actingAs($this->staff())
+            ->get($this->controlUrl('/admin'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Dashboard')
+                ->where('kpis.stations', 1)
+                ->where('kpis.on_air', 1)
+                ->where('kpis.live', 1)
+                ->where('kpis.listeners_now', 12)
+                ->where('kpis.users', User::query()->count())
+                ->has('kpis.gifts_today')
+                ->where('dial.total', Frequency::query()->count())
+                ->has('alerts', fn (Assert $alerts) => $alerts->has('maintenance')->has('stale_requests'))
+                ->missing('series')
+                ->missing('topStations')
+                ->missing('audit')
+                ->loadDeferredProps('charts', fn (Assert $reload) => $reload->has('series', 14))
+                ->loadDeferredProps('activity', fn (Assert $reload) => $reload
+                    ->where('topStations.0.id', $station->id)
+                    ->has('troubled')
+                    ->has('audit')));
+    }
+
+    #[Test]
     public function non_staff_users_cannot_enter_the_admin_panel(): void
     {
         $this->seed(AccessSeeder::class);
@@ -74,14 +105,14 @@ class AdminAccessTest extends TestCase
     }
 
     #[Test]
-    public function staff_without_two_factor_are_sent_to_account_security(): void
+    public function staff_enter_the_panel_without_two_factor_authentication(): void
     {
         $this->seed(AccessSeeder::class);
         $admin = tap(User::factory()->create())->assignRole(PlatformRole::Admin->value);
 
         $this->actingAs($admin)
             ->get($this->controlUrl('/admin/radios'))
-            ->assertRedirect('/cuenta/seguridad');
+            ->assertOk();
     }
 
     #[Test]

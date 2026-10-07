@@ -13,7 +13,12 @@ final class GoogleSignInRefused extends RuntimeException
 {
     public static function unavailable(): self
     {
-        return new self('El ingreso con Google no está disponible en este momento. Usa tu correo y contraseña.');
+        return new self('El ingreso con Google no está disponible en este momento. Inténtalo de nuevo en unos minutos.');
+    }
+
+    public static function controlPanel(): self
+    {
+        return new self('El panel de administración se usa con tu usuario y contraseña.');
     }
 
     public static function failed(): self
@@ -28,12 +33,12 @@ final class GoogleSignInRefused extends RuntimeException
 
     public static function unverifiedEmail(): self
     {
-        return new self('Tu cuenta de Google no tiene el correo verificado. Verifícalo en Google o crea tu cuenta con correo y contraseña.');
+        return new self('Tu cuenta de Google no tiene el correo verificado. Verifícalo en Google y vuelve a intentarlo.');
     }
 
     public static function linkedElsewhere(): self
     {
-        return new self('Tu cuenta ya está vinculada con otra cuenta de Google. Ingresa con esa cuenta o con tu contraseña.');
+        return new self('Tu correo ya está vinculado con otra cuenta de Google. Ingresa con esa cuenta.');
     }
 
     public static function registrationsClosed(): self

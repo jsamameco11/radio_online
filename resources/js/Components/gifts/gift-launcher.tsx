@@ -11,6 +11,7 @@ import { announceWalletChange } from "@/Components/wallet/wallet-events";
 import { cn } from "@/lib/cn";
 import { money } from "@/lib/format";
 import { HttpError, http } from "@/lib/http";
+import { useSignInUrl } from "@/lib/sign-in";
 import type { SharedProps, Station } from "@/types";
 import type { GiftCatalog, SentGift } from "@/types/wallet";
 
@@ -28,11 +29,12 @@ function newIdempotencyKey(): string {
  */
 export function GiftLauncher({ station, className }: { station: Station; className?: string }) {
   const { auth } = usePage<SharedProps>().props;
+  const signInUrl = useSignInUrl();
   const [open, setOpen] = useState(false);
 
   if (!auth.user) {
     return (
-      <ButtonLink href="/ingresar" variant="signal" className={className} icon={<GiftIcon className="size-4" />}>
+      <ButtonLink href={signInUrl} variant="signal" title="Ingresa con Google para enviar regalos" className={className} icon={<GiftIcon className="size-4" />}>
         Enviar regalo
       </ButtonLink>
     );

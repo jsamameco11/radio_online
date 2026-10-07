@@ -1,5 +1,5 @@
 import { Head, Link, usePage } from "@inertiajs/react";
-import { Compass, Disc3, Heart, History, Home, LayoutGrid, Menu, Mic2, Radio, X } from "lucide-react";
+import { Compass, Disc3, Heart, History, Home, LayoutGrid, LogIn, Menu, Mic2, Radio, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -12,6 +12,7 @@ import { SiteSearch } from "@/Components/site/site-search";
 import { ButtonLink, buttonClasses } from "@/Components/ui/button";
 import { WalletChip } from "@/Components/wallet/wallet-chip";
 import { cn } from "@/lib/cn";
+import { useSignInUrl } from "@/lib/sign-in";
 import type { SharedProps } from "@/types";
 
 interface SiteLink {
@@ -55,10 +56,12 @@ function StudioCta({ className }: { className?: string }) {
 
 function SiteShell({ children, title }: { children: ReactNode; title?: string }) {
   const { url } = usePage();
-  const { app } = usePage<SharedProps>().props;
+  const { app, auth } = usePage<SharedProps>().props;
+  const signInUrl = useSignInUrl();
   const current = url.split("?")[0];
   const [menuOpen, setMenuOpen] = useState(false);
   const { station } = usePlayer();
+  const shortcuts = auth.user ? personal : [];
 
   useEffect(() => setMenuOpen(false), [url]);
 
@@ -100,7 +103,7 @@ function SiteShell({ children, title }: { children: ReactNode; title?: string })
           <SiteSearch className="ml-auto hidden w-full max-w-xs md:block xl:max-w-sm" />
 
           <div className="ml-auto flex items-center gap-1.5 md:ml-0">
-            {personal.map((item) => (
+            {shortcuts.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -113,7 +116,13 @@ function SiteShell({ children, title }: { children: ReactNode; title?: string })
             ))}
             <StudioCta className="hidden xl:inline-flex" />
             <WalletChip />
-            <UserMenu />
+            {auth.user ? (
+              <UserMenu />
+            ) : (
+              <ButtonLink href={signInUrl} variant="secondary" icon={<LogIn className="size-4" />}>
+                Ingresar
+              </ButtonLink>
+            )}
           </div>
         </div>
         <div className="border-t border-line px-4 py-2 md:hidden">
@@ -135,7 +144,7 @@ function SiteShell({ children, title }: { children: ReactNode; title?: string })
               </button>
             </div>
             <nav className="space-y-1" aria-label="Menú móvil">
-              {[...primary, ...personal].map((item) => (
+              {[...primary, ...shortcuts].map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}

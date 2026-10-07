@@ -17,9 +17,10 @@ return [
 
     'timezone' => env('PLATFORM_TIMEZONE', 'America/Lima'),
 
-    // First super administrator, created by Database\Seeders\SuperAdminSeeder.
+    // First super administrator, created by Database\Seeders\SuperAdminSeeder. Signs in to the control panel with the username.
     'super_admin' => [
         'name' => env('SUPERADMIN_NAME', 'Superadministrador'),
+        'username' => env('SUPERADMIN_USERNAME'),
         'email' => env('SUPERADMIN_EMAIL'),
         'password' => env('SUPERADMIN_PASSWORD'),
     ],

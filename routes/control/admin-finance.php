@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 | Platform finances (/admin/…, names "admin.*"): the gift catalog, wallet
-| top-ups and the ledger of every wallet. Staff with 2FA only.
+| top-ups and the ledger of every wallet. Staff only.
 */
 
 Route::middleware('can:gifts.manage')->group(function () {

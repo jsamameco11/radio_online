@@ -153,7 +153,7 @@ export class ProgramPlayer {
   private decoding = new Set<string>();
   private warmed = new Set<string>();
 
-  /** The console asks for an `interactive` output so what the operator fires is heard at once. */
+  /** The console and the listeners ask for an `interactive` output: what is fired or said live is heard at once. */
   constructor(clock: ServerClock, latency: AudioContextLatencyCategory = "playback") {
     this.clock = clock;
     this.latency = latency;

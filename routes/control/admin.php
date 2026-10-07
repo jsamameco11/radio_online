@@ -64,7 +64,10 @@ Route::middleware('can:users.view')->group(function () {
         Route::post('/usuarios/{user}/suspender', [UserController::class, 'suspend'])->name('users.suspend');
         Route::post('/usuarios/{user}/reactivar', [UserController::class, 'reactivate'])->name('users.reactivate');
     });
-    Route::put('/usuarios/{user}/rol', [UserController::class, 'role'])->middleware('can:roles.manage')->name('users.role');
+    Route::middleware('can:roles.manage')->group(function () {
+        Route::put('/usuarios/{user}/rol', [UserController::class, 'role'])->name('users.role');
+        Route::put('/usuarios/{user}/acceso', [UserController::class, 'access'])->name('users.access');
+    });
 });
 
 Route::middleware('can:categories.manage')->group(function () {

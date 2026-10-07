@@ -1,5 +1,5 @@
-import { router, useForm, usePage } from "@inertiajs/react";
-import { Check, Copy, KeyRound, Laptop, LogOut, ShieldAlert, ShieldCheck, Smartphone } from "lucide-react";
+import { router, useForm } from "@inertiajs/react";
+import { Check, Copy, KeyRound, Laptop, LogOut, ShieldCheck, Smartphone } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { AccountShell } from "@/Components/account/account-shell";
@@ -12,8 +12,6 @@ import { Modal } from "@/Components/ui/modal";
 import { Panel } from "@/Components/ui/panel";
 import { ago, dateTime } from "@/lib/format";
 import { HttpError, http } from "@/lib/http";
-import type { SharedProps } from "@/types";
-
 interface TwoFactorState {
   enabled: boolean;
   pending: boolean;
@@ -46,11 +44,11 @@ interface Endpoints {
 interface SignInMethods {
   has_password: boolean;
   google_linked: boolean;
+  staff_username: string | null;
 }
 
 interface SecurityProps {
   twoFactor: TwoFactorState;
-  staffNeedsTwoFactor: boolean;
   signIn: SignInMethods;
   sessions: AccountSession[];
   endpoints: Endpoints;
@@ -198,7 +196,6 @@ function RecoveryCodes({ codes }: { codes: string[] }) {
 }
 
 function TwoFactorPanel({ twoFactor, endpoints, hasPassword }: { twoFactor: TwoFactorState; endpoints: Endpoints; hasPassword: boolean }) {
-  const staff = usePage<SharedProps>().props.auth.user?.is_staff ?? false;
   const { confirmThen, modal } = usePasswordConfirmation(endpoints);
   const [working, setWorking] = useState(false);
   const confirmForm = useForm({ code: "" });
@@ -247,7 +244,6 @@ function TwoFactorPanel({ twoFactor, endpoints, hasPassword }: { twoFactor: TwoF
               Desactivar
             </Button>
           </div>
-          {staff && <p className="text-xs text-muted">Si la desactivas perderás el acceso al panel de administración hasta que la vuelvas a activar.</p>}
         </div>
       )}
 
@@ -388,8 +384,8 @@ function SetPasswordPanel({ endpoint }: { endpoint: string }) {
   return (
     <form onSubmit={submit}>
       <Panel
-        title="Crea una contraseña"
-        description="Tu cuenta se creó con Google. Con una contraseña también podrás ingresar con tu correo, activar la verificación en dos pasos y cerrar otras sesiones."
+        title="Crea una contraseña de confirmación"
+        description="Ingresas con Google. Esta contraseña no sirve para ingresar: la pediremos para confirmar acciones sensibles, como activar la verificación en dos pasos, cerrar otras sesiones o transferir tu radio."
         footer={
           <Button type="submit" loading={form.processing}>
             Crear contraseña
@@ -436,33 +432,39 @@ function SignInMethodsPanel({ signIn }: { signIn: SignInMethods }) {
           </div>
           {signIn.google_linked ? <Badge tone="onair">Vinculada</Badge> : <Badge>No vinculada</Badge>}
         </li>
-        <li className="flex items-center gap-4 px-5 py-3.5">
-          <span className="grid size-10 place-items-center rounded-xl bg-raised text-muted">
-            <KeyRound className="size-5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">Correo y contraseña</p>
-            <p className="text-xs text-muted">{signIn.has_password ? "Ingresas con tu correo y tu contraseña." : "Aún no tienes contraseña: créala abajo."}</p>
-          </div>
-          {signIn.has_password ? <Badge tone="onair">Activa</Badge> : <Badge tone="warning">Sin contraseña</Badge>}
-        </li>
+        {signIn.staff_username !== null ? (
+          <li className="flex items-center gap-4 px-5 py-3.5">
+            <span className="grid size-10 place-items-center rounded-xl bg-raised text-muted">
+              <KeyRound className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">Usuario del panel</p>
+              <p className="text-xs text-muted">
+                Ingresas al panel de administración como <span className="font-mono text-ink">{signIn.staff_username}</span> con tu contraseña.
+              </p>
+            </div>
+            <Badge tone="onair">Activo</Badge>
+          </li>
+        ) : (
+          <li className="flex items-center gap-4 px-5 py-3.5">
+            <span className="grid size-10 place-items-center rounded-xl bg-raised text-muted">
+              <KeyRound className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">Contraseña de confirmación</p>
+              <p className="text-xs text-muted">{signIn.has_password ? "La pedimos antes de las acciones sensibles." : "Aún no tienes una: créala abajo si la necesitas."}</p>
+            </div>
+            {signIn.has_password ? <Badge tone="onair">Creada</Badge> : <Badge>Sin crear</Badge>}
+          </li>
+        )}
       </ul>
     </Panel>
   );
 }
 
-export default function Security({ twoFactor, staffNeedsTwoFactor, signIn, sessions, endpoints }: SecurityProps) {
+export default function Security({ twoFactor, signIn, sessions, endpoints }: SecurityProps) {
   return (
-    <AccountShell title="Seguridad" description="Contraseña, verificación en dos pasos y dispositivos conectados.">
-      {staffNeedsTwoFactor && (
-        <div role="alert" className="flex items-start gap-4 rounded-2xl border border-danger bg-danger-soft px-5 py-4">
-          <ShieldAlert className="mt-0.5 size-6 shrink-0 text-danger" />
-          <div className="space-y-1">
-            <p className="font-semibold text-ink">Activa la verificación en dos pasos para entrar al panel de administración</p>
-            <p className="text-sm text-muted">Tu cuenta tiene permisos de la plataforma. Actívala abajo y vuelve a intentarlo.</p>
-          </div>
-        </div>
-      )}
+    <AccountShell title="Seguridad" description="Formas de ingresar, verificación en dos pasos y dispositivos conectados.">
       <SignInMethodsPanel signIn={signIn} />
       {!signIn.has_password && <SetPasswordPanel endpoint={endpoints.set_password} />}
       <TwoFactorPanel twoFactor={twoFactor} endpoints={endpoints} hasPassword={signIn.has_password} />

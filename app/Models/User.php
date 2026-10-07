@@ -19,7 +19,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'google_id', 'avatar_path', 'country'])]
+#[Fillable(['name', 'username', 'email', 'password', 'google_id', 'avatar_path', 'country'])]
 #[Hidden(['password', 'google_id', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -95,7 +95,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasRole(PlatformRole::SuperAdmin->value);
     }
 
-    /** Super admins, admins and moderators: they sign in to the control panel with 2FA. */
+    /** Super admins, admins and moderators: they sign in to the control panel with their username. */
     public function isStaff(): bool
     {
         return $this->hasAnyRole(array_map(
@@ -107,6 +107,14 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasTwoFactorEnabled(): bool
     {
         return $this->two_factor_secret !== null && $this->two_factor_confirmed_at !== null;
+    }
+
+    /** Whether the account belongs to the team of at least one station. */
+    public function hasStudio(): bool
+    {
+        return $this->relationLoaded('memberships')
+            ? $this->memberships->isNotEmpty()
+            : $this->memberships()->exists();
     }
 
     public function roleIn(Station $station): ?StationRole

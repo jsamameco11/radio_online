@@ -2,10 +2,10 @@
 
 namespace App\Domain\Access\Actions;
 
+use App\Domain\Access\AccountSessions;
 use App\Domain\Audit\AuditTrail;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Closes every session of the account except the current one: other
@@ -13,19 +13,16 @@ use Illuminate\Support\Facades\DB;
  */
 final class SignOutOtherSessions
 {
-    public function __construct(private readonly AuditTrail $audit) {}
+    public function __construct(
+        private readonly AccountSessions $sessions,
+        private readonly AuditTrail $audit,
+    ) {}
 
     public function handle(User $user, string $password, string $currentSessionId): void
     {
         Auth::guard('web')->logoutOtherDevices($password);
 
-        if (config('session.driver') === 'database') {
-            DB::connection(config('session.connection'))
-                ->table((string) config('session.table', 'sessions'))
-                ->where('user_id', $user->id)
-                ->where('id', '!=', $currentSessionId)
-                ->delete();
-        }
+        $this->sessions->end($user, $currentSessionId);
 
         $this->audit->record('user.sessions_closed', $user, [], $user);
     }

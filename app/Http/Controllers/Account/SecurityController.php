@@ -11,8 +11,10 @@ use Inertia\Response;
 use Laravel\Fortify\Fortify;
 
 /**
- * Password, two-factor authentication and signed-in browsers. The changes
- * themselves go to the Fortify endpoints, passed to the page by route name.
+ * Password, two-factor authentication and signed-in browsers. Listeners and creators sign in
+ * with Google: their password only confirms sensitive actions. The staff signs in to the control
+ * panel with its username and password. The changes go to the Fortify endpoints, passed to the
+ * page by route name.
  */
 class SecurityController extends Controller
 {
@@ -47,10 +49,10 @@ class SecurityController extends Controller
                 'secret' => $pending ? $this->secret($user) : null,
                 'recovery_codes' => $enabled && $withRecoveryCodes ? $user->recoveryCodes() : null,
             ],
-            'staffNeedsTwoFactor' => $user->isStaff() && ! $enabled,
             'signIn' => [
                 'has_password' => $user->getAuthPassword() !== null,
                 'google_linked' => $user->google_id !== null,
+                'staff_username' => $user->isStaff() ? $user->username : null,
             ],
             'sessions' => $sessions->of($user, $request->session()->getId(), $request->ip(), $request->userAgent()),
             'endpoints' => [

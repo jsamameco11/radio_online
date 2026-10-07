@@ -1,17 +1,33 @@
-import { router, useForm } from "@inertiajs/react";
+import { router, useForm, usePage } from "@inertiajs/react";
 import { BellPlus, Check, Flag, Link2, Share2 } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
-import { Button } from "@/Components/ui/button";
+import { Button, ButtonLink } from "@/Components/ui/button";
 import { Field, Select, Textarea } from "@/Components/ui/field";
 import { Modal } from "@/Components/ui/modal";
-import type { Station } from "@/types";
+import { useSignInUrl } from "@/lib/sign-in";
+import type { SharedProps, Station } from "@/types";
 import type { Option } from "@/types/site";
 
+function useSignedIn(): boolean {
+  return usePage<SharedProps>().props.auth.user !== null;
+}
+
+/** Guests are sent to sign in with Google and come back to the station. */
 export function FollowButton({ station, following }: { station: Station; following: boolean }) {
+  const signedIn = useSignedIn();
+  const signInUrl = useSignInUrl();
   const [busy, setBusy] = useState(false);
   const url = `/radio/${station.frequency.slug}/suscribirme`;
   const options = { preserveScroll: true, onStart: () => setBusy(true), onFinish: () => setBusy(false) };
+
+  if (!signedIn) {
+    return (
+      <ButtonLink href={signInUrl} icon={<BellPlus className="size-4" />} title="Ingresa con Google para suscribirte">
+        Suscribirme
+      </ButtonLink>
+    );
+  }
 
   return (
     <Button
@@ -52,10 +68,20 @@ export function ShareButton({ title, url }: { title: string; url: string }) {
   );
 }
 
-/** Flags the station (or one of its episodes, with `url`) for the moderation team. */
+/** Flags the station (or one of its episodes, with `url`) for the moderation team; guests sign in first. */
 export function ReportButton({ url, reasons, subject }: { url: string; reasons: Option[]; subject: string }) {
+  const signedIn = useSignedIn();
+  const signInUrl = useSignInUrl();
   const [open, setOpen] = useState(false);
   const form = useForm({ reason: "", details: "" });
+
+  if (!signedIn) {
+    return (
+      <ButtonLink href={signInUrl} variant="ghost" icon={<Flag className="size-4" />}>
+        Reportar
+      </ButtonLink>
+    );
+  }
 
   const submit = (event: FormEvent) => {
     event.preventDefault();

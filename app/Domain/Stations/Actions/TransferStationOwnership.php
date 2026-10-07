@@ -40,7 +40,8 @@ final class TransferStationOwnership
             StationMember::query()
                 ->where('station_id', $station->id)
                 ->where('role', StationRole::Owner->value)
-                ->update(['role' => StationRole::Manager->value]);
+                ->get()
+                ->each->update(['role' => StationRole::Manager]);
             $incoming->update(['role' => StationRole::Owner]);
             $station->forceFill(['owner_id' => $newOwnerId])->save();
 

@@ -35,7 +35,7 @@ class SecurityTest extends TestCase
                 ->where('twoFactor.enabled', false)
                 ->where('twoFactor.pending', false)
                 ->where('twoFactor.recovery_codes', null)
-                ->where('staffNeedsTwoFactor', false)
+                ->where('signIn.staff_username', null)
                 ->where('endpoints.two_factor', route('two-factor.enable', absolute: false))
                 ->where('endpoints.password', route('user-password.update', absolute: false))
                 ->has('sessions', 1)
@@ -85,20 +85,15 @@ class SecurityTest extends TestCase
     }
 
     #[Test]
-    public function staff_without_two_factor_land_on_the_security_page_with_a_warning(): void
+    public function staff_see_the_username_they_sign_in_to_the_panel_with(): void
     {
         $this->seed(AccessSeeder::class);
-        $staff = tap(User::factory()->create())->assignRole(PlatformRole::SuperAdmin->value);
-
-        $this->actingAs($staff)
-            ->get($this->controlUrl('/admin'))
-            ->assertRedirect()
-            ->assertSessionHas('error');
+        $staff = tap(User::factory()->create(['username' => 'adminradio']))->assignRole(PlatformRole::SuperAdmin->value);
 
         $this->actingAs($staff)
             ->get($this->controlUrl('/cuenta/seguridad'))
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('staffNeedsTwoFactor', true));
+            ->assertInertia(fn (Assert $page) => $page->where('signIn.staff_username', 'adminradio'));
     }
 
     #[Test]

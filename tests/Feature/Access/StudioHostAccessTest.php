@@ -23,8 +23,7 @@ class StudioHostAccessTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Auth/Login')
-                ->where('app.host', 'studio')
-                ->where('canRegister', false));
+                ->where('app.host', 'studio'));
     }
 
     #[Test]
@@ -104,12 +103,6 @@ class StudioHostAccessTest extends TestCase
         $this->actingAs($station->owner)
             ->get($this->consoleUrl('/cuenta/perfil'))
             ->assertOk();
-    }
-
-    #[Test]
-    public function the_console_does_not_offer_registration(): void
-    {
-        $this->get($this->consoleUrl('/registro'))->assertRedirect($this->publicUrl('/registro'));
     }
 
     #[Test]

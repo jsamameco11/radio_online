@@ -62,8 +62,9 @@ return [
     */
 
     'providers' => [
+        // Eloquent, with the signed-in account served from the cache (CachedUserProvider).
         'users' => [
-            'driver' => 'eloquent',
+            'driver' => 'accounts',
             'model' => env('AUTH_MODEL', User::class),
         ],
 

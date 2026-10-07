@@ -1,5 +1,6 @@
 import { http } from "@/lib/http";
 import type { BroadcastState, ProgramLayer, ProgramMix } from "@/types/studio";
+import { MUSIC_BITRATE, shortJitterBuffer, tuneOpus, tuneSender, VOICE_BITRATE } from "./opus";
 import { unlock } from "./program-player";
 
 /** Level of an analyser between 0 and 1 (RMS in dB, from -60 to 0). */
@@ -194,6 +195,7 @@ export class VoiceLink {
       const pc = new RTCPeerConnection({ iceServers: ice });
       this.pc = pc;
       pc.ontrack = (event) => {
+        shortJitterBuffer(event.receiver);
         const stream = event.streams[0] ?? new MediaStream([event.track]);
         // Chrome only feeds a remote stream to Web Audio while a media element plays it, so it stays attached, muted.
         this.audio.srcObject = stream;
@@ -212,7 +214,8 @@ export class VoiceLink {
         }
       };
       await pc.setRemoteDescription({ type: "offer", sdp: offer });
-      await pc.setLocalDescription(await pc.createAnswer());
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription({ type: "answer", sdp: tuneOpus(answer.sdp ?? "") });
       await gathered(pc);
       await http.post(`${this.base}/voz/respuesta`, { oyente: this.listener, session, sdp: pc.localDescription?.sdp ?? "" });
     } catch {
@@ -240,12 +243,19 @@ export class VoiceLink {
 interface Peer {
   pc: RTCPeerConnection;
   channel: RTCDataChannel;
+  sender: RTCRtpSender;
   created: number;
 }
 
 /**
- * The console microphone: capture, voice processing (high-pass, compressor), the
- * talk gate, voice detection and one WebRTC connection per listener.
+ * What goes on air besides the DJ decks: a microphone (with the voice chain), a line input (a DJ
+ * mixer, controller or audio interface by cable, untouched and in stereo) or nothing at all.
+ */
+export type InputMode = "mic" | "line" | "none";
+
+/**
+ * The console output: the microphone or line input (capture, processing, talk gate, voice
+ * detection), the DJ mix under its talkover, and one WebRTC connection per listener.
  */
 export class Broadcaster {
   analyser: AnalyserNode | null = null;
@@ -262,6 +272,12 @@ export class Broadcaster {
   private dest: MediaStreamAudioDestinationNode | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
   private detector: AudioWorkletNode | null = null;
+  private music: GainNode | null = null;
+  private talkover: GainNode | null = null;
+  private talkoverDepth = 0;
+  private mixOnAir = false;
+  private mode: InputMode = "mic";
+  private armed = false;
   private fallbackTimer = 0;
   private talking = false;
   private detect = true;
@@ -272,8 +288,45 @@ export class Broadcaster {
   /** `offerUrl` is the console route that hands each listener its offer. */
   constructor(private readonly offerUrl: string) {}
 
+  /** Whether the console input is armed for the transmission (with or without a capture device). */
   get open(): boolean {
-    return this.stream !== null;
+    return this.armed;
+  }
+
+  get inputMode(): InputMode {
+    return this.mode;
+  }
+
+  /** The audio context of the console, shared by the input and the DJ decks, with the output that goes on air. */
+  context(): AudioContext {
+    if (this.ctx) return this.ctx;
+    const Context = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new Context({ latencyHint: "interactive" });
+    this.ctx = ctx;
+    this.dest = ctx.createMediaStreamDestination();
+    this.fader = ctx.createGain();
+    this.music = ctx.createGain();
+    this.talkover = ctx.createGain();
+    this.music.connect(this.talkover).connect(this.dest);
+    return ctx;
+  }
+
+  /** Where the DJ decks plug their master: it reaches the listeners without the talk gate, under the talkover. */
+  musicInput(): AudioNode {
+    this.context();
+    return this.music as GainNode;
+  }
+
+  /** The DJ mix is on air or not: the link carries music (full bitrate, music encoding) while it is. */
+  setMixOnAir(on: boolean): void {
+    this.mixOnAir = on;
+    this.applyQuality();
+  }
+
+  /** Talkover: how much the DJ mix drops (0 to 1) while the microphone is talking. */
+  setTalkover(depth: number): void {
+    this.talkoverDepth = Math.min(1, Math.max(0, depth));
+    this.syncTalkover();
   }
 
   get connected(): number {
@@ -284,23 +337,55 @@ export class Broadcaster {
     return count;
   }
 
-  async openMic(deviceId: string | null, processing: boolean): Promise<MediaStream> {
+  /**
+   * Arms the console input. A line input skips every voice stage (echo cancellation, noise
+   * suppression, equalizer, compressor, voice detection): what the DJ mixer sends is what goes out,
+   * in stereo, behind a safety limiter only.
+   */
+  async openMic(deviceId: string | null, processing: boolean, mode: InputMode = "mic"): Promise<MediaStream | null> {
     this.closeMic();
+    this.mode = mode;
+    const ctx = this.context();
+    await ctx.resume();
+    if (mode === "none") {
+      this.armed = true;
+      this.applyQuality();
+      return null;
+    }
+    const line = mode === "line";
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         deviceId: deviceId ? { exact: deviceId } : undefined,
-        echoCancellation: processing,
-        noiseSuppression: processing,
+        echoCancellation: !line && processing,
+        noiseSuppression: !line && processing,
         autoGainControl: false,
-        channelCount: 1,
+        channelCount: line ? { ideal: 2 } : 1,
       },
     });
-    const Context = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    this.ctx ??= new Context({ latencyHint: "interactive" });
-    await this.ctx.resume();
-    const ctx = this.ctx;
     this.stream = stream;
+    this.armed = true;
     this.source = ctx.createMediaStreamSource(stream);
+    const fader = this.fader as GainNode;
+    const dest = this.dest as MediaStreamAudioDestinationNode;
+    this.gate = ctx.createGain();
+    this.gate.gain.value = this.talking ? 1 : 0;
+    this.analyser = ctx.createAnalyser();
+    this.analyser.fftSize = 1024;
+    this.returnGain = ctx.createGain();
+    this.returnGain.gain.value = 0;
+    if (line) {
+      const safety = ctx.createDynamicsCompressor();
+      safety.threshold.value = -1;
+      safety.knee.value = 0;
+      safety.ratio.value = 20;
+      safety.attack.value = 0.001;
+      safety.release.value = 0.08;
+      this.source.connect(fader).connect(safety).connect(this.analyser);
+      this.analyser.connect(this.gate).connect(dest);
+      this.analyser.connect(this.returnGain).connect(ctx.destination);
+      this.applyQuality();
+      return stream;
+    }
     const highpass = ctx.createBiquadFilter();
     highpass.type = "highpass";
     highpass.frequency.value = 85;
@@ -322,18 +407,11 @@ export class Broadcaster {
     limiter.ratio.value = 20;
     limiter.attack.value = 0.001;
     limiter.release.value = 0.06;
-    this.fader ??= ctx.createGain();
-    this.gate = ctx.createGain();
-    this.gate.gain.value = this.talking ? 1 : 0;
-    this.analyser = ctx.createAnalyser();
-    this.analyser.fftSize = 1024;
-    this.returnGain = ctx.createGain();
-    this.returnGain.gain.value = 0;
-    this.dest ??= ctx.createMediaStreamDestination();
-    this.source.connect(highpass).connect(presence).connect(compressor).connect(makeup).connect(limiter).connect(this.fader).connect(this.analyser);
-    this.analyser.connect(this.gate).connect(this.dest);
+    this.source.connect(highpass).connect(presence).connect(compressor).connect(makeup).connect(limiter).connect(fader).connect(this.analyser);
+    this.analyser.connect(this.gate).connect(dest);
     this.analyser.connect(this.returnGain).connect(ctx.destination);
     await this.listenForVoice(ctx, compressor);
+    this.applyQuality();
     return stream;
   }
 
@@ -343,7 +421,7 @@ export class Broadcaster {
     if (!stream || this.recorder || typeof MediaRecorder === "undefined") return false;
     const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find((type) => MediaRecorder.isTypeSupported(type));
     if (!mime) return false;
-    const recorder = new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 64_000 });
+    const recorder = new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 128_000 });
     this.recordMime = mime;
     let index = 0;
     recorder.ondataavailable = (event) => {
@@ -379,15 +457,24 @@ export class Broadcaster {
   closeMic(): void {
     if (this.recorder && this.recorder.state !== "inactive") this.recorder.stop();
     this.recorder = null;
+    this.armed = false;
     this.stream?.getTracks().forEach((track) => track.stop());
     this.stream = null;
     this.source?.disconnect();
     this.source = null;
+    this.fader?.disconnect();
+    this.analyser?.disconnect();
+    this.analyser = null;
+    this.gate?.disconnect();
+    this.gate = null;
+    this.returnGain?.disconnect();
+    this.returnGain = null;
     this.detector?.disconnect();
     this.detector = null;
     window.clearInterval(this.fallbackTimer);
     this.fallbackTimer = 0;
     this.setSpeaking(false);
+    this.syncTalkover();
   }
 
   setLevel(value: number): void {
@@ -398,12 +485,14 @@ export class Broadcaster {
     this.talking = on;
     if (this.gate && this.ctx) this.gate.gain.setTargetAtTime(on ? 1 : 0, this.ctx.currentTime, 0.04);
     this.syncDetection();
+    this.syncTalkover();
   }
 
   /** «Detectar voz»: while talking, the program drops for every listener as soon as the voice is heard. */
   setDetect(on: boolean): void {
     this.detect = on;
     this.syncDetection();
+    this.syncTalkover();
   }
 
   /** Lets the operator hear their own processed microphone. */
@@ -418,18 +507,19 @@ export class Broadcaster {
     await Promise.all(
       ids.map(async (id) => {
         this.drop(id);
-        const pc = new RTCPeerConnection({ iceServers: ice });
-        pc.addTrack(track, dest.stream);
+        const pc = new RTCPeerConnection({ iceServers: ice, bundlePolicy: "max-bundle" });
+        const sender = pc.addTrack(track, dest.stream);
         const channel = pc.createDataChannel("control");
         channel.onopen = () => channel.send(JSON.stringify({ t: "voice", on: this.speaking } satisfies ControlMessage));
-        this.peers.set(id, { pc, channel, created: Date.now() });
+        this.peers.set(id, { pc, channel, sender, created: Date.now() });
         pc.onconnectionstatechange = () => {
+          if (pc.connectionState === "connected") void tuneSender(sender, this.bitrate);
           if (["failed", "closed"].includes(pc.connectionState)) this.drop(id);
         };
         try {
           const offer = await pc.createOffer();
-          offer.sdp = offer.sdp?.replace("useinbandfec=1", "useinbandfec=1;stereo=0;maxaveragebitrate=64000");
-          await pc.setLocalDescription(offer);
+          await pc.setLocalDescription({ type: "offer", sdp: tuneOpus(offer.sdp ?? "") });
+          await tuneSender(sender, this.bitrate);
           await gathered(pc);
           await http.post(this.offerUrl, { id, sdp: pc.localDescription?.sdp ?? "" });
         } catch {
@@ -475,6 +565,30 @@ export class Broadcaster {
     this.ctx = null;
     this.fader = null;
     this.dest = null;
+    this.music = null;
+    this.talkover = null;
+  }
+
+  private get musical(): boolean {
+    return this.mixOnAir || this.mode === "line";
+  }
+
+  private get bitrate(): number {
+    return this.musical ? MUSIC_BITRATE : VOICE_BITRATE;
+  }
+
+  /** Music needs the full bitrate and the music encoding; a voice alone travels lighter. */
+  private applyQuality(): void {
+    const track = this.dest?.stream.getAudioTracks()[0];
+    if (track) track.contentHint = this.musical ? "music" : "speech";
+    this.peers.forEach((peer) => void tuneSender(peer.sender, this.bitrate));
+  }
+
+  /** The DJ mix drops under the microphone while it talks (while the voice is heard, with «Detectar voz»). */
+  private syncTalkover(): void {
+    if (!this.talkover || !this.ctx) return;
+    const active = this.talkoverDepth > 0 && this.mode === "mic" && this.stream !== null && this.talking && (!this.detect || this.speaking);
+    this.talkover.gain.setTargetAtTime(active ? 1 - this.talkoverDepth : 1, this.ctx.currentTime, active ? 0.015 : 0.3);
   }
 
   /** Speech band of the processed microphone (before its fader) into the detector. */
@@ -532,7 +646,7 @@ export class Broadcaster {
   }
 
   private get detecting(): boolean {
-    return this.detect && this.talking && this.stream !== null;
+    return this.detect && this.talking && this.stream !== null && this.mode === "mic";
   }
 
   private syncDetection(): void {
@@ -545,6 +659,7 @@ export class Broadcaster {
     this.speaking = on;
     this.broadcast({ t: "voice", on });
     this.onVoice?.(on);
+    this.syncTalkover();
   }
 
   private drop(id: string): void {

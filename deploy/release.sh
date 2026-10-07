@@ -38,10 +38,24 @@ php artisan optimize:clear >/dev/null
 php artisan migrate --force
 # Roles follow their enums: new permissions reach existing roles on every release.
 php artisan db:seed --class=AccessSeeder --force
+# The super administrator gets its control panel username from SUPERADMIN_* in .env.
+php artisan db:seed --class=SuperAdminSeeder --force
 php artisan optimize >/dev/null
 chown -R www-data:www-data storage bootstrap/cache public/build
-systemctl restart php8.3-fpm
+install -m 644 deploy/php-fpm.conf /etc/php/8.3/fpm/pool.d/turadioonline.conf
+php-fpm8.3 -t
+# Graceful: the other sites served by this PHP-FPM finish their requests.
+systemctl reload php8.3-fpm
 sudo -u www-data php artisan queue:restart >/dev/null
 sudo -u www-data php artisan reverb:restart >/dev/null || true
+php artisan up
+
+# Every PHP worker opens its database connection now instead of on a visitor's request.
+HOST=$(sed -n 's/^PUBLIC_HOST=//p' .env | tr -d '"')
+WORKERS=$(sed -n 's/^pm.max_children = //p' deploy/php-fpm.conf)
+for _ in $(seq $((WORKERS * 2))); do
+  curl -s -o /dev/null --max-time 20 --resolve "$HOST:443:127.0.0.1" "https://$HOST/up" &
+done
+wait
 
 echo "RELEASE OK"

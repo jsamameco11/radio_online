@@ -35,12 +35,12 @@ abstract class TestCase extends BaseTestCase
         return $this->consoleUrl('/'.$station->frequency->slug.$path);
     }
 
-    /** A staff member with confirmed two-factor authentication, as the admin panel requires. */
+    /** A member of the platform staff with $role. */
     protected function staff(PlatformRole $role = PlatformRole::SuperAdmin): User
     {
         $this->seed(AccessSeeder::class);
 
-        return tap(User::factory()->withTwoFactor()->create())->assignRole($role->value);
+        return tap(User::factory()->create())->assignRole($role->value);
     }
 
     /** A user on the team of $station with $role. */

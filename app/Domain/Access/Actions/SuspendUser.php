@@ -2,10 +2,10 @@
 
 namespace App\Domain\Access\Actions;
 
+use App\Domain\Access\AccountSessions;
 use App\Domain\Access\Enums\UserStatus;
 use App\Domain\Audit\AuditTrail;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -15,7 +15,10 @@ use Illuminate\Validation\ValidationException;
  */
 final class SuspendUser
 {
-    public function __construct(private readonly AuditTrail $audit) {}
+    public function __construct(
+        private readonly AccountSessions $sessions,
+        private readonly AuditTrail $audit,
+    ) {}
 
     public function handle(User $target, string $reason, User $actor): User
     {
@@ -37,9 +40,7 @@ final class SuspendUser
             'suspension_reason' => $reason,
         ])->save();
 
-        if (config('session.driver') === 'database') {
-            DB::table((string) config('session.table', 'sessions'))->where('user_id', $target->id)->delete();
-        }
+        $this->sessions->end($target);
 
         $this->audit->record('user.suspended', $target, ['reason' => $reason], $actor);
 

@@ -135,8 +135,10 @@ return [
      * \Spatie\Permission\Events\PermissionDetachedEvent
      *
      * To enable, set to true, and then create listeners to watch these events.
+     *
+     * Enabled: ForgetAccount drops the cached account when its roles or permissions change.
      */
-    'events_enabled' => false,
+    'events_enabled' => true,
 
     /*
      * Teams Feature.

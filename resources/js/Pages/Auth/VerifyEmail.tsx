@@ -15,7 +15,7 @@ export default function VerifyEmail({ status }: { status: string | null }) {
       heading="Revisa tu bandeja de entrada"
       description={
         <>
-          Te enviamos un enlace a <span className="font-medium text-ink">{auth.user?.email}</span>. Ábrelo para activar tu cuenta y empezar a escuchar.
+          Te enviamos un enlace a <span className="font-medium text-ink">{auth.user?.email}</span>. Ábrelo para activar tu cuenta.
         </>
       }
       footer={

@@ -22,13 +22,3 @@ export function GoogleSignInButton({ label = "Continuar con Google" }: { label?:
     </a>
   );
 }
-
-export function AuthDivider({ label }: { label: string }) {
-  return (
-    <div className="my-6 flex items-center gap-3 text-xs text-faint" role="separator">
-      <span className="h-px flex-1 bg-line" />
-      {label}
-      <span className="h-px flex-1 bg-line" />
-    </div>
-  );
-}

@@ -78,7 +78,7 @@ class StationListenerEngine implements StationListener {
     this.running = true;
     this.update({ status: "connecting", error: null });
 
-    const player = new ProgramPlayer(this.clock);
+    const player = new ProgramPlayer(this.clock, "interactive");
     player.onBlocked = () => this.update({ status: "paused", error: "Toca reproducir para escuchar." });
     player.onItem = () => this.refresh();
     player.onFailure = (item) => item.track && void http.post(`${this.base}/fallo`, { oyente: this.id, track: item.track }).catch(() => undefined);

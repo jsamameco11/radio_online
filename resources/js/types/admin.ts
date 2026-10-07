@@ -42,6 +42,7 @@ export interface StationRow {
 export interface UserRow {
   id: number;
   name: string;
+  username: string | null;
   email: string;
   avatar_url: string | null;
   country: string | null;
@@ -167,11 +168,12 @@ export interface MonitorDetail {
   session: { source: string; title: string | null; host: string | null; started_at: string; ended_at: string | null; peak_listeners: number } | null;
 }
 
-export interface DialCell {
-  label: string;
-  slug: string;
-  mhz: number;
-  status: FrequencyStatusValue;
+export interface DialSegment {
+  from: number;
+  to: number;
+  total: number;
+  used: number;
+  on_air: number;
 }
 
 export interface PlatformDay {

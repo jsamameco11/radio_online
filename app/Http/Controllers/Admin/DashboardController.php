@@ -4,23 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Domain\Access\Enums\Permission;
 use App\Domain\Frequencies\Actions\ExpandDial;
-use App\Domain\Frequencies\Enums\FrequencyRequestStatus;
 use App\Domain\Frequencies\Enums\FrequencyStatus;
-use App\Domain\Moderation\Enums\ReportStatus;
-use App\Domain\Stations\Analytics\LocalTime;
 use App\Domain\Stations\Analytics\PlatformAnalytics;
-use App\Domain\Stations\Enums\StationStatus;
-use App\Domain\Streaming\Enums\StreamStatus;
 use App\Domain\Streaming\Monitor\StreamMonitor;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\AuditLogResource;
 use App\Http\Resources\Admin\StationRowResource;
 use App\Models\AuditLog;
-use App\Models\Frequency;
-use App\Models\FrequencyRequest;
-use App\Models\Report;
 use App\Models\Station;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -30,6 +21,9 @@ use Inertia\Response;
  * The control panel home: platform figures, the last two weeks, what needs
  * attention now and the latest audited actions. Staff without access to the
  * dashboard (moderators) land on their first section instead.
+ *
+ * The figures arrive with the page (one query); the charts and the lists are
+ * deferred in two groups the browser fetches in parallel.
  */
 class DashboardController extends Controller
 {
@@ -54,57 +48,48 @@ class DashboardController extends Controller
             abort(403);
         }
 
-        $frequencies = Frequency::query()->toBase()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
-        $onAir = Station::query()->onAir();
+        $overview = null;
+        $figures = function () use (&$overview, $analytics): array {
+            return $overview ??= $analytics->overview();
+        };
 
         return Inertia::render('Admin/Dashboard', [
-            'kpis' => [
-                'stations' => Station::query()->count(),
-                'stations_active' => Station::query()->where('status', StationStatus::Active->value)->count(),
-                'stations_suspended' => Station::query()->where('status', StationStatus::Suspended->value)->count(),
-                'on_air' => (clone $onAir)->count(),
-                'live' => Station::query()->where('stream_status', StreamStatus::Live->value)->count(),
-                'listeners_now' => (int) (clone $onAir)->sum('listener_count'),
-                'users' => User::query()->count(),
-                'users_this_week' => User::query()->where('created_at', '>=', LocalTime::startOfDay(6))->count(),
-                'pending_requests' => FrequencyRequest::query()->where('status', FrequencyRequestStatus::Pending->value)->count(),
-                'open_reports' => Report::query()->whereIn('status', [ReportStatus::Open->value, ReportStatus::Reviewing->value])->count(),
-                'gifts_today' => $user->can(Permission::ViewPayments->value) ? $analytics->giftsSince(LocalTime::startOfDay()) : null,
+            'kpis' => fn () => [
+                ...collect($figures())->except(['frequencies', 'stale_requests', 'gifts_today'])->all(),
+                'gifts_today' => $user->can(Permission::ViewPayments->value) ? $figures()['gifts_today'] : null,
             ],
-            'dial' => [
-                'total' => (int) $frequencies->sum(),
+            'dial' => fn () => [
+                'total' => array_sum($figures()['frequencies']),
                 'capacity' => ExpandDial::capacity(),
-                'by_status' => collect(FrequencyStatus::cases())
-                    ->map(fn (FrequencyStatus $status) => ['status' => $status->value, 'label' => $status->label(), 'total' => (int) ($frequencies[$status->value] ?? 0)])
-                    ->all(),
+                'by_status' => array_map(
+                    fn (FrequencyStatus $status) => ['status' => $status->value, 'label' => $status->label(), 'total' => $figures()['frequencies'][$status->value]],
+                    FrequencyStatus::cases(),
+                ),
             ],
-            'series' => $analytics->daily(14),
-            'topStations' => Station::query()
+            'alerts' => fn () => [
+                'maintenance' => $figures()['frequencies'][FrequencyStatus::Maintenance->value],
+                'stale_requests' => $figures()['stale_requests'],
+            ],
+            'series' => Inertia::defer(fn () => $analytics->daily(14), 'charts'),
+            'topStations' => Inertia::defer(fn () => Station::query()
                 ->onAir()
                 ->with(['frequency', 'owner'])
                 ->orderByDesc('listener_count')
                 ->limit(6)
                 ->get()
                 ->map(fn (Station $station) => StationRowResource::make($station)->resolve($request))
-                ->all(),
-            'alerts' => [
-                'troubled' => $monitor->troubled(8)
-                    ->map(fn (Station $station) => [
-                        'id' => $station->id,
-                        'display_name' => $station->displayName(),
-                        'slug' => $station->frequency->slug,
-                        'stream_status' => $station->stream_status->value,
-                        'stream_status_label' => $station->stream_status->label(),
-                        'last_heartbeat_at' => $station->last_heartbeat_at?->toIso8601String(),
-                    ])
-                    ->all(),
-                'maintenance' => (int) ($frequencies[FrequencyStatus::Maintenance->value] ?? 0),
-                'stale_requests' => FrequencyRequest::query()
-                    ->where('status', FrequencyRequestStatus::Pending->value)
-                    ->where('created_at', '<', now()->subHours(48))
-                    ->count(),
-            ],
-            'audit' => $user->can(Permission::ViewAudit->value)
+                ->all(), 'activity'),
+            'troubled' => Inertia::defer(fn () => $monitor->troubled(8)
+                ->map(fn (Station $station) => [
+                    'id' => $station->id,
+                    'display_name' => $station->displayName(),
+                    'slug' => $station->frequency->slug,
+                    'stream_status' => $station->stream_status->value,
+                    'stream_status_label' => $station->stream_status->label(),
+                    'last_heartbeat_at' => $station->last_heartbeat_at?->toIso8601String(),
+                ])
+                ->all(), 'activity'),
+            'audit' => Inertia::defer(fn () => $user->can(Permission::ViewAudit->value)
                 ? AuditLog::query()
                     ->with(['actor', 'station.frequency'])
                     ->latest('created_at')
@@ -113,7 +98,7 @@ class DashboardController extends Controller
                     ->get()
                     ->map(fn (AuditLog $log) => AuditLogResource::make($log)->resolve($request))
                     ->all()
-                : null,
+                : null, 'activity'),
         ]);
     }
 }

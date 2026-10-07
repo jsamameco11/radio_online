@@ -5,10 +5,11 @@ import { useState } from "react";
 import { AuditList } from "@/Components/admin/audit-list";
 import { ReasonModal } from "@/Components/admin/reason-modal";
 import { PageErrors } from "@/Components/forms/page-errors";
+import { PasswordInput } from "@/Components/site/password-input";
 import { Avatar } from "@/Components/ui/avatar";
 import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
-import { Field, Select } from "@/Components/ui/field";
+import { Field, Input, Select } from "@/Components/ui/field";
 import { Panel } from "@/Components/ui/panel";
 import AdminLayout from "@/Layouts/AdminLayout";
 import { ago, dateTime, money } from "@/lib/format";
@@ -167,6 +168,8 @@ export default function UserShow({ user, memberships, wallet, requests, audit, r
 
             {can.changeRole && <RoleForm user={user} roles={roles.filter((role) => can.grantSuperAdmin || role.value !== "super_admin")} isSelf={auth.user?.id === user.id} />}
 
+            {can.changeRole && user.is_staff && (can.grantSuperAdmin || user.role !== "super_admin") && <StaffAccessForm user={user} />}
+
             {audit && (
               <Panel title="Actividad">
                 <AuditList entries={audit} />
@@ -208,7 +211,7 @@ function RoleForm({ user, roles, isSelf }: { user: UserRow; roles: Option[]; isS
     <form onSubmit={submit}>
       <Panel
         title="Rol en la plataforma"
-        description="El personal necesita verificación en dos pasos para entrar al panel."
+        description="El personal entra al panel con el usuario y la contraseña de «Acceso al panel»."
         footer={
           <Button type="submit" size="sm" loading={form.processing} disabled={isSelf || !form.isDirty}>
             Cambiar rol
@@ -226,6 +229,55 @@ function RoleForm({ user, roles, isSelf }: { user: UserRow; roles: Option[]; isS
             </Select>
           )}
         </Field>
+      </Panel>
+    </form>
+  );
+}
+
+function StaffAccessForm({ user }: { user: UserRow }) {
+  const form = useForm({ username: user.username ?? "", password: "", password_confirmation: "" });
+  const firstAccess = user.username === null;
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    form.put(`/admin/usuarios/${user.id}/acceso`, { preserveScroll: true, onSuccess: () => form.reset("password", "password_confirmation") });
+  };
+
+  return (
+    <form onSubmit={submit}>
+      <Panel
+        title="Acceso al panel"
+        description={firstAccess ? "Sin usuario todavía: asígnale uno para que pueda entrar al panel." : "Ingresa al panel con este usuario y su contraseña."}
+        footer={
+          <Button type="submit" size="sm" loading={form.processing} disabled={!form.isDirty}>
+            {firstAccess ? "Dar acceso" : "Guardar acceso"}
+          </Button>
+        }
+      >
+        <div className="space-y-4">
+          <Field label="Usuario" error={form.errors.username}>
+            {(id, invalid) => (
+              <Input id={id} autoComplete="off" spellCheck={false} invalid={invalid} value={form.data.username} onChange={(event) => form.setData("username", event.target.value.toLowerCase())} required />
+            )}
+          </Field>
+          <Field label="Contraseña" error={form.errors.password} hint={firstAccess ? undefined : "Déjala vacía para mantener la actual."}>
+            {(id, invalid) => (
+              <PasswordInput id={id} autoComplete="new-password" invalid={invalid} value={form.data.password} onChange={(event) => form.setData("password", event.target.value)} required={firstAccess} />
+            )}
+          </Field>
+          <Field label="Repite la contraseña" error={form.errors.password_confirmation}>
+            {(id, invalid) => (
+              <PasswordInput
+                id={id}
+                autoComplete="new-password"
+                invalid={invalid}
+                value={form.data.password_confirmation}
+                onChange={(event) => form.setData("password_confirmation", event.target.value)}
+                required={firstAccess || form.data.password !== ""}
+              />
+            )}
+          </Field>
+        </div>
       </Panel>
     </form>
   );

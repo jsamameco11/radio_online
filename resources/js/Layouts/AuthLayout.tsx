@@ -36,7 +36,7 @@ interface AuthLayoutProps {
   children: ReactNode;
 }
 
-/** Sign-in, registration and recovery screens on every host: brand panel and form side by side. */
+/** Sign-in screens on every host: brand panel and form side by side. */
 export default function AuthLayout({ title, heading, description, footer, children }: AuthLayoutProps) {
   const { app } = usePage<SharedProps>().props;
   const copy = pitch[app.host];

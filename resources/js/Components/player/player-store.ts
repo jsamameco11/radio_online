@@ -43,6 +43,7 @@ function idleState(): ListenerState {
 let snapshot: PlayerSnapshot = { station: null, state: idleState() };
 let engine: StationListener | null = null;
 let detach: (() => void) | null = null;
+let account: number | null = null;
 const subscribers = new Set<() => void>();
 
 function emit(next: PlayerSnapshot): void {
@@ -100,6 +101,12 @@ export const playerStore = {
   dismiss(): void {
     release();
     emit({ station: null, state: { ...idleState(), volume: snapshot.state.volume, muted: snapshot.state.muted } });
+  },
+
+  /** Guests listen too, but signing out closes the player so the account's listening session ends with it. */
+  setAccount(id: number | null): void {
+    if (account !== null && account !== id) this.dismiss();
+    account = id;
   },
 
   setVolume(volume: number): void {

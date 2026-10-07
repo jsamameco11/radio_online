@@ -2,8 +2,11 @@
 
 namespace App\Domain\Access;
 
+use App\Domain\Access\Support\CachedDatabaseSessionHandler;
 use App\Models\User;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -13,6 +16,26 @@ use Illuminate\Support\Facades\DB;
  */
 final class AccountSessions
 {
+    /** Signs the account out of every browser but $exceptSessionId, on their next request. */
+    public function end(User $user, ?string $exceptSessionId = null): void
+    {
+        if (config('session.driver') !== 'database') {
+            return;
+        }
+
+        $sessions = $this->table()
+            ->where('user_id', $user->id)
+            ->when($exceptSessionId !== null, fn (Builder $query) => $query->where('id', '!=', $exceptSessionId));
+
+        $ids = (clone $sessions)->pluck('id');
+        $sessions->delete();
+
+        $cache = Cache::store(config('session.store'));
+        foreach ($ids as $id) {
+            $cache->forget(CachedDatabaseSessionHandler::key((string) $id));
+        }
+    }
+
     /**
      * @return list<array{id: string, browser: string, platform: string, mobile: bool, ip_address: string|null, last_active_at: string, current: bool}>
      */
@@ -22,8 +45,7 @@ final class AccountSessions
             return [$this->present(hash('sha256', $currentSessionId), $currentAgent, $currentIp, now()->timestamp, true)];
         }
 
-        return DB::connection(config('session.connection'))
-            ->table((string) config('session.table', 'sessions'))
+        return $this->table()
             ->where('user_id', $user->id)
             ->orderByDesc('last_activity')
             ->limit(20)
@@ -37,6 +59,11 @@ final class AccountSessions
             ))
             ->values()
             ->all();
+    }
+
+    private function table(): Builder
+    {
+        return DB::connection(config('session.connection'))->table((string) config('session.table', 'sessions'));
     }
 
     /**

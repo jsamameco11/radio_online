@@ -7,7 +7,9 @@ use App\Models\User;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Http\Request;
 
-/** Keeps when and from where each account last signed in, and audits it. */
+use function Illuminate\Support\defer;
+
+/** Keeps when and from where each account last signed in, and audits it, once the response is sent. */
 final class RecordSignIn
 {
     public function __construct(
@@ -21,11 +23,14 @@ final class RecordSignIn
             return;
         }
 
-        $event->user->forceFill([
-            'last_login_at' => now(),
-            'last_login_ip' => $this->request->ip(),
-        ])->saveQuietly();
+        $user = $event->user;
+        $ip = $this->request->ip();
+        $host = $this->request->getHost();
 
-        $this->audit->record('auth.login', $event->user, ['host' => $this->request->getHost()], $event->user);
+        defer(function () use ($user, $ip, $host) {
+            $user->forceFill(['last_login_at' => now(), 'last_login_ip' => $ip])->save();
+
+            $this->audit->record('auth.login', $user, ['host' => $host], $user);
+        });
     }
 }

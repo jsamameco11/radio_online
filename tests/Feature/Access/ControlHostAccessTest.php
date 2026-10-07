@@ -76,9 +76,12 @@ class ControlHostAccessTest extends TestCase
     }
 
     #[Test]
-    public function the_control_host_does_not_offer_registration(): void
+    public function no_host_offers_a_registration_form(): void
     {
-        $this->get($this->controlUrl('/registro'))->assertRedirect($this->publicUrl('/registro'));
+        $this->get($this->publicUrl('/registro'))->assertNotFound();
+        $this->get($this->consoleUrl('/registro'))->assertNotFound();
+        $this->get($this->controlUrl('/registro'))->assertNotFound();
+        $this->get($this->publicUrl('/recuperar-clave'))->assertNotFound();
     }
 
     #[Test]

@@ -49,14 +49,12 @@ function usePlayerApi(): PlayerApi {
   }, [station, state]);
 }
 
-/** Shares the tab-wide live player with the public site and silences it when the session ends. */
+/** Shares the tab-wide live player with the public site, for guests and signed-in listeners alike. */
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const api = usePlayerApi();
-  const signedIn = Boolean(usePage<SharedProps>().props.auth.user);
+  const accountId = usePage<SharedProps>().props.auth.user?.id ?? null;
 
-  useEffect(() => {
-    if (!signedIn) playerStore.dismiss();
-  }, [signedIn]);
+  useEffect(() => playerStore.setAccount(accountId), [accountId]);
 
   useEffect(() => {
     if (!("mediaSession" in navigator)) return;

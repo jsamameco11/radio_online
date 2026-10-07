@@ -6,7 +6,7 @@
 #   /opt/turadioonline/.env       production environment, created by hand from .env.example
 #                                 (Supabase, Wasabi, Culqi, Google, Reverb and mail credentials live only there)
 #
-# Sets up PHP-FPM, Apache for the three hosts with HTTPS, the queue worker, Reverb and the scheduler.
+# Sets up Redis, PHP-FPM, Apache for the three hosts with HTTPS, the queue worker, Reverb and the scheduler.
 # Everyday code changes go through release.ps1 (release.sh), which never touches data.
 set -euo pipefail
 
@@ -26,6 +26,9 @@ echo "==> Extracting code"
 tar -xzf "${ARCHIVE}" --no-same-owner -C "${APP_DIR}"
 cd "${APP_DIR}"
 mkdir -p storage/framework/{cache/data,sessions,views} storage/logs storage/app/public bootstrap/cache
+
+echo "==> Redis"
+bash "${APP_DIR}/deploy/redis.sh"
 
 echo "==> Composer install"
 export COMPOSER_ALLOW_SUPERUSER=1
@@ -50,24 +53,7 @@ chown -R www-data:www-data storage bootstrap/cache
 find storage bootstrap/cache -type d -exec chmod 775 {} \;
 
 echo "==> PHP-FPM pool"
-cat > /etc/php/8.3/fpm/pool.d/turadioonline.conf <<'POOL'
-[turadioonline]
-user = www-data
-group = www-data
-listen = /run/php/php8.3-fpm-turadioonline.sock
-listen.owner = www-data
-listen.group = www-data
-listen.mode = 0660
-pm = dynamic
-pm.max_children = 10
-pm.start_servers = 3
-pm.min_spare_servers = 2
-pm.max_spare_servers = 6
-php_admin_value[upload_max_filesize] = 200M
-php_admin_value[post_max_size] = 200M
-php_admin_value[memory_limit] = 256M
-php_admin_value[max_execution_time] = 120
-POOL
+install -m 644 "${APP_DIR}/deploy/php-fpm.conf" /etc/php/8.3/fpm/pool.d/turadioonline.conf
 
 echo "==> Background services"
 cat > /etc/systemd/system/turadioonline-queue.service <<UNIT

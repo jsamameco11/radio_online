@@ -8,6 +8,7 @@ const ACTION_LABELS: Record<string, string> = {
   "user.suspended": "Suspendió una cuenta",
   "user.reactivated": "Reactivó una cuenta",
   "user.role_changed": "Cambió el rol de una cuenta",
+  "user.staff_credentials_set": "Asignó el acceso al panel",
   "user.sessions_closed": "Cerró sus otras sesiones",
   "user.email_changed": "Cambió su correo",
   "dial.expanded": "Amplió el dial",

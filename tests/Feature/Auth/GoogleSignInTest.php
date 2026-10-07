@@ -50,13 +50,17 @@ class GoogleSignInTest extends TestCase
             'avatar' => $profile['picture'],
         ]);
 
-        $callback = $host === 'public' ? $this->publicUrl('/auth/google/callback') : $this->controlUrl('/auth/google/callback');
-        $this->provider($callback)->shouldReceive('user')->andReturn($user);
+        $this->provider($this->hostUrl($host, '/auth/google/callback'))->shouldReceive('user')->andReturn($user);
+    }
+
+    private function hostUrl(string $host, string $path): string
+    {
+        return $host === 'public' ? $this->publicUrl($path) : $this->consoleUrl($path);
     }
 
     private function callbackUrl(string $host = 'public'): string
     {
-        return $host === 'public' ? $this->publicUrl('/auth/google/callback?code=abc&state=xyz') : $this->controlUrl('/auth/google/callback?code=abc&state=xyz');
+        return $this->hostUrl($host, '/auth/google/callback?code=abc&state=xyz');
     }
 
     private function assertSendsToGoogle(string $startUrl, string $callbackUrl): void
@@ -75,9 +79,21 @@ class GoogleSignInTest extends TestCase
     }
 
     #[Test]
-    public function the_control_host_sends_google_its_own_callback_url(): void
+    public function the_console_host_sends_google_its_own_callback_url(): void
     {
-        $this->assertSendsToGoogle($this->controlUrl('/auth/google'), $this->controlUrl('/auth/google/callback'));
+        $this->assertSendsToGoogle($this->consoleUrl('/auth/google'), $this->consoleUrl('/auth/google/callback'));
+    }
+
+    #[Test]
+    public function the_control_panel_does_not_sign_in_with_google(): void
+    {
+        Socialite::shouldReceive('driver')->never();
+        $message = 'El panel de administración se usa con tu usuario y contraseña.';
+
+        $this->get($this->controlUrl('/auth/google'))->assertRedirect('/ingresar')->assertSessionHas('error', $message);
+        $this->get($this->controlUrl('/auth/google/callback?code=abc&state=xyz'))->assertRedirect('/ingresar')->assertSessionHas('error', $message);
+
+        $this->assertGuest();
     }
 
     #[Test]
@@ -179,16 +195,16 @@ class GoogleSignInTest extends TestCase
     #[Test]
     public function accounts_with_two_factor_go_through_the_challenge(): void
     {
-        $staff = tap(User::factory()->withTwoFactor()->create(['email' => 'ana@gmail.com']))->assignRole(PlatformRole::Admin->value);
-        $this->googleReturns([], 'control');
+        $creator = User::factory()->withTwoFactor()->create(['email' => 'ana@gmail.com']);
+        $this->googleReturns([], 'studio');
 
-        $this->get($this->callbackUrl('control'))
-            ->assertRedirect($this->controlUrl('/verificacion-en-dos-pasos'))
-            ->assertSessionHas('login.id', $staff->id);
+        $this->get($this->callbackUrl('studio'))
+            ->assertRedirect($this->consoleUrl('/verificacion-en-dos-pasos'))
+            ->assertSessionHas('login.id', $creator->id);
 
         $this->assertGuest();
 
-        $this->get($this->controlUrl('/verificacion-en-dos-pasos'))
+        $this->get($this->consoleUrl('/verificacion-en-dos-pasos'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page->component('Auth/TwoFactorChallenge'));
     }
@@ -250,12 +266,13 @@ class GoogleSignInTest extends TestCase
     }
 
     #[Test]
-    public function google_only_accounts_cannot_sign_in_with_an_empty_password(): void
+    public function listeners_and_creators_cannot_sign_in_with_a_password(): void
     {
-        User::factory()->create(['email' => 'ana@gmail.com', 'password' => null, 'google_id' => '1098765']);
+        User::factory()->create(['email' => 'ana@gmail.com', 'username' => 'ana', 'google_id' => '1098765']);
 
-        $this->post($this->publicUrl('/ingresar'), ['email' => 'ana@gmail.com', 'password' => ''])->assertSessionHasErrors('password');
-        $this->post($this->publicUrl('/ingresar'), ['email' => 'ana@gmail.com', 'password' => 'cualquiera'])->assertSessionHasErrors('email');
+        $this->post($this->publicUrl('/ingresar'), ['username' => 'ana', 'password' => 'password'])->assertSessionHasErrors('username');
+        $this->post($this->consoleUrl('/ingresar'), ['username' => 'ana', 'password' => 'password'])->assertSessionHasErrors('username');
+        $this->post($this->publicUrl('/ingresar'), ['email' => 'ana@gmail.com', 'password' => 'password'])->assertSessionHasErrors('username');
 
         $this->assertGuest();
     }

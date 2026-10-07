@@ -19,7 +19,7 @@ class EnsureStudioAccess
     {
         $user = $request->user();
 
-        if ($user === null || $user->memberships()->exists() || $user->can(Permission::EnterAnyStudio->value)) {
+        if ($user === null || $user->hasStudio() || $user->can(Permission::EnterAnyStudio->value)) {
             return $next($request);
         }
 
