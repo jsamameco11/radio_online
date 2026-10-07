@@ -10,15 +10,23 @@ use App\Http\Middleware\ResolveStudioStation;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         commands: __DIR__.'/../routes/console.php',
         channels: __DIR__.'/../routes/channels.php',
-        health: '/up',
         using: function () {
+            // Uptime probe on both hosts, without session.
+            Route::get('/up', function () {
+                Event::dispatch(new DiagnosingHealth);
+
+                return response('OK');
+            });
+
             // Payment providers call without session or CSRF token.
             Route::group([], base_path('routes/webhooks.php'));
 

@@ -12,6 +12,13 @@ class ControlHostAccessTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
+    public function both_hosts_answer_the_uptime_probe(): void
+    {
+        $this->get($this->publicUrl('/up'))->assertOk()->assertSee('OK');
+        $this->get($this->controlUrl('/up'))->assertOk()->assertSee('OK');
+    }
+
+    #[Test]
     public function guests_must_sign_in_on_the_control_host(): void
     {
         $this->get($this->controlUrl('/'))->assertRedirect('/ingresar');
