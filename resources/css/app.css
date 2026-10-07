@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+@source "../**/*.blade.php";
+@source "../**/*.ts";
+@source "../**/*.tsx";
+
+/*
+| Design tokens. Every component reads these through Tailwind utilities
+| (bg-surface, text-muted, border-line…), so the light platform and the dark
+| studio share the same components: wrap a tree in `.theme-dark` to switch.
+*/
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-signal: var(--signal);
+  --color-signal-soft: var(--signal-soft);
+  --color-onair: var(--onair);
+  --color-onair-soft: var(--onair-soft);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+}
+
+:root {
+  --canvas: #f6f6f8;
+  --surface: #ffffff;
+  --raised: #fbfbfc;
+  --ink: #0b0b10;
+  --muted: #5d5d6a;
+  --faint: #9a9aa6;
+  --line: #e8e8ee;
+  --line-strong: #d4d4dd;
+  --primary: #0b0b10;
+  --on-primary: #ffffff;
+  --signal: #ff4d4f;
+  --signal-soft: #ffecec;
+  --onair: #10b981;
+  --onair-soft: #e7f8f1;
+  --gold: #e8a400;
+  --gold-soft: #fff6dc;
+  --info: #3b6cff;
+  --info-soft: #eaf0ff;
+  --warning: #d97706;
+  --warning-soft: #fff4e5;
+  --danger: #dc2626;
+  --danger-soft: #fdecec;
+  color-scheme: light;
+}
+
+.theme-dark {
+  --canvas: #08080c;
+  --surface: #111118;
+  --raised: #181821;
+  --ink: #f4f4f7;
+  --muted: #a3a3b2;
+  --faint: #6b6b7b;
+  --line: #24242f;
+  --line-strong: #33333f;
+  --primary: #f4f4f7;
+  --on-primary: #0b0b10;
+  --signal-soft: #3a1416;
+  --onair-soft: #0d2a20;
+  --gold-soft: #33280a;
+  --info-soft: #141d3a;
+  --warning-soft: #33220a;
+  --danger-soft: #3a1416;
+  color-scheme: dark;
+}
+
+html {
+  background: var(--canvas);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-feature-settings: "cv11", "ss01";
+}
+
+.font-display {
+  letter-spacing: -0.02em;
+}
+
+/* Frequencies always use tabular figures so the dial lines up. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes onair-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.8); }
+}
+
+.animate-onair {
+  animation: onair-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes equalizer {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+.animate-equalizer > span {
+  transform-origin: bottom;
+  animation: equalizer 0.9s ease-in-out infinite;
+}
+
+.animate-equalizer > span:nth-child(2) { animation-delay: -0.3s; }
+.animate-equalizer > span:nth-child(3) { animation-delay: -0.6s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-onair,
+  .animate-equalizer > span {
+    animation: none;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 2px;
+}
