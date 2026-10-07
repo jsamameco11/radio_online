@@ -6,6 +6,7 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
+use App\Domain\Platform\PlatformSettings;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -32,7 +33,7 @@ class FortifyServiceProvider extends ServiceProvider
     private function registerViews(): void
     {
         Fortify::loginView(fn (Request $request) => Inertia::render('Auth/Login', [
-            'canRegister' => ! $this->onControlHost($request),
+            'canRegister' => ! $this->onControlHost($request) && $this->registrationsOpen(),
             'status' => $request->session()->get('status'),
         ]));
 
@@ -41,7 +42,7 @@ class FortifyServiceProvider extends ServiceProvider
                 return redirect()->away(rtrim((string) config('platform.urls.public'), '/').'/registro');
             }
 
-            return Inertia::render('Auth/Register');
+            return Inertia::render('Auth/Register', ['open' => $this->registrationsOpen()]);
         });
 
         Fortify::requestPasswordResetLinkView(fn (Request $request) => Inertia::render('Auth/ForgotPassword', [
@@ -73,6 +74,11 @@ class FortifyServiceProvider extends ServiceProvider
         RateLimiter::for('two-factor', function (Request $request) {
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
         });
+    }
+
+    private function registrationsOpen(): bool
+    {
+        return (bool) $this->app->make(PlatformSettings::class)->get('registrations_open');
     }
 
     private function onControlHost(Request $request): bool

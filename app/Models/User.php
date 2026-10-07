@@ -19,8 +19,8 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'avatar_path', 'country'])]
-#[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
+#[Fillable(['name', 'email', 'password', 'google_id', 'avatar_path', 'country'])]
+#[Hidden(['password', 'google_id', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
