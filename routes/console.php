@@ -1,6 +1,8 @@
 <?php
 
 use App\Domain\Applications\Actions\PurgeApplicationDocuments;
+use App\Domain\Growth\GrowthProgram;
+use App\Domain\Stations\Enums\StationStatus;
 use App\Domain\Stations\Support\CurrentStation;
 use App\Domain\Streaming\Enums\StreamStatus;
 use App\Domain\Streaming\PlaybackHealth;
@@ -38,7 +40,14 @@ Artisan::command('applications:purge-documents', function (PurgeApplicationDocum
     $this->info('Expedientes depurados: '.$purge->expired());
 })->purpose('Delete the identity documents of rejected or withdrawn station applications after the retention period');
 
+Artisan::command('growth:sweep', function (CurrentStation $current, GrowthProgram $growth) {
+    $stations = Station::query()->where('status', StationStatus::Active->value)->with('frequency')->get();
+    $stations->each(fn (Station $station) => $current->within($station, fn () => $growth->snapshot($station)));
+    $this->info("Radios revisadas: {$stations->count()}");
+})->purpose('Unlock the growth milestones every station reached and tell owners when they can request monetization');
+
 Schedule::command('streaming:sweep')->everyMinute()->withoutOverlapping();
+Schedule::command('growth:sweep')->dailyAt('09:00')->timezone((string) config('platform.timezone'))->withoutOverlapping();
 Schedule::command('streaming:check-files')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('streaming:purge-recordings')->daily();
 Schedule::command('applications:purge-documents')->dailyAt('03:30');

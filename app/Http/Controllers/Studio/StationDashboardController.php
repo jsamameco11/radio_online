@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Studio;
 
 use App\Domain\Frequencies\Enums\FrequencyRequestKind;
 use App\Domain\Frequencies\Enums\FrequencyRequestStatus;
+use App\Domain\Growth\GrowthProgram;
 use App\Domain\Stations\Analytics\LocalTime;
 use App\Domain\Stations\Analytics\StationAnalytics;
 use App\Domain\Stations\Enums\StationPermission;
@@ -18,7 +19,7 @@ use Inertia\Response;
 /** Estudio > Resumen: how the station is doing and what is left to set up. */
 class StationDashboardController extends Controller
 {
-    public function __invoke(Request $request, CurrentStation $current, StationAnalytics $analytics): Response
+    public function __invoke(Request $request, CurrentStation $current, StationAnalytics $analytics, GrowthProgram $growth): Response
     {
         $station = $current->get()->loadMissing(['frequency', 'categories', 'hashtags']);
         $station->loadCount('members');
@@ -37,6 +38,8 @@ class StationDashboardController extends Controller
             'summary' => $canAnalytics ? $analytics->summary($station, $week) : null,
             'daily' => $canAnalytics ? $analytics->daily($station, $week) : null,
             'broadcasts' => $canAnalytics ? $analytics->recentBroadcasts($station, 5) : null,
+            'growth' => $canAnalytics ? $growth->summary($station) : null,
+            'monetized' => $station->isMonetized(),
             'role' => $user->roleIn($station)?->label(),
             'teamSize' => (int) $station->members_count,
             'listenUrl' => StationLinks::listen($station),

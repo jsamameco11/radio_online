@@ -2,6 +2,8 @@ import { Head, Link, usePage } from "@inertiajs/react";
 import {
   Activity,
   ArrowLeftRight,
+  BadgeDollarSign,
+  Banknote,
   CreditCard,
   FileClock,
   Gift,
@@ -56,6 +58,8 @@ export default function AdminLayout({ title, children }: { title: string; childr
         { label: "Regalos", href: "/admin/regalos", icon: Gift, permission: "gifts.manage" },
         { label: "Pagos", href: "/admin/pagos", icon: CreditCard, permission: "payments.view" },
         { label: "Movimientos", href: "/admin/movimientos", icon: ArrowLeftRight, permission: "payments.view" },
+        { label: "Monetización", href: "/admin/monetizacion", icon: BadgeDollarSign, permission: "monetization.review" },
+        { label: "Retiros", href: "/admin/retiros", icon: Banknote, permission: "payouts.manage" },
       ],
     },
     {

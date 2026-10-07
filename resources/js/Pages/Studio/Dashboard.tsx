@@ -3,6 +3,8 @@ import { CheckCircle2, Circle, ExternalLink, Headphones, Heart, Timer, Users } f
 import { AreaChart } from "@/Components/analytics/area-chart";
 import { dayLabel } from "@/Components/analytics/day-label";
 import { FrequencyTitle, StationLogo, StreamStatusBadge } from "@/Components/station/station-identity";
+import { GrowthWidget } from "@/Components/studio/growth/growth-widget";
+import { MonetizedBadge } from "@/Components/studio/growth/monetized-badge";
 import { TopicEditor } from "@/Components/studio/topic-editor";
 import { Badge } from "@/Components/ui/badge";
 import { Panel, Stat } from "@/Components/ui/panel";
@@ -10,12 +12,15 @@ import StudioLayout, { useStudioCan, useStudioUrl } from "@/Layouts/StudioLayout
 import { count, dateTime } from "@/lib/format";
 import type { SharedProps, StationPermission } from "@/types";
 import type { Broadcast } from "@/types/admin";
+import type { GrowthSummary } from "@/types/growth";
 import type { AudienceDay, AudienceSummary } from "@/types/station-admin";
 
 interface Props {
   summary: AudienceSummary | null;
   daily: AudienceDay[] | null;
   broadcasts: Broadcast[] | null;
+  growth: GrowthSummary | null;
+  monetized: boolean;
   role: string | null;
   teamSize: number;
   listenUrl: string;
@@ -23,7 +28,7 @@ interface Props {
   checklist: { key: string; label: string; done: boolean; href: string; permission: StationPermission }[];
 }
 
-export default function StudioDashboard({ summary, daily, broadcasts, role, teamSize, listenUrl, pendingChange, checklist }: Props) {
+export default function StudioDashboard({ summary, daily, broadcasts, growth, monetized, role, teamSize, listenUrl, pendingChange, checklist }: Props) {
   const { studio } = usePage<SharedProps>().props;
   const url = useStudioUrl();
   const can = useStudioCan();
@@ -43,6 +48,7 @@ export default function StudioDashboard({ summary, daily, broadcasts, role, team
               {role && <span>{role}</span>}
               <span>{count(teamSize)} en el equipo</span>
               {station.status === "suspended" && <Badge tone="danger">Suspendida</Badge>}
+              {monetized && <MonetizedBadge size="sm" />}
             </div>
           </div>
           <a href={listenUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
@@ -62,7 +68,7 @@ export default function StudioDashboard({ summary, daily, broadcasts, role, team
             <Stat label="Oyentes ahora" value={count(summary.listeners_now)} hint={`Pico de la semana: ${count(summary.peak_listeners)}`} icon={<Headphones className="size-4" />} />
             <Stat label="Horas escuchadas" value={count(summary.hours)} hint="Últimos 7 días" icon={<Timer className="size-4" />} />
             <Stat label="Oyentes únicos" value={count(summary.listeners)} hint={`${count(summary.sessions)} sesiones`} icon={<Users className="size-4" />} />
-            <Stat label="Seguidores" value={count(summary.followers)} hint={`+${count(summary.new_followers)} esta semana`} icon={<Heart className="size-4" />} />
+            <Stat label="Suscriptores" value={count(summary.followers)} hint={`+${count(summary.new_followers)} esta semana`} icon={<Heart className="size-4" />} />
           </div>
         )}
 
@@ -97,6 +103,7 @@ export default function StudioDashboard({ summary, daily, broadcasts, role, team
           </div>
 
           <div className="space-y-6">
+            {growth && <GrowthWidget growth={growth} href={url("/crecimiento")} />}
             {can("console.operate") && <TopicEditor suggestions={station.hashtags ?? []} />}
             {pending.length > 0 && (
               <Panel title="Pon a punto tu radio">

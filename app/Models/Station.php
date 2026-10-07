@@ -54,6 +54,7 @@ class Station extends Model
             'last_heartbeat_at' => 'datetime',
             'went_live_at' => 'datetime',
             'suspended_at' => 'datetime',
+            'monetized_at' => 'datetime',
         ];
     }
 
@@ -151,6 +152,12 @@ class Station extends Model
     public function isOnAir(): bool
     {
         return $this->stream_status->isAudible();
+    }
+
+    /** A "Radio monetizada": the platform approved its monetization request. */
+    public function isMonetized(): bool
+    {
+        return $this->monetized_at !== null;
     }
 
     /** Stations anyone can find: active and public. */
