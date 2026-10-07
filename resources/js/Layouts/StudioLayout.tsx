@@ -37,7 +37,8 @@ export function useStudioCan(): (permission: StationPermission) => boolean {
   return (permission) => Boolean(studio?.permissions.includes(permission));
 }
 
-type Item = NavItem & { permission?: StationPermission };
+/** Shown when the member holds any of the permissions. */
+type Item = NavItem & { permission?: StationPermission | StationPermission[] };
 
 /** Studio of one station: dark, tool-like, with every section in the aside. */
 export default function StudioLayout({ title, children }: { title: string; children: ReactNode }) {
@@ -64,7 +65,7 @@ export default function StudioLayout({ title, children }: { title: string; child
         { label: "Listas", href: url("/listas"), icon: ListMusic, permission: "library.manage" },
         { label: "Catálogo musical", href: url("/catalogo"), icon: Disc3, permission: "library.manage" },
         { label: "Episodios", href: url("/episodios"), icon: Podcast, permission: "episodes.manage" },
-        { label: "Editor de audio", href: url("/editor"), icon: Scissors, permission: "library.manage" },
+        { label: "Editor de audio", href: url("/editor"), icon: Scissors, permission: ["library.manage", "episodes.manage"] },
       ],
     },
     {
@@ -106,7 +107,7 @@ export default function StudioLayout({ title, children }: { title: string; child
   ];
 
   const visible: NavGroup[] = groups
-    .map((group) => ({ ...group, items: group.items.filter((item) => !item.permission || can(item.permission)) }))
+    .map((group) => ({ ...group, items: group.items.filter((item) => !item.permission || [item.permission].flat().some(can)) }))
     .filter((group) => group.items.length > 0);
 
   return (

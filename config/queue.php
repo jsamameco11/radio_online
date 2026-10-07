@@ -15,6 +15,9 @@ return [
 
     'default' => env('QUEUE_CONNECTION', 'database'),
 
+    // Connection for long audio renders: "media" in production, the default one elsewhere.
+    'media_connection' => env('QUEUE_MEDIA_CONNECTION') ?: env('QUEUE_CONNECTION', 'database'),
+
     /*
     |--------------------------------------------------------------------------
     | Queue Connections
@@ -41,6 +44,16 @@ return [
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
             'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),
+            'after_commit' => false,
+        ],
+
+        // Long audio renders (ffmpeg); its own worker runs with a matching --timeout.
+        'media' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'media',
+            'retry_after' => 4 * 3600,
             'after_commit' => false,
         ],
 

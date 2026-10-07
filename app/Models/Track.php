@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'station_id', 'kind', 'title', 'artist', 'featured', 'album', 'year', 'file_path', 'mime', 'size_bytes',
     'original_path', 'original_duration', 'edit', 'edit_status', 'edit_error', 'edited_at', 'cover_path',
     'identity', 'identified_at', 'duration', 'rotation', 'duck', 'active',
+    'file_problem', 'file_problem_at', 'file_checked_at',
 ])]
 class Track extends Model
 {
