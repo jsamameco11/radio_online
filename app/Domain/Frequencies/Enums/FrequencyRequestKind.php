@@ -3,7 +3,7 @@
 namespace App\Domain\Frequencies\Enums;
 
 /**
- * A request either opens a new station ("Crear mi radio") or moves an
+ * A request either opens a new station ("Obtén tu frecuencia") or moves an
  * existing station to another frequency.
  */
 enum FrequencyRequestKind: string

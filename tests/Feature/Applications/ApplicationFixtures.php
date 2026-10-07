@@ -7,7 +7,7 @@ use App\Models\Frequency;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
-/** Media disks faked and a complete, valid "Crear mi radio" form. */
+/** Media disks faked and a complete, valid "Obtén tu frecuencia" form. */
 trait ApplicationFixtures
 {
     protected function fakeMedia(): void

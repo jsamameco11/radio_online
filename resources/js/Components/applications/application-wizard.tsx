@@ -83,7 +83,7 @@ function Item({ label, value, wide = false }: { label: string; value: ReactNode;
   );
 }
 
-/** "Crear mi radio" in five steps: the person in charge, documents, the station, its content and a final review. */
+/** "Obtén tu frecuencia" in five steps: the person in charge, documents, the station, its content and a final review. */
 export function ApplicationWizard({ frequencies, band, categories, maxCategories, options, limits, preselected, draftKey }: ApplicationWizardProps) {
   const context = { limits, options, maxCategories };
   const preselectedId = frequencies.find((frequency) => frequency.slug === preselected)?.id ?? null;
@@ -151,7 +151,7 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
       go(Math.min(...Object.keys(found).map(stepOf)));
       return;
     }
-    form.post("/crear-mi-radio", {
+    form.post("/obten-tu-frecuencia", {
       forceFormData: true,
       preserveScroll: true,
       onSuccess: () => clearDraft(draftKey),

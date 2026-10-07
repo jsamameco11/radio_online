@@ -6,7 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-/** Tells reviewers a new "Crear mi radio" dossier is waiting. Carries no personal data of the applicant. */
+/** Tells reviewers a new "Obtén tu frecuencia" dossier is waiting. Carries no personal data of the applicant. */
 final class StationApplicationSubmitted extends Notification implements ShouldQueue
 {
     use Queueable;

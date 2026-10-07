@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * The dossier ("expediente") behind every "Crear mi radio" request: who will
+ * The dossier ("expediente") behind every "Obtén tu frecuencia" request: who will
  * run the station, their documents and the station project. The request row
  * keeps the review workflow; this table keeps the applicant's data, one to one.
  *

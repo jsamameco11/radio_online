@@ -171,9 +171,9 @@ export default function Home({ onAir, popular, trending, categories, episodes, s
           <div className="relative max-w-xl space-y-4">
             <p className="text-xs font-semibold tracking-[0.18em] text-signal uppercase">Tu propia frecuencia</p>
             <h2 className="font-display text-3xl font-semibold sm:text-4xl">Quedan {count(stats.free_frequencies)} frecuencias libres en el dial.</h2>
-            <p className="text-surface/70">Elige la tuya, ponle nombre y transmite en vivo desde tu navegador con un estudio profesional.</p>
-            <ButtonLink href="/crear-mi-radio" variant="signal" size="lg" icon={<Mic2 className="size-5" />}>
-              Crear mi radio <ArrowRight className="size-4" />
+            <p className="text-surface/70">Elige la tuya, transmite en vivo desde tu navegador con un estudio profesional y gana dinero por hacerlo.</p>
+            <ButtonLink href="/obten-tu-frecuencia" variant="signal" size="lg" icon={<Mic2 className="size-5" />}>
+              Obtén tu frecuencia <ArrowRight className="size-4" />
             </ButtonLink>
           </div>
         </section>

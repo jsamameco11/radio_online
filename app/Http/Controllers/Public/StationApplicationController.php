@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** "Crear mi radio": the dossier of whoever will run the station, its documents and the project, for the platform to review. */
+/** "Obtén tu frecuencia": the dossier of whoever will run the station, its documents and the project, for the platform to review. */
 class StationApplicationController extends Controller
 {
     public function create(Request $request, CategoryCatalog $categories, PlatformSettings $settings): Response

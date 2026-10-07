@@ -19,7 +19,7 @@ final class PlatformSettings
     public const DEFAULTS = [
         // New listener accounts can sign up on the public host.
         'registrations_open' => true,
-        // Listeners can ask for a frequency ("Crear mi radio") and stations can ask to move.
+        // Listeners can ask for a frequency ("Obtén tu frecuencia") and stations can ask to move.
         'frequency_requests_open' => true,
         // Notice shown on every page while not empty.
         'maintenance_banner' => null,

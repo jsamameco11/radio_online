@@ -97,7 +97,7 @@ class AdminAccessTest extends TestCase
 
         $this->actingAs(User::factory()->create())
             ->get($this->controlUrl('/admin/radios'))
-            ->assertRedirect($this->publicUrl('/crear-mi-radio'));
+            ->assertRedirect($this->publicUrl('/obten-tu-frecuencia'));
 
         $this->actingAs(Station::factory()->create()->owner)
             ->get($this->controlUrl('/admin/radios'))

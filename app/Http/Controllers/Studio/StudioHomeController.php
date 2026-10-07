@@ -35,7 +35,7 @@ class StudioHomeController extends Controller
                 'listen_url' => StationLinks::listen($station),
             ])->values()->all(),
             'adminUrl' => $user->isStaff() ? PlatformHost::Control->url('/admin') : null,
-            'createUrl' => PlatformHost::Public->url('/crear-mi-radio'),
+            'createUrl' => PlatformHost::Public->url('/obten-tu-frecuencia'),
         ]);
     }
 }

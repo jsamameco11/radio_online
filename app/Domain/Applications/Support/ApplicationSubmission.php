@@ -6,7 +6,7 @@ use App\Models\Frequency;
 use Illuminate\Http\UploadedFile;
 
 /**
- * Everything a "Crear mi radio" form sends, already validated: the station
+ * Everything a "Obtén tu frecuencia" form sends, already validated: the station
  * project (kept on the frequency request), the dossier columns and the files.
  */
 final readonly class ApplicationSubmission

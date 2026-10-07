@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
 /**
- * A complete dossier on a pending "Crear mi radio" request of a new user.
+ * A complete dossier on a pending "Obtén tu frecuencia" request of a new user.
  *
  * @extends Factory<StationApplication>
  */

@@ -50,7 +50,7 @@ class DiscoveryPagesTest extends TestCase
             'search' => ['/buscar', 'Public/Search'],
             'following' => ['/mis-radios', 'Public/Following'],
             'history' => ['/historial', 'Public/History'],
-            'create station' => ['/crear-mi-radio', 'Public/CreateStation'],
+            'create station' => ['/obten-tu-frecuencia', 'Public/CreateStation'],
         ];
     }
 
@@ -103,7 +103,7 @@ class DiscoveryPagesTest extends TestCase
         return [
             'following' => ['/mis-radios'],
             'history' => ['/historial'],
-            'create station' => ['/crear-mi-radio'],
+            'create station' => ['/obten-tu-frecuencia'],
             'wallet' => ['/billetera'],
         ];
     }

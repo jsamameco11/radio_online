@@ -60,7 +60,7 @@ export default function ChooseStation({ stations, adminUrl, createUrl }: Props) 
               <p className="max-w-md text-sm text-muted">Solicita tu propia frecuencia o pide al equipo de una radio que te invite: su estudio aparecerá aquí.</p>
             </div>
             <a href={createUrl} className={buttonClasses("primary")}>
-              <Mic2 className="size-4" /> Crear mi radio
+              <Mic2 className="size-4" /> Obtén tu frecuencia
             </a>
           </section>
         ) : (

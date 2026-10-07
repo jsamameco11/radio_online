@@ -31,7 +31,7 @@ const statusTone: Record<FrequencyRequestItem["status"], Tone> = { pending: "war
 const perks = [
   { icon: RadioTower, title: "Tu propia frecuencia", text: "Un número fijo en el dial que tus oyentes recordarán, como en la radio de siempre." },
   { icon: Mic2, title: "Estudio en el navegador", text: "Consola en vivo, piloto automático, programación, biblioteca y episodios." },
-  { icon: Gift, title: "Apoyo de tus oyentes", text: "Recibe regalos y mensajes de voz durante tus transmisiones." },
+  { icon: Gift, title: "Gana dinero transmitiendo", text: "Tus oyentes te envían regalos durante tus transmisiones y tú retiras lo que ganas." },
 ];
 
 const process = [
@@ -44,12 +44,12 @@ export default function CreateStation({ requests, hasPending, myStations, open, 
   const { auth } = usePage<SharedProps>().props;
 
   return (
-    <SiteLayout title="Crear mi radio">
+    <SiteLayout title="Obtén tu frecuencia">
       <div className="space-y-10">
         <section className="relative overflow-hidden rounded-[2rem] bg-ink p-8 text-surface sm:p-12">
           <div className="relative max-w-2xl space-y-4">
             <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.18em] text-signal uppercase">
-              <Sparkles className="size-4" /> Crear mi radio
+              <Sparkles className="size-4" /> Obtén tu frecuencia
             </p>
             <h1 className="font-display text-4xl leading-tight font-semibold sm:text-5xl">Tu voz merece una frecuencia.</h1>
             <p className="text-surface/70">
@@ -134,7 +134,7 @@ export default function CreateStation({ requests, hasPending, myStations, open, 
                           type="button"
                           onClick={() => {
                             if (window.confirm("¿Cancelar tu solicitud? Eliminaremos los documentos que enviaste.")) {
-                              router.delete(`/crear-mi-radio/solicitudes/${request.id}`, { preserveScroll: true });
+                              router.delete(`/obten-tu-frecuencia/solicitudes/${request.id}`, { preserveScroll: true });
                             }
                           }}
                           className="inline-flex items-center gap-1 text-xs font-medium text-danger hover:underline"

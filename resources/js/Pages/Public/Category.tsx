@@ -39,8 +39,8 @@ export default function Category({ category, stations, filters, sorts, related }
           <EmptyState
             icon={<LayoutGrid className="size-6" />}
             title={`Aún no hay radios de ${category.name}${filters.en_vivo ? " al aire" : ""}`}
-            description="¿Por qué no la primera? Pide tu frecuencia y crea tu radio."
-            action={<ButtonLink href="/crear-mi-radio">Crear mi radio</ButtonLink>}
+            description="¿Por qué no la primera? Obtén tu frecuencia y sal al aire en esta categoría."
+            action={<ButtonLink href="/obten-tu-frecuencia">Obtén tu frecuencia</ButtonLink>}
           />
         )}
         <Pagination page={stations} />

@@ -17,7 +17,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 
-/** "Crear mi radio": the full dossier of the person who will run the station, its documents and the project. */
+/** "Obtén tu frecuencia": the full dossier of the person who will run the station, its documents and the project. */
 class SubmitStationApplicationRequest extends FormRequest
 {
     private const IMAGE_TYPES = 'image/jpeg,image/png,image/webp';

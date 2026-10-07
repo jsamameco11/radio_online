@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * The dossier of a "Crear mi radio" request: the person who will run the
+ * The dossier of a "Obtén tu frecuencia" request: the person who will run the
  * station, their documents and the station project. Personal data; only
  * staff reviewing requests may read it.
  */

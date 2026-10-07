@@ -32,7 +32,7 @@ export default function Dial({ stations, band, counts }: DialProps) {
           title="Gira el dial y descubre"
           description={`${count(stations.length)} radios repartidas en ${count(counts.frequencies)} frecuencias del ${band.name} ${band.min.toFixed(1)}–${band.max.toFixed(1)}. ${count(counts.on_air)} están al aire ahora.`}
           actions={
-            <ButtonLink href="/crear-mi-radio" variant="secondary">
+            <ButtonLink href="/obten-tu-frecuencia" variant="secondary">
               {count(counts.available)} frecuencias libres
             </ButtonLink>
           }

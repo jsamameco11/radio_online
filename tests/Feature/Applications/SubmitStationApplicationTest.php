@@ -50,9 +50,9 @@ class SubmitStationApplicationTest extends TestCase
         $frequency = Frequency::factory()->create();
 
         $this->actingAs($this->applicant)
-            ->post($this->publicUrl('/crear-mi-radio'), $this->applicationPayload($frequency))
+            ->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload($frequency))
             ->assertSessionHasNoErrors()
-            ->assertRedirect($this->publicUrl('/crear-mi-radio'))
+            ->assertRedirect($this->publicUrl('/obten-tu-frecuencia'))
             ->assertSessionHas('success');
 
         $request = FrequencyRequest::query()->with('application')->sole();
@@ -100,7 +100,7 @@ class SubmitStationApplicationTest extends TestCase
         Notification::assertNotSentTo([$moderator, $this->applicant], StationApplicationSubmitted::class);
 
         $this->actingAs($this->applicant)
-            ->get($this->publicUrl('/crear-mi-radio'))
+            ->get($this->publicUrl('/obten-tu-frecuencia'))
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Public/CreateStation')
                 ->where('hasPending', true)
@@ -113,7 +113,7 @@ class SubmitStationApplicationTest extends TestCase
     public function the_organization_fields_are_dropped_when_applying_as_a_person(): void
     {
         $this->actingAs($this->applicant)
-            ->post($this->publicUrl('/crear-mi-radio'), $this->applicationPayload(Frequency::factory()->create(), [
+            ->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload(Frequency::factory()->create(), [
                 'represents_organization' => '0',
                 'organization_name' => '',
                 'certificates' => [],
@@ -157,7 +157,7 @@ class SubmitStationApplicationTest extends TestCase
     public function invalid_dossiers_are_rejected(array $overrides, string $field): void
     {
         $this->actingAs($this->applicant)
-            ->post($this->publicUrl('/crear-mi-radio'), $this->applicationPayload(Frequency::factory()->create(), $overrides))
+            ->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload(Frequency::factory()->create(), $overrides))
             ->assertSessionHasErrors($field);
 
         $this->assertSame(0, FrequencyRequest::query()->count());
@@ -190,7 +190,7 @@ class SubmitStationApplicationTest extends TestCase
     public function invalid_files_are_rejected(string $field, UploadedFile|array $file, string $error): void
     {
         $this->actingAs($this->applicant)
-            ->post($this->publicUrl('/crear-mi-radio'), $this->applicationPayload(Frequency::factory()->create(), [$field => $file]))
+            ->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload(Frequency::factory()->create(), [$field => $file]))
             ->assertSessionHasErrors($error);
 
         $this->assertSame(0, FrequencyRequest::query()->count());
@@ -202,7 +202,7 @@ class SubmitStationApplicationTest extends TestCase
         $max = (int) config('platform.stations.max_categories');
 
         $this->actingAs($this->applicant)
-            ->post($this->publicUrl('/crear-mi-radio'), $this->applicationPayload(Frequency::factory()->active()->create(), [
+            ->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload(Frequency::factory()->active()->create(), [
                 'category_ids' => Category::query()->limit($max + 1)->pluck('id')->all(),
             ]))
             ->assertSessionHasErrors(['frequency_id', 'category_ids']);
@@ -213,10 +213,10 @@ class SubmitStationApplicationTest extends TestCase
     #[Test]
     public function only_one_application_per_account_is_under_review(): void
     {
-        $this->actingAs($this->applicant)->post($this->publicUrl('/crear-mi-radio'), $this->applicationPayload(Frequency::factory()->create()));
+        $this->actingAs($this->applicant)->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload(Frequency::factory()->create()));
 
         $this->actingAs($this->applicant)
-            ->post($this->publicUrl('/crear-mi-radio'), $this->applicationPayload(Frequency::factory()->create(), ['document_number' => '11112222']))
+            ->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload(Frequency::factory()->create(), ['document_number' => '11112222']))
             ->assertForbidden();
 
         $this->assertSame(1, FrequencyRequest::query()->count());
@@ -227,13 +227,13 @@ class SubmitStationApplicationTest extends TestCase
     {
         app(PlatformSettings::class)->put(['max_pending_requests' => 2]);
 
-        $this->actingAs($this->applicant)->post($this->publicUrl('/crear-mi-radio'), $this->applicationPayload(Frequency::factory()->create()));
+        $this->actingAs($this->applicant)->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload(Frequency::factory()->create()));
         $this->actingAs($this->applicant)
-            ->post($this->publicUrl('/crear-mi-radio'), $this->applicationPayload(Frequency::factory()->create(), ['document_number' => '11112222']))
+            ->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload(Frequency::factory()->create(), ['document_number' => '11112222']))
             ->assertSessionHasNoErrors();
 
         $this->actingAs($this->applicant)
-            ->post($this->publicUrl('/crear-mi-radio'), $this->applicationPayload(Frequency::factory()->create(), ['document_number' => '33334444']))
+            ->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload(Frequency::factory()->create(), ['document_number' => '33334444']))
             ->assertForbidden();
 
         $this->assertSame(2, FrequencyRequest::query()->count());
@@ -242,10 +242,10 @@ class SubmitStationApplicationTest extends TestCase
     #[Test]
     public function only_one_application_per_document_is_under_review(): void
     {
-        $this->actingAs($this->applicant)->post($this->publicUrl('/crear-mi-radio'), $this->applicationPayload(Frequency::factory()->create()));
+        $this->actingAs($this->applicant)->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload(Frequency::factory()->create()));
 
         $this->actingAs(User::factory()->create())
-            ->post($this->publicUrl('/crear-mi-radio'), $this->applicationPayload(Frequency::factory()->create(), ['document_number' => '45678912']))
+            ->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload(Frequency::factory()->create(), ['document_number' => '45678912']))
             ->assertSessionHasErrors('document_number');
 
         $this->assertSame(1, FrequencyRequest::query()->count());
@@ -254,7 +254,7 @@ class SubmitStationApplicationTest extends TestCase
         FrequencyRequest::query()->update(['status' => FrequencyRequestStatus::Rejected->value]);
 
         $this->actingAs(User::factory()->create())
-            ->post($this->publicUrl('/crear-mi-radio'), $this->applicationPayload(Frequency::factory()->create()))
+            ->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload(Frequency::factory()->create()))
             ->assertSessionHasNoErrors();
 
         $this->assertSame(2, StationApplication::query()->where('document_hash', StationApplication::fingerprint(DocumentType::Dni, '45678912'))->count());
@@ -266,7 +266,7 @@ class SubmitStationApplicationTest extends TestCase
         app(PlatformSettings::class)->put(['frequency_requests_open' => false]);
 
         $this->actingAs($this->applicant)
-            ->post($this->publicUrl('/crear-mi-radio'), $this->applicationPayload(Frequency::factory()->create()))
+            ->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload(Frequency::factory()->create()))
             ->assertSessionHasErrors('frequency_id');
 
         $this->assertSame(0, FrequencyRequest::query()->count());
@@ -276,19 +276,27 @@ class SubmitStationApplicationTest extends TestCase
     #[Test]
     public function guests_are_sent_to_sign_in(): void
     {
-        $this->get($this->publicUrl('/crear-mi-radio'))->assertRedirect($this->publicUrl('/ingresar'));
-        $this->post($this->publicUrl('/crear-mi-radio'), [])->assertRedirect($this->publicUrl('/ingresar'));
+        $this->get($this->publicUrl('/obten-tu-frecuencia'))->assertRedirect($this->publicUrl('/ingresar'));
+        $this->post($this->publicUrl('/obten-tu-frecuencia'), [])->assertRedirect($this->publicUrl('/ingresar'));
 
         $this->assertSame(0, FrequencyRequest::query()->count());
     }
 
     #[Test]
+    public function the_old_address_moves_permanently_and_keeps_the_chosen_frequency(): void
+    {
+        $this->get($this->publicUrl('/crear-mi-radio?frecuencia=89-30'))
+            ->assertStatus(301)
+            ->assertRedirect($this->publicUrl('/obten-tu-frecuencia?frecuencia=89-30'));
+    }
+
+    #[Test]
     public function applicants_cancel_only_their_own_pending_requests_and_their_documents_are_deleted(): void
     {
-        $this->actingAs($this->applicant)->post($this->publicUrl('/crear-mi-radio'), $this->applicationPayload(Frequency::factory()->create()));
+        $this->actingAs($this->applicant)->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload(Frequency::factory()->create()));
         $request = FrequencyRequest::query()->with('application')->sole();
         $keys = array_column($request->application->documents(), 'key');
-        $url = $this->publicUrl('/crear-mi-radio/solicitudes/'.$request->id);
+        $url = $this->publicUrl('/obten-tu-frecuencia/solicitudes/'.$request->id);
 
         $this->actingAs(User::factory()->create())->delete($url)->assertForbidden();
         $this->assertSame(FrequencyRequestStatus::Pending, $request->fresh()->status);
@@ -312,7 +320,7 @@ class SubmitStationApplicationTest extends TestCase
         StationApplication::factory()->create();
 
         $this->actingAs($this->applicant)
-            ->get($this->publicUrl('/crear-mi-radio'))
+            ->get($this->publicUrl('/obten-tu-frecuencia'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Public/CreateStation')

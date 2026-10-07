@@ -65,7 +65,7 @@ function FrequencyResult({ tuned }: { tuned: Tuned }) {
         </p>
       </div>
       {tuned.available && (
-        <ButtonLink href={`/crear-mi-radio?frecuencia=${tuned.slug}`} variant="signal" icon={<Sparkles className="size-4" />}>
+        <ButtonLink href={`/obten-tu-frecuencia?frecuencia=${tuned.slug}`} variant="signal" icon={<Sparkles className="size-4" />}>
           Pedir {tuned.label}
         </ButtonLink>
       )}

@@ -48,8 +48,8 @@ function StudioCta({ className }: { className?: string }) {
     );
   }
   return (
-    <ButtonLink href="/crear-mi-radio" variant="primary" className={className} icon={<Mic2 className="size-4" />}>
-      Crear mi radio
+    <ButtonLink href="/obten-tu-frecuencia" variant="primary" className={className} icon={<Mic2 className="size-4" />}>
+      Obtén tu frecuencia
     </ButtonLink>
   );
 }
@@ -175,7 +175,7 @@ function SiteShell({ children, title }: { children: ReactNode; title?: string })
               <BrandName />
             </span>
             <p className="max-w-sm text-sm text-muted">
-              Cientos de frecuencias, una sola plataforma. Sintoniza radios en vivo, descubre programas y apoya a tus locutores favoritos.
+              Cientos de frecuencias, una sola plataforma. Sintoniza radios en vivo, descubre programas y apoya a tus locutores favoritos. O transmite en tu propia frecuencia y gana dinero por hacerlo.
             </p>
           </div>
           <nav className="space-y-2 text-sm" aria-label="Descubrir">
@@ -193,8 +193,8 @@ function SiteShell({ children, title }: { children: ReactNode; title?: string })
                 {item.label}
               </Link>
             ))}
-            <Link href="/crear-mi-radio" className="block text-muted hover:text-ink">
-              Crear mi radio
+            <Link href="/obten-tu-frecuencia" className="block text-muted hover:text-ink">
+              Obtén tu frecuencia
             </Link>
             <Link href="/cuenta/perfil" className="block text-muted hover:text-ink">
               Perfil y seguridad

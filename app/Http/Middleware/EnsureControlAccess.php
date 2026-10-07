@@ -23,6 +23,6 @@ class EnsureControlAccess
 
         return redirect()->away($user->hasStudio()
             ? PlatformHost::Studio->url()
-            : PlatformHost::Public->url('/crear-mi-radio'));
+            : PlatformHost::Public->url('/obten-tu-frecuencia'));
     }
 }

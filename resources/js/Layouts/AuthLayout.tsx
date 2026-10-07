@@ -12,7 +12,7 @@ const pitch: Record<SharedProps["app"]["host"], { area: string | null; eyebrow: 
     area: null,
     eyebrow: "Radio por internet",
     heading: "Cientos de frecuencias. Una sola señal: la tuya.",
-    text: "Sintoniza radios en vivo, descubre programas y apoya a tus locutores favoritos.",
+    text: "Sintoniza radios en vivo, descubre programas y apoya a tus locutores favoritos. ¿Quieres estar al micrófono? Obtén tu frecuencia y gana dinero por hacerlo.",
   },
   studio: {
     area: "Consola de creadores",

@@ -2,7 +2,7 @@
 
 namespace App\Domain\Applications\Support;
 
-/** Limits of the "Crear mi radio" dossier, shared by the validation and the form. Sizes in kilobytes. */
+/** Limits of the "Obtén tu frecuencia" dossier, shared by the validation and the form. Sizes in kilobytes. */
 final class ApplicationLimits
 {
     public const MIN_AGE = 18;

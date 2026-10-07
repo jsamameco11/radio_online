@@ -31,7 +31,7 @@ class StudioHostAccessTest extends TestCase
     {
         $this->actingAs(User::factory()->create())
             ->get($this->consoleUrl('/'))
-            ->assertRedirect($this->publicUrl('/crear-mi-radio'));
+            ->assertRedirect($this->publicUrl('/obten-tu-frecuencia'));
     }
 
     #[Test]
@@ -67,7 +67,7 @@ class StudioHostAccessTest extends TestCase
                 ->where('stations.1.role', StationRole::Host->label())
                 ->where('stations.1.listen_url', $this->publicUrl('/radio/'.$second->frequency->slug))
                 ->where('adminUrl', null)
-                ->where('createUrl', $this->publicUrl('/crear-mi-radio')));
+                ->where('createUrl', $this->publicUrl('/obten-tu-frecuencia')));
     }
 
     #[Test]

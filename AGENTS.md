@@ -6,7 +6,7 @@ Internet radio platform: every station owns an FM-style frequency ("89.30 FM · 
 
 | Host | Purpose | Route files |
 |---|---|---|
-| `PUBLIC_HOST` (`turadioonline.miacademiapreu.com`) | Listeners: discover, listen, follow, gifts, wallet, "Crear mi radio" | `routes/public/*.php` |
+| `PUBLIC_HOST` (`turadioonline.miacademiapreu.com`) | Listeners: discover, listen, follow, gifts, wallet, "Obtén tu frecuencia" | `routes/public/*.php` |
 | `STUDIO_HOST` (`consola-fullradio.miacademiapreu.com`) | Creators' console: station teams (and staff with `studios.enter`) run each studio at `/{frequency}/*` (`/89-30/consola`) | `routes/studio/*.php` |
 | `CONTROL_HOST` (`control-turadioonline.miacademiapreu.com`) | Platform staff only: admin (`/admin/*`); old `/estudio/*` links redirect 301 to the console | `routes/control/*.php` |
 

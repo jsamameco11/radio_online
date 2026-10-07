@@ -25,7 +25,7 @@ use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
- * "Crear mi radio" with the full dossier: the frequency request (the review
+ * "Obtén tu frecuencia" with the full dossier: the frequency request (the review
  * workflow) and the applicant's data and documents, all or nothing. Files go
  * to private folders before the transaction and are deleted when it fails.
  * One application under review per account and per identity document.

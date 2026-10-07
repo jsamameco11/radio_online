@@ -47,7 +47,7 @@ class FrequencyRequest extends Model
         return $this->belongsTo(Station::class);
     }
 
-    /** The applicant's dossier, for "Crear mi radio" requests sent with the full form. */
+    /** The applicant's dossier, for "Obtén tu frecuencia" requests sent with the full form. */
     public function application(): HasOne
     {
         return $this->hasOne(StationApplication::class);

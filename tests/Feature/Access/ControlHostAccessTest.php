@@ -40,7 +40,7 @@ class ControlHostAccessTest extends TestCase
     {
         $this->actingAs(User::factory()->create())
             ->get($this->controlUrl('/'))
-            ->assertRedirect($this->publicUrl('/crear-mi-radio'));
+            ->assertRedirect($this->publicUrl('/obten-tu-frecuencia'));
     }
 
     #[Test]

@@ -4,7 +4,7 @@ use App\Http\Controllers\Admin\StationApplicationController;
 use Illuminate\Support\Facades\Route;
 
 /*
-| Admin > Solicitudes > Expediente: the "Crear mi radio" dossier and its
+| Admin > Solicitudes > Expediente: the "Obtén tu frecuencia" dossier and its
 | private documents, for the staff who review frequency requests.
 */
 

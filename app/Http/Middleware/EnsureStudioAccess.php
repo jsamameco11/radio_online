@@ -23,6 +23,6 @@ class EnsureStudioAccess
             return $next($request);
         }
 
-        return redirect()->away(PlatformHost::Public->url('/crear-mi-radio'));
+        return redirect()->away(PlatformHost::Public->url('/obten-tu-frecuencia'));
     }
 }
