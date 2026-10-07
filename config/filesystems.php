@@ -8,6 +8,7 @@ $wasabi = [
     'bucket' => env('WASABI_BUCKET'),
     'endpoint' => rtrim((string) env('WASABI_ENDPOINT', 'https://s3.us-central-1.wasabisys.com'), '/'),
     'use_path_style_endpoint' => true,
+    'http' => ['verify' => env('WASABI_CA_BUNDLE') ? base_path((string) env('WASABI_CA_BUNDLE')) : true],
     'throw' => true,
     'report' => true,
 ];
