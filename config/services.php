@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    // Wallet top-ups (PAYMENTS_DRIVER=stripe): Checkout Sessions and signed webhooks.
+    'stripe' => [
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+    ],
+
 ];

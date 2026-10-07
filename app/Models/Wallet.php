@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Wallet\Enums\WalletStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,9 +15,17 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 #[Fillable(['owner_type', 'owner_id', 'currency', 'status'])]
 class Wallet extends Model
 {
+    protected $attributes = [
+        'balance_cents' => 0,
+        'status' => 'active',
+    ];
+
     protected function casts(): array
     {
-        return ['balance_cents' => 'integer'];
+        return [
+            'balance_cents' => 'integer',
+            'status' => WalletStatus::class,
+        ];
     }
 
     public function owner(): MorphTo

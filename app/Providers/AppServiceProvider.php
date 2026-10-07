@@ -6,11 +6,14 @@ use App\Domain\Access\Enums\PlatformRole;
 use App\Domain\Access\Listeners\RecordSignIn;
 use App\Domain\Stations\Support\CurrentStation;
 use App\Models\Episode;
+use App\Models\Gift;
 use App\Models\GiftMessage;
 use App\Models\GiftTransaction;
 use App\Models\Payment;
 use App\Models\Station;
 use App\Models\User;
+use App\Models\Wallet;
+use App\Models\WalletTransaction;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -39,6 +42,9 @@ class AppServiceProvider extends ServiceProvider
             'gift_transaction' => GiftTransaction::class,
             'gift_message' => GiftMessage::class,
             'payment' => Payment::class,
+            'gift' => Gift::class,
+            'wallet' => Wallet::class,
+            'wallet_transaction' => WalletTransaction::class,
         ]);
 
         Gate::before(fn (User $user) => $user->hasRole(PlatformRole::SuperAdmin->value) ? true : null);
