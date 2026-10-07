@@ -22,7 +22,7 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('sent_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('author', 16);
-            $table->foreignUuid('reply_to_id')->nullable()->constrained('chat_messages')->nullOnDelete();
+            $table->uuid('reply_to_id')->nullable();
             $table->string('body', 500);
             $table->string('status', 16)->default('visible');
             $table->unsignedInteger('highlight_cents')->default(0);
@@ -39,6 +39,11 @@ return new class extends Migration
             $table->index(['station_id', 'created_at']);
             $table->index(['station_id', 'pinned_until']);
             $table->index(['user_id', 'created_at']);
+        });
+
+        // Postgres only accepts a self reference once the primary key exists.
+        Schema::table('chat_messages', function (Blueprint $table) {
+            $table->foreign('reply_to_id')->references('id')->on('chat_messages')->nullOnDelete();
         });
 
         Schema::create('chat_mutes', function (Blueprint $table) {

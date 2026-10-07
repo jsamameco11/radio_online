@@ -6,9 +6,9 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Growth program and monetization: the milestones a station unlocked, its
- * requests to be monetized and, once monetized, the withdrawals of its
- * earnings. A withdrawal debits the station wallet when it is requested and
- * is either paid by the platform or rejected (and credited back).
+ * requests to be monetized and the withdrawals of its earnings (open from day
+ * one). A withdrawal debits the station wallet when it is requested and is
+ * either paid by the platform or rejected (and credited back).
  *
  * Payout details (holder, account, phone or e-mail) are stored encrypted.
  */
