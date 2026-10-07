@@ -5,19 +5,18 @@ namespace App\Domain\Payments\Actions;
 use App\Domain\Audit\AuditTrail;
 use App\Domain\Payments\Enums\PaymentStatus;
 use App\Domain\Payments\Exceptions\PaymentNotRefundable;
-use App\Domain\Payments\Exceptions\PaymentUnavailable;
 use App\Domain\Payments\PaymentGateways;
 use App\Domain\Wallet\Support\LedgerEntry;
 use App\Domain\Wallet\WalletLedger;
 use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Stripe\Exception\ApiErrorException;
 
 /**
  * Returns a top-up to the card it came from. The deposited amount is taken
  * back out of the listener's wallet first, so money already spent on gifts
- * cannot be refunded; if the provider refuses, nothing changes.
+ * cannot be refunded; if the provider refuses, the transaction rolls back
+ * and nothing changes.
  */
 final class RefundPayment
 {
@@ -44,13 +43,7 @@ final class RefundPayment
                 meta: ['reason' => $reason],
             ));
 
-            try {
-                $reference = $this->gateways->for($locked)->refund($locked);
-            } catch (ApiErrorException $exception) {
-                report($exception);
-
-                throw PaymentUnavailable::providerError();
-            }
+            $reference = $this->gateways->for($locked)->refund($locked, $reason);
 
             $locked->forceFill([
                 'status' => PaymentStatus::Refunded,

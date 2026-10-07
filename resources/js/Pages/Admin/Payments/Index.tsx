@@ -23,7 +23,7 @@ interface Props {
   canRefund: boolean;
 }
 
-const providers: Record<string, string> = { sandbox: "Modo de prueba", stripe: "Stripe" };
+const providers: Record<string, string> = { sandbox: "Modo de prueba", culqi: "Culqi" };
 
 export default function PaymentsIndex({ filters, statuses, totals, payments, canRefund }: Props) {
   const { app } = usePage<SharedProps>().props;

@@ -21,6 +21,11 @@ final class PaymentUnavailable extends WalletException
         return new self('No pudimos comunicarnos con la pasarela de pago. Inténtalo de nuevo en unos minutos.');
     }
 
+    public static function providerRejected(string $message): self
+    {
+        return new self('La pasarela de pago rechazó la operación: '.$message);
+    }
+
     public static function accountSuspended(): self
     {
         return new self('Tu cuenta está suspendida y no puede recargar saldo.');

@@ -2,29 +2,49 @@
 
 namespace App\Domain\Payments;
 
-use App\Domain\Payments\Enums\PaymentStatus;
-use App\Domain\Payments\Support\CheckoutSession;
+use App\Domain\Payments\Exceptions\ChargePending;
+use App\Domain\Payments\Exceptions\PaymentUnavailable;
+use App\Domain\Payments\Support\ChargeAttempt;
+use App\Domain\Payments\Support\ChargeResult;
 use App\Models\Payment;
 
 /**
  * A provider that charges wallet top-ups. The platform never sees card data:
- * the listener pays on the provider's checkout page and comes back to
- * /billetera/recarga/{payment}; the provider also notifies us by webhook.
+ * the provider's checkout turns the card into a single-use token in the
+ * browser and the backend charges that token for the amount of the payment.
  */
 interface PaymentGateway
 {
-    /** Name stored in payments.provider: "stripe", "sandbox". */
+    /** Name stored in payments.provider: "culqi", "sandbox". */
     public function name(): string;
 
     /** True for the test gateway, so every screen can say "modo de prueba". */
     public function isSandbox(): bool;
 
-    /** Opens the provider's checkout for a pending payment. */
-    public function checkout(Payment $payment): CheckoutSession;
+    /**
+     * @throws PaymentUnavailable when the gateway cannot take payments now
+     */
+    public function ensureAvailable(): void;
 
-    /** Asks the provider how the payment went: succeeded, pending, failed or cancelled. */
-    public function status(Payment $payment): PaymentStatus;
+    /**
+     * Public settings the top-up page needs to open the checkout. Never secrets.
+     *
+     * @return array<string, mixed>
+     */
+    public function checkout(Payment $payment): array;
 
-    /** Gives the money back to the payer and returns the provider's refund reference. */
-    public function refund(Payment $payment): string;
+    /**
+     * Charges the token for exactly the payment's amount and currency.
+     *
+     * @throws PaymentUnavailable when nothing was charged because the gateway is misconfigured
+     * @throws ChargePending when the provider's answer was lost and the card may have been charged
+     */
+    public function charge(Payment $payment, ChargeAttempt $attempt): ChargeResult;
+
+    /**
+     * Gives the whole payment back to the card and returns the provider's refund reference.
+     *
+     * @throws PaymentUnavailable when the provider refuses or cannot be reached
+     */
+    public function refund(Payment $payment, string $reason): string;
 }

@@ -10,14 +10,17 @@ use App\Domain\Wallet\Exceptions\InvalidAmount;
 use App\Domain\Wallet\WalletLedger;
 use App\Models\Payment;
 use App\Models\User;
-use Stripe\Exception\ApiErrorException;
+use Illuminate\Support\Facades\DB;
 
 /**
- * Creates a pending top-up and opens the provider's checkout for it. The
- * wallet is credited later, by ConfirmPayment, once the provider says paid.
+ * Opens a pending top-up the listener then pays from the top-up page. A
+ * double click, or coming back to pay the same amount, reuses the open
+ * top-up that was never charged instead of piling up new ones.
  */
 final class StartTopUp
 {
+    private const REUSE_MINUTES = 30;
+
     public function __construct(
         private readonly PaymentGateways $gateways,
         private readonly AuditTrail $audit,
@@ -37,40 +40,38 @@ final class StartTopUp
         }
 
         $gateway = $this->gateways->default();
+        $gateway->ensureAvailable();
 
-        $payment = Payment::query()->create([
-            'user_id' => $user->id,
-            'provider' => $gateway->name(),
-            'amount_cents' => $amountCents,
-            'currency' => WalletLedger::currency(),
-            'status' => PaymentStatus::Pending,
-        ]);
+        return DB::transaction(function () use ($user, $amountCents, $gateway) {
+            User::query()->whereKey($user->id)->lockForUpdate()->first();
 
-        try {
-            $session = $gateway->checkout($payment);
-        } catch (PaymentUnavailable $exception) {
-            $this->markFailed($payment, $exception->getMessage());
+            $open = $user->payments()
+                ->where('status', PaymentStatus::Pending->value)
+                ->where('provider', $gateway->name())
+                ->where('amount_cents', $amountCents)
+                ->where('created_at', '>=', now()->subMinutes(self::REUSE_MINUTES))
+                ->latest()
+                ->get()
+                ->first(fn (Payment $payment) => ! isset($payment->meta[ChargePayment::ATTEMPT]));
 
-            throw $exception;
-        } catch (ApiErrorException $exception) {
-            report($exception);
-            $this->markFailed($payment, 'La pasarela de pago rechazó la solicitud.');
+            if ($open !== null) {
+                return $open;
+            }
 
-            throw PaymentUnavailable::providerError();
-        }
+            $payment = Payment::query()->create([
+                'user_id' => $user->id,
+                'provider' => $gateway->name(),
+                'amount_cents' => $amountCents,
+                'currency' => WalletLedger::currency(),
+                'status' => PaymentStatus::Pending,
+            ]);
 
-        $payment->forceFill(['provider_reference' => $session->reference, 'checkout_url' => $session->url])->save();
+            $this->audit->record('payment.started', $payment, [
+                'amount_cents' => $amountCents,
+                'provider' => $gateway->name(),
+            ], $user);
 
-        $this->audit->record('payment.started', $payment, [
-            'amount_cents' => $amountCents,
-            'provider' => $gateway->name(),
-        ], $user);
-
-        return $payment;
-    }
-
-    private function markFailed(Payment $payment, string $reason): void
-    {
-        $payment->forceFill(['status' => PaymentStatus::Failed, 'failure_reason' => $reason])->save();
+            return $payment;
+        });
     }
 }

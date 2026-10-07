@@ -10,9 +10,9 @@ use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Credits the wallet for a payment the provider reported as paid.
+ * Credits the wallet for a payment the provider reported as charged.
  *
- * The return page and the webhook may both call it, in any order and more
+ * The charge request and the webhook may both call it, in any order and more
  * than once: the payment row is locked and the deposit uses the payment id
  * as its idempotency key, so the money is credited exactly once.
  */
@@ -26,9 +26,9 @@ final class ConfirmPayment
     /**
      * @param  array<string, mixed>  $providerMeta
      */
-    public function handle(Payment $payment, array $providerMeta = []): Payment
+    public function handle(Payment $payment, array $providerMeta = [], ?string $reference = null): Payment
     {
-        $confirmed = DB::transaction(function () use ($payment, $providerMeta) {
+        $confirmed = DB::transaction(function () use ($payment, $providerMeta, $reference) {
             $locked = Payment::query()->with('user')->lockForUpdate()->findOrFail($payment->id);
 
             if (in_array($locked->status, [PaymentStatus::Succeeded, PaymentStatus::Refunded], true)) {
@@ -45,6 +45,7 @@ final class ConfirmPayment
 
             $locked->forceFill([
                 'status' => PaymentStatus::Succeeded,
+                'provider_reference' => $reference ?? $locked->provider_reference,
                 'paid_at' => now(),
                 'wallet_transaction_id' => $deposit->id,
                 'failure_reason' => null,
@@ -54,6 +55,7 @@ final class ConfirmPayment
             $this->audit->record('wallet.deposited', $locked, [
                 'amount_cents' => $locked->amount_cents,
                 'provider' => $locked->provider,
+                'provider_reference' => $locked->provider_reference,
                 'wallet_transaction_id' => $deposit->id,
             ], $locked->user);
 

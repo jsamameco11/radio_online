@@ -18,6 +18,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('throttle:10,1')
         ->name('wallet.topup');
     Route::get('/billetera/recarga/{payment}', [TopUpController::class, 'show'])->name('wallet.topup.show');
+    Route::post('/billetera/recarga/{payment}/cargo', [TopUpController::class, 'charge'])
+        ->middleware('throttle:20,1')
+        ->name('wallet.topup.charge');
 
     Route::get('/radio/{frequency}/regalos', [GiftController::class, 'catalog'])->name('gifts.catalog');
     Route::post('/radio/{frequency}/regalos', [GiftController::class, 'store'])

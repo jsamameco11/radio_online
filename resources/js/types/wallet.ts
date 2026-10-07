@@ -38,6 +38,23 @@ export interface Payment {
   provider_reference?: string | null;
 }
 
+/** What /billetera/recarga/{payment} needs to collect a pending top-up. */
+export interface TopUpCheckout {
+  driver: "culqi" | "sandbox";
+  amount_cents: number;
+  currency: string;
+  email: string;
+  charge_url: string;
+  public_key?: string;
+  title?: string;
+}
+
+/** POST /billetera/recarga/{payment}/cargo */
+export interface TopUpChargeResponse {
+  payment: Payment;
+  balance_cents: number;
+}
+
 /** App\Http\Resources\GiftResource */
 export interface GiftItem {
   id: number;

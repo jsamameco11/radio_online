@@ -2,8 +2,8 @@
 
 namespace App\Domain\Payments;
 
+use App\Domain\Payments\Gateways\CulqiGateway;
 use App\Domain\Payments\Gateways\SandboxGateway;
-use App\Domain\Payments\Gateways\StripeCheckoutGateway;
 use App\Models\Payment;
 use Illuminate\Contracts\Container\Container;
 use InvalidArgumentException;
@@ -29,7 +29,7 @@ final class PaymentGateways
     public function named(string $name): PaymentGateway
     {
         return match ($name) {
-            'stripe' => $this->container->make(StripeCheckoutGateway::class),
+            'culqi' => $this->container->make(CulqiGateway::class),
             'sandbox' => $this->container->make(SandboxGateway::class),
             default => throw new InvalidArgumentException("Unknown payment gateway [{$name}]."),
         };

@@ -56,7 +56,7 @@ class TopUpTest extends TestCase
     }
 
     #[Test]
-    public function a_sandbox_top_up_is_credited_once_when_the_listener_returns(): void
+    public function a_sandbox_top_up_is_paid_from_its_page_and_credited_once(): void
     {
         $user = User::factory()->create();
 
@@ -68,21 +68,45 @@ class TopUpTest extends TestCase
         $this->assertSame(PaymentStatus::Pending, $payment->status);
         $this->assertSame('sandbox', $payment->provider);
 
-        foreach ([1, 2] as $visit) {
-            $this->get($this->publicUrl('/billetera/recarga/'.$payment->id))
+        $this->get($this->publicUrl('/billetera/recarga/'.$payment->id))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Wallet/TopUp')
+                ->where('payment.status.value', 'pending')
+                ->where('sandbox', true)
+                ->where('checkout.driver', 'sandbox')
+                ->where('checkout.amount_cents', 1000)
+                ->where('checkout.charge_url', '/billetera/recarga/'.$payment->id.'/cargo'));
+
+        foreach ([1, 2] as $attempt) {
+            $this->postJson($this->publicUrl('/billetera/recarga/'.$payment->id.'/cargo'), ['token' => 'sandbox'])
                 ->assertOk()
-                ->assertInertia(fn (Assert $page) => $page
-                    ->component('Wallet/TopUp')
-                    ->where('payment.status.value', 'succeeded')
-                    ->where('balance_cents', 1000)
-                    ->where('sandbox', true));
+                ->assertJsonPath('payment.status.value', 'succeeded')
+                ->assertJsonPath('balance_cents', 1000);
         }
 
         app(ConfirmPayment::class)->handle($payment);
 
         $this->assertSame(1000, app(WalletLedger::class)->balance($user));
         $this->assertSame(1, WalletTransaction::query()->count());
-        $this->assertNotNull($payment->fresh()->wallet_transaction_id);
+        $this->assertSame('sandbox_'.$payment->id, $payment->fresh()->provider_reference);
+
+        $this->get($this->publicUrl('/billetera/recarga/'.$payment->id))
+            ->assertInertia(fn (Assert $page) => $page->where('payment.status.value', 'succeeded')->where('checkout', null));
+    }
+
+    #[Test]
+    public function choosing_the_same_amount_again_reuses_the_open_top_up(): void
+    {
+        $user = User::factory()->create();
+
+        foreach ([1, 2] as $click) {
+            $this->actingAs($user)->post($this->publicUrl('/billetera/recargar'), ['amount_cents' => 2000])->assertRedirect();
+        }
+        $this->actingAs($user)->post($this->publicUrl('/billetera/recargar'), ['amount_cents' => 5000])->assertRedirect();
+
+        $this->assertSame(2, Payment::query()->count());
+        $this->assertSame(1, Payment::query()->where('amount_cents', 2000)->count());
     }
 
     #[Test]
@@ -102,11 +126,17 @@ class TopUpTest extends TestCase
     {
         $payment = app(StartTopUp::class)->handle(User::factory()->create(), 1000);
 
-        $this->actingAs(User::factory()->create())
+        $intruder = User::factory()->create();
+
+        $this->actingAs($intruder)
             ->get($this->publicUrl('/billetera/recarga/'.$payment->id))
+            ->assertForbidden();
+        $this->actingAs($intruder)
+            ->postJson($this->publicUrl('/billetera/recarga/'.$payment->id.'/cargo'), ['token' => 'sandbox'])
             ->assertForbidden();
 
         $this->assertSame(PaymentStatus::Pending, $payment->fresh()->status);
+        $this->assertSame(0, WalletTransaction::query()->count());
     }
 
     #[Test]

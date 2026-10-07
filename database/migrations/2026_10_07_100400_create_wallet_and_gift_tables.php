@@ -55,7 +55,6 @@ return new class extends Migration
             $table->char('currency', 3);
             $table->string('status', 16)->default('pending')->index();
             $table->foreignId('wallet_transaction_id')->nullable()->constrained()->nullOnDelete();
-            $table->text('checkout_url')->nullable();
             $table->timestamp('paid_at')->nullable();
             $table->string('failure_reason', 300)->nullable();
             $table->json('meta')->nullable();

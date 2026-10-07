@@ -2,16 +2,16 @@
 
 namespace App\Domain\Payments\Gateways;
 
-use App\Domain\Payments\Enums\PaymentStatus;
 use App\Domain\Payments\Exceptions\PaymentUnavailable;
 use App\Domain\Payments\PaymentGateway;
-use App\Domain\Payments\Support\CheckoutSession;
+use App\Domain\Payments\Support\ChargeAttempt;
+use App\Domain\Payments\Support\ChargeResult;
 use App\Models\Payment;
 use Illuminate\Support\Str;
 
 /**
- * Test gateway for development: no card is charged and every top-up is
- * approved as soon as the listener lands on the return page. It refuses to
+ * Test gateway for development: the top-up page offers a "simular pago"
+ * button instead of a card form and every charge is approved. It refuses to
  * work in production.
  */
 final class SandboxGateway implements PaymentGateway
@@ -26,34 +26,34 @@ final class SandboxGateway implements PaymentGateway
         return true;
     }
 
-    public function checkout(Payment $payment): CheckoutSession
-    {
-        $this->ensureAllowed();
-
-        return new CheckoutSession(
-            rtrim((string) config('platform.urls.public'), '/').'/billetera/recarga/'.$payment->id,
-            'sandbox_'.$payment->id,
-        );
-    }
-
-    public function status(Payment $payment): PaymentStatus
-    {
-        $this->ensureAllowed();
-
-        return PaymentStatus::Succeeded;
-    }
-
-    public function refund(Payment $payment): string
-    {
-        $this->ensureAllowed();
-
-        return 'sandbox_refund_'.Str::lower(Str::random(16));
-    }
-
-    private function ensureAllowed(): void
+    public function ensureAvailable(): void
     {
         if (app()->isProduction()) {
             throw PaymentUnavailable::sandboxInProduction();
         }
+    }
+
+    public function checkout(Payment $payment): array
+    {
+        $this->ensureAvailable();
+
+        return [
+            'amount_cents' => $payment->amount_cents,
+            'currency' => $payment->currency,
+        ];
+    }
+
+    public function charge(Payment $payment, ChargeAttempt $attempt): ChargeResult
+    {
+        $this->ensureAvailable();
+
+        return ChargeResult::succeeded('sandbox_'.$payment->id);
+    }
+
+    public function refund(Payment $payment, string $reason): string
+    {
+        $this->ensureAvailable();
+
+        return 'sandbox_refund_'.Str::lower(Str::random(16));
     }
 }

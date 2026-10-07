@@ -13,17 +13,24 @@ use InvalidArgumentException;
  */
 final class ClosePayment
 {
-    public function handle(Payment $payment, PaymentStatus $status, ?string $reason = null): Payment
+    /**
+     * @param  array<string, mixed>  $providerMeta
+     */
+    public function handle(Payment $payment, PaymentStatus $status, ?string $reason = null, array $providerMeta = []): Payment
     {
         if (! in_array($status, [PaymentStatus::Failed, PaymentStatus::Cancelled], true)) {
             throw new InvalidArgumentException('A payment can only be closed as failed or cancelled.');
         }
 
-        $closed = DB::transaction(function () use ($payment, $status, $reason) {
+        $closed = DB::transaction(function () use ($payment, $status, $reason, $providerMeta) {
             $locked = Payment::query()->lockForUpdate()->findOrFail($payment->id);
 
             if ($locked->status === PaymentStatus::Pending) {
-                $locked->forceFill(['status' => $status, 'failure_reason' => $reason])->save();
+                $locked->forceFill([
+                    'status' => $status,
+                    'failure_reason' => $reason,
+                    'meta' => [...$locked->meta ?? [], ...$providerMeta],
+                ])->save();
             }
 
             return $locked;

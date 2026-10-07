@@ -35,10 +35,20 @@ return [
         ],
     ],
 
-    // Wallet top-ups (PAYMENTS_DRIVER=stripe): Checkout Sessions and signed webhooks.
-    'stripe' => [
-        'secret' => env('STRIPE_SECRET'),
-        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+    // Sign in with Google. The callback answers on whichever host started the sign-in.
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => '/auth/google/callback',
+    ],
+
+    // Wallet top-ups (PAYMENTS_DRIVER=culqi): Culqi Checkout v4 tokens, charged from the backend.
+    'culqi' => [
+        'public_key' => env('CULQI_PUBLIC_KEY'),
+        'secret_key' => env('CULQI_SECRET_KEY'),
+        'currency' => env('CULQI_CURRENCY', 'USD'),
+        'api_url' => 'https://api.culqi.com/v2',
+        'timeout' => 20,
     ],
 
 ];

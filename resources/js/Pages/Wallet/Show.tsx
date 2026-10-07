@@ -113,7 +113,7 @@ export default function WalletShow({ wallet, topUp, transactions, payments }: Pr
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="flex items-center gap-1.5 text-xs text-muted">
                   <ShieldCheck className="size-3.5" />
-                  {topUp.sandbox ? "No se cobrará ninguna tarjeta: el saldo se acredita al instante." : "Pagas en la página segura de Stripe. No guardamos tu tarjeta."}
+                  {topUp.sandbox ? "Modo de prueba: en el siguiente paso simulas el pago, sin tarjeta." : "Pagas con Culqi, la pasarela segura. No guardamos tu tarjeta."}
                 </p>
                 <Button type="submit" size="lg" loading={form.processing} disabled={!valid} icon={<CreditCard className="size-4" />}>
                   Recargar {valid ? formatMoney(amount) : ""}
