@@ -4,7 +4,8 @@ import Pusher from "pusher-js";
 /**
  * Laravel Echo over Reverb, created on first use. Without VITE_REVERB_APP_KEY
  * (local development without a WebSocket server) it is null and callers keep
- * working from their initial props.
+ * working from their initial props. Each host proxies Reverb itself, so the
+ * socket goes to the host that served the page.
  */
 let echo: Echo<"reverb"> | null | undefined;
 
@@ -22,7 +23,7 @@ export function realtime(): Echo<"reverb"> | null {
   echo = new Echo({
     broadcaster: "reverb",
     key,
-    wsHost: import.meta.env.VITE_REVERB_HOST,
+    wsHost: window.location.hostname,
     wsPort: Number(import.meta.env.VITE_REVERB_PORT ?? 80),
     wssPort: Number(import.meta.env.VITE_REVERB_PORT ?? 443),
     forceTLS: scheme === "https",

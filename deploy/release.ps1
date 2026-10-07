@@ -12,8 +12,18 @@ $ErrorActionPreference = "Stop"
 Set-Location (Split-Path -Parent $PSScriptRoot)
 
 if (-not $SkipBuild) {
-  npm run build
-  if ($LASTEXITCODE -ne 0) { throw "npm run build failed" }
+  # The bundle talks to the production Reverb through Apache (wss on 443) with the server's public app key.
+  $reverbKey = "$(ssh $Server "sed -n 's/^REVERB_APP_KEY=//p' /opt/turadioonline/.env")".Trim().Trim('"')
+  if (-not $reverbKey) { throw "REVERB_APP_KEY is missing in /opt/turadioonline/.env" }
+  $env:VITE_REVERB_APP_KEY = $reverbKey
+  $env:VITE_REVERB_PORT = "443"
+  $env:VITE_REVERB_SCHEME = "https"
+  try {
+    npm run build
+    if ($LASTEXITCODE -ne 0) { throw "npm run build failed" }
+  } finally {
+    Remove-Item Env:VITE_REVERB_APP_KEY, Env:VITE_REVERB_PORT, Env:VITE_REVERB_SCHEME -ErrorAction SilentlyContinue
+  }
 }
 
 $parts = @("app", "bootstrap/app.php", "bootstrap/providers.php", "config", "database/migrations", "database/seeders",

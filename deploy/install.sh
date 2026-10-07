@@ -33,6 +33,8 @@ composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 grep -q '^APP_KEY=base64:' .env || php artisan key:generate --force
 
 echo "==> Database"
+# Supabase: the platform lives in its own schema (DB_SEARCH_PATH), out of the Data API.
+php artisan tinker --execute="if (DB::getDriverName() === 'pgsql') { DB::statement('create schema if not exists '.DB::getConfig('search_path')); }"
 php artisan migrate --force
 USERS=$(php artisan tinker --execute="try { echo 'ROWS='.(int) DB::table('users')->count(); } catch (Throwable \$e) { echo 'ROWS=-1'; }" 2>/dev/null | grep -o 'ROWS=-\?[0-9]*' | tail -1 | cut -d= -f2 || true)
 if [[ "${USERS:--1}" == "0" ]]; then
@@ -56,10 +58,10 @@ listen.owner = www-data
 listen.group = www-data
 listen.mode = 0660
 pm = dynamic
-pm.max_children = 24
-pm.start_servers = 4
+pm.max_children = 10
+pm.start_servers = 3
 pm.min_spare_servers = 2
-pm.max_spare_servers = 8
+pm.max_spare_servers = 6
 php_admin_value[upload_max_filesize] = 200M
 php_admin_value[post_max_size] = 200M
 php_admin_value[memory_limit] = 256M
@@ -75,7 +77,7 @@ After=network.target
 [Service]
 User=www-data
 WorkingDirectory=${APP_DIR}
-ExecStart=/usr/bin/php artisan queue:work --sleep=1 --tries=3 --max-time=3600
+ExecStart=/usr/bin/php artisan queue:work --sleep=2 --tries=3 --max-time=3600
 Restart=always
 
 [Install]
