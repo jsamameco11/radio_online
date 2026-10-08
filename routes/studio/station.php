@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Stations\Actions\ReplaceStationImage;
 use App\Http\Controllers\Studio\AnalyticsController;
 use App\Http\Controllers\Studio\Settings\FrequencySettingsController;
 use App\Http\Controllers\Studio\Settings\GeneralSettingsController;
@@ -17,10 +18,10 @@ Route::middleware('studio.can:station.profile')->group(function () {
     Route::get('/perfil', [StationProfileController::class, 'edit'])->name('profile');
     Route::put('/perfil', [StationProfileController::class, 'update'])->name('profile.update');
     Route::post('/perfil/imagenes/{slot}', [StationProfileController::class, 'image'])
-        ->whereIn('slot', ['logo', 'avatar', 'cover', 'banner'])
+        ->whereIn('slot', array_keys(ReplaceStationImage::SLOTS))
         ->name('profile.image');
     Route::delete('/perfil/imagenes/{slot}', [StationProfileController::class, 'destroyImage'])
-        ->whereIn('slot', ['logo', 'avatar', 'cover', 'banner'])
+        ->whereIn('slot', array_keys(ReplaceStationImage::SLOTS))
         ->name('profile.image.destroy');
 });
 

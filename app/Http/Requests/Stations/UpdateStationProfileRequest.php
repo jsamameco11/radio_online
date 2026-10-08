@@ -27,7 +27,7 @@ class UpdateStationProfileRequest extends FormRequest
 
         return [
             'tagline' => ['nullable', 'string', 'max:140'],
-            'description' => ['nullable', 'string', 'max:2000'],
+            'description' => ['required', 'string', 'min:'.config('platform.stations.description_min'), 'max:'.config('platform.stations.description_max')],
             'accent_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'language' => ['required', Rule::in(array_keys(Locales::LANGUAGES))],
             'country' => ['nullable', Rule::in(array_keys(Locales::COUNTRIES))],
@@ -48,10 +48,14 @@ class UpdateStationProfileRequest extends FormRequest
     {
         $categories = (int) config('platform.stations.max_categories');
         $hashtags = (int) config('platform.stations.max_permanent_hashtags');
+        $descriptionMin = (int) config('platform.stations.description_min');
+        $descriptionMax = (int) config('platform.stations.description_max');
 
         return [
             'tagline.*' => 'El eslogan puede tener como máximo 140 caracteres.',
-            'description.*' => 'La descripción puede tener como máximo 2000 caracteres.',
+            'description.required' => 'La descripción es obligatoria: cuenta a tus oyentes de qué trata tu radio.',
+            'description.min' => "Escribe una descripción de al menos {$descriptionMin} caracteres: qué transmites, para quién y qué hace única a tu radio.",
+            'description.*' => "La descripción puede tener como máximo {$descriptionMax} caracteres.",
             'accent_color.*' => 'Elige un color con el formato #RRGGBB.',
             'language.*' => 'Elige un idioma de la lista.',
             'country.*' => 'Elige un país de la lista.',
@@ -69,7 +73,7 @@ class UpdateStationProfileRequest extends FormRequest
     }
 
     /**
-     * @return array{tagline: ?string, description: ?string, accent_color: ?string, language: string, country: ?string, categories: list<int>, hashtags: list<string>, links: array<string, ?string>}
+     * @return array{tagline: ?string, description: string, accent_color: ?string, language: string, country: ?string, categories: list<int>, hashtags: list<string>, links: array<string, ?string>}
      */
     public function profile(): array
     {
@@ -77,7 +81,7 @@ class UpdateStationProfileRequest extends FormRequest
 
         return [
             'tagline' => $this->filled('tagline') ? trim((string) $this->validated('tagline')) : null,
-            'description' => $this->filled('description') ? trim((string) $this->validated('description')) : null,
+            'description' => trim((string) $this->validated('description')),
             'accent_color' => $this->filled('accent_color') ? strtolower((string) $this->validated('accent_color')) : null,
             'language' => (string) $this->validated('language'),
             'country' => $this->validated('country'),

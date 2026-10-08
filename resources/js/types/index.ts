@@ -39,13 +39,13 @@ export interface Station {
   tagline: string | null;
   logo_url: string | null;
   cover_url: string | null;
-  avatar_url?: string | null;
-  banner_url?: string | null;
   accent_color: string | null;
   status: "active" | "suspended";
   stream_status: { value: StreamStatusValue; label: string; audible: boolean };
   listener_count: number;
   follower_count: number;
+  rating_average: number;
+  rating_count: number;
   categories?: { id: number; name: string; slug: string }[];
   hashtags?: string[];
   current_topic?: { title: string; started_at: string; hashtags: string[] } | null;
@@ -69,6 +69,8 @@ export interface StudioContext {
   role: string | null;
   role_label: string;
   permissions: StationPermission[];
+  /** What is left to set up, only the steps this member may do; `href` is relative to the studio. */
+  setup: { key: string; label: string; done: boolean; href: string }[];
   stations: { name: string; frequency: string; slug: string }[];
 }
 

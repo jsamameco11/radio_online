@@ -13,7 +13,7 @@ import { Pagination } from "@/Components/ui/pagination";
 import { Panel } from "@/Components/ui/panel";
 import AdminLayout from "@/Layouts/AdminLayout";
 import { cn } from "@/lib/cn";
-import { count, dateTime } from "@/lib/format";
+import { count, dateTime, rating } from "@/lib/format";
 import type { Paginated, StreamStatusValue } from "@/types";
 import type { DialSegment, FrequencyStatusValue, Option } from "@/types/admin";
 
@@ -26,7 +26,7 @@ interface FrequencyRow {
   status_label: string;
   reserved_at: string | null;
   activated_at: string | null;
-  station: { id: number; name: string; owner: string; stream_status: StreamStatusValue; listeners: number } | null;
+  station: { id: number; name: string; owner: string; stream_status: StreamStatusValue; listeners: number; rating_average: number; rating_count: number } | null;
 }
 
 interface Props {
@@ -126,7 +126,8 @@ export default function FrequenciesIndex({ frequencies, filters, statuses, dial,
                     <th className="px-5 py-3 font-medium">Frecuencia</th>
                     <th className="px-5 py-3 font-medium">Estado</th>
                     <th className="px-5 py-3 font-medium">Radio</th>
-                    <th className="px-5 py-3 text-right font-medium">Oyentes</th>
+                    <th className="px-5 py-3 text-right font-medium">Conectadas</th>
+                    <th className="px-5 py-3 text-right font-medium">Calificación</th>
                     <th className="px-5 py-3 font-medium">Desde</th>
                   </tr>
                 </thead>
@@ -156,6 +157,9 @@ export default function FrequenciesIndex({ frequencies, filters, statuses, dial,
                         )}
                       </td>
                       <td className="px-5 py-3 text-right tabular">{frequency.station ? count(frequency.station.listeners) : "—"}</td>
+                      <td className="px-5 py-3 text-right tabular">
+                        {frequency.station && frequency.station.rating_count > 0 ? `${rating(frequency.station.rating_average)} (${count(frequency.station.rating_count)})` : "—"}
+                      </td>
                       <td className="px-5 py-3 text-xs text-muted">
                         {frequency.activated_at ? dateTime(frequency.activated_at, { dateStyle: "medium" }) : frequency.reserved_at ? `Reservada ${dateTime(frequency.reserved_at, { dateStyle: "medium" })}` : "—"}
                       </td>

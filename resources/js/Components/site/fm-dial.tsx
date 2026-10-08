@@ -1,13 +1,15 @@
 import { Link } from "@inertiajs/react";
-import { ChevronLeft, ChevronRight, Radio } from "lucide-react";
+import { ChevronLeft, ChevronRight, Headphones, Radio } from "lucide-react";
 import type { KeyboardEvent, PointerEvent as ReactPointerEvent, WheelEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ListenButton, usePlayer } from "@/Components/player";
 import { StationLogo, StreamStatusBadge } from "@/Components/station/station-identity";
 import { Switch } from "@/Components/ui/field";
 import { cn } from "@/lib/cn";
+import { count } from "@/lib/format";
 import type { Station } from "@/types";
 import type { DialBand } from "@/types/site";
+import { StationRating } from "./station-rating";
 
 const PX_PER_MHZ = 120;
 /** How close the needle must be to a station to receive it, in MHz. */
@@ -133,6 +135,15 @@ export function FmDial({ stations, band, initial }: FmDialProps) {
           ) : (
             <p className="flex items-center gap-2 text-muted">
               <Radio className="size-4" /> Sin señal en esta frecuencia. Sigue girando.
+            </p>
+          )}
+          {tuned && (
+            <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+              <span className="inline-flex items-center gap-1.5 tabular">
+                <Headphones className="size-4" aria-hidden />
+                {count(tuned.listener_count)} {tuned.listener_count === 1 ? "persona conectada" : "personas conectadas"}
+              </span>
+              <StationRating station={tuned} />
             </p>
           )}
           {tuned?.current_topic && <p className="text-sm text-muted">Ahora: {tuned.current_topic.title}</p>}

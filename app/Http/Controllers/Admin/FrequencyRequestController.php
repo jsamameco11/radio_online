@@ -41,11 +41,7 @@ class FrequencyRequestController extends Controller
             ->withQueryString();
 
         FrequencyRequestResource::attachCategories($page->getCollection());
-        $page->through(function (FrequencyRequest $item) use ($request) {
-            $data = FrequencyRequestResource::make($item)->resolve($request);
-
-            return [...$data, 'alternatives' => $data['conflict'] ? $this->alternatives($item->frequency) : []];
-        });
+        $page->through(fn (FrequencyRequest $item) => FrequencyRequestResource::make($item)->resolve($request));
 
         $counts = FrequencyRequest::query()->toBase()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
 
@@ -57,6 +53,7 @@ class FrequencyRequestController extends Controller
                 ->map(fn (array $statuses) => (int) collect($statuses)->sum(fn (FrequencyRequestStatus $status) => $counts[$status->value] ?? 0))
                 ->all(),
             'kinds' => collect(FrequencyRequestKind::cases())->map(fn (FrequencyRequestKind $item) => ['value' => $item->value, 'label' => $item->label()])->all(),
+            'freeFrequencies' => $tab === 'pending' ? Frequency::freeOptions() : [],
         ]);
     }
 
@@ -77,22 +74,5 @@ class FrequencyRequestController extends Controller
         $reject->handle($frequencyRequest, $request->user(), (string) $request->validated('note'));
 
         return back()->with('success', 'Solicitud rechazada. Le avisamos a quien la envió.');
-    }
-
-    /**
-     * Free frequencies closest to the requested one, for when it was taken.
-     *
-     * @return list<string>
-     */
-    private function alternatives(Frequency $taken): array
-    {
-        return Frequency::query()
-            ->available()
-            ->orderByRaw('abs(frequency - ?)', [(float) $taken->frequency])
-            ->limit(6)
-            ->pluck('label')
-            ->sort()
-            ->values()
-            ->all();
     }
 }

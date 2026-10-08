@@ -7,6 +7,7 @@ use App\Domain\Chat\ChatFeed;
 use App\Domain\Discovery\Queries\EpisodeCatalog;
 use App\Domain\Discovery\Queries\StationDirectory;
 use App\Domain\Platform\PlatformHost;
+use App\Domain\Stations\Enums\StationPermission;
 use App\Domain\Stations\Support\StationLinks;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Public\ReportContentRequest;
@@ -15,6 +16,7 @@ use App\Http\Resources\StationResource;
 use App\Models\Episode;
 use App\Models\Frequency;
 use App\Models\Station;
+use App\Models\StationRating;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -57,16 +59,26 @@ class StationController extends Controller
 
     /**
      * What every page of a station needs: the station, whether the viewer (a guest
-     * when null) follows it, its studio for its team, and how to share and report it.
+     * when null) follows it, their star rating, its studio for its team (and where
+     * to change the cover photo for whoever may edit the profile), and how to
+     * share and report it.
      *
      * @return array<string, mixed>
      */
     public static function context(?User $user, Station $station): array
     {
+        $rating = $user === null
+            ? null
+            : StationRating::query()->where('station_id', $station->id)->where('user_id', $user->id)->value('stars');
+
         return [
             'station' => StationResource::make($station)->resolve(),
             'isFollowing' => $user !== null && $user->follows()->whereKey($station->id)->exists(),
+            'myRating' => $rating === null ? null : (int) $rating,
             'studioUrl' => $user?->roleIn($station) === null ? null : SessionHandoff::link(PlatformHost::Studio, '/'.$station->frequency->slug),
+            'coverEditUrl' => $user?->canInStation($station, StationPermission::EditProfile)
+                ? SessionHandoff::link(PlatformHost::Studio, '/'.$station->frequency->slug.'/perfil#portada')
+                : null,
             'shareUrl' => StationLinks::listen($station),
             'reportReasons' => ReportContentRequest::reasonOptions(),
         ];

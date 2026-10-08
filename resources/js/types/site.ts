@@ -77,7 +77,10 @@ export interface Option {
 export interface StationContext {
   station: Station;
   isFollowing: boolean;
+  myRating: number | null;
   studioUrl: string | null;
+  /** Only for whoever may edit the station profile. */
+  coverEditUrl: string | null;
   shareUrl: string;
   reportReasons: Option[];
 }

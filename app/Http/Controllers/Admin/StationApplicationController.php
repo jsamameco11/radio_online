@@ -29,7 +29,8 @@ class StationApplicationController extends Controller
         $summary = FrequencyRequestResource::make($frequencyRequest)->resolve($request);
 
         return Inertia::render('Admin/Applications/Show', [
-            'request' => [...$summary, 'alternatives' => $summary['conflict'] ? $this->alternatives($frequencyRequest->frequency) : []],
+            'request' => $summary,
+            'freeFrequencies' => Frequency::freeOptions(),
             'application' => StationApplicationResource::make($application)->resolve($request),
             'account' => [
                 'id' => $user->id,
@@ -74,22 +75,5 @@ class StationApplicationController extends Controller
 
         return redirect()->away((string) $storage->url($document['key'], now()->addMinutes(5)))
             ->header('Cache-Control', 'no-store, private');
-    }
-
-    /**
-     * Free frequencies closest to the requested one, for when it was taken.
-     *
-     * @return list<string>
-     */
-    private function alternatives(Frequency $taken): array
-    {
-        return Frequency::query()
-            ->available()
-            ->orderByRaw('abs(frequency - ?)', [(float) $taken->frequency])
-            ->limit(6)
-            ->pluck('label')
-            ->sort()
-            ->values()
-            ->all();
     }
 }

@@ -30,6 +30,8 @@ class StationRowResource extends JsonResource
             'listener_count' => $this->listener_count,
             'peak_listener_count' => $this->peak_listener_count,
             'follower_count' => $this->follower_count,
+            'rating_average' => round((float) $this->rating_average, 2),
+            'rating_count' => $this->rating_count,
             'last_heartbeat_at' => $this->last_heartbeat_at?->toIso8601String(),
             'suspended_at' => $this->suspended_at?->toIso8601String(),
             'suspension_reason' => $this->suspension_reason,

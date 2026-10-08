@@ -1,8 +1,10 @@
 import { Link, usePage } from "@inertiajs/react";
-import { CheckCircle2, Circle, ExternalLink, Headphones, Heart, Timer, Users } from "lucide-react";
+import { ExternalLink, Headphones, Heart, Timer, Users } from "lucide-react";
 import { AreaChart } from "@/Components/analytics/area-chart";
 import { dayLabel } from "@/Components/analytics/day-label";
 import { FrequencyTitle, StationLogo, StreamStatusBadge } from "@/Components/station/station-identity";
+import type { MissingDescription } from "@/Components/studio/description-notice";
+import { DescriptionNotice } from "@/Components/studio/description-notice";
 import { GrowthWidget } from "@/Components/studio/growth/growth-widget";
 import { MonetizedBadge } from "@/Components/studio/growth/monetized-badge";
 import { TopicEditor } from "@/Components/studio/topic-editor";
@@ -10,7 +12,7 @@ import { Badge } from "@/Components/ui/badge";
 import { Panel, Stat } from "@/Components/ui/panel";
 import StudioLayout, { useStudioCan, useStudioUrl } from "@/Layouts/StudioLayout";
 import { count, dateTime } from "@/lib/format";
-import type { SharedProps, StationPermission } from "@/types";
+import type { SharedProps } from "@/types";
 import type { Broadcast } from "@/types/admin";
 import type { GrowthSummary } from "@/types/growth";
 import type { AudienceDay, AudienceSummary } from "@/types/station-admin";
@@ -25,16 +27,15 @@ interface Props {
   teamSize: number;
   listenUrl: string;
   pendingChange: { frequency: string; created_at: string } | null;
-  checklist: { key: string; label: string; done: boolean; href: string; permission: StationPermission }[];
+  missingDescription: MissingDescription | null;
 }
 
-export default function StudioDashboard({ summary, daily, broadcasts, growth, monetized, role, teamSize, listenUrl, pendingChange, checklist }: Props) {
+export default function StudioDashboard({ summary, daily, broadcasts, growth, monetized, role, teamSize, listenUrl, pendingChange, missingDescription }: Props) {
   const { studio } = usePage<SharedProps>().props;
   const url = useStudioUrl();
   const can = useStudioCan();
   if (!studio) return null;
   const station = studio.station;
-  const pending = checklist.filter((item) => !item.done && can(item.permission));
 
   return (
     <StudioLayout title="Resumen">
@@ -56,6 +57,8 @@ export default function StudioDashboard({ summary, daily, broadcasts, growth, mo
             Ver página pública
           </a>
         </header>
+
+        {missingDescription && <DescriptionNotice missing={missingDescription} />}
 
         {pendingChange && (
           <p className="rounded-2xl border border-info/30 bg-info-soft px-4 py-3 text-sm text-info">
@@ -105,22 +108,6 @@ export default function StudioDashboard({ summary, daily, broadcasts, growth, mo
           <div className="space-y-6">
             {growth && <GrowthWidget growth={growth} href={url("/crecimiento")} />}
             {can("console.operate") && <TopicEditor suggestions={station.hashtags ?? []} />}
-            {pending.length > 0 && (
-              <Panel title="Pon a punto tu radio">
-                <ul className="space-y-2.5 text-sm">
-                  {checklist
-                    .filter((item) => can(item.permission))
-                    .map((item) => (
-                      <li key={item.key}>
-                        <Link href={url(item.href)} className="flex items-center gap-2.5 hover:text-ink">
-                          {item.done ? <CheckCircle2 className="size-4 text-onair" /> : <Circle className="size-4 text-faint" />}
-                          <span className={item.done ? "text-muted line-through" : "text-ink"}>{item.label}</span>
-                        </Link>
-                      </li>
-                    ))}
-                </ul>
-              </Panel>
-            )}
           </div>
         </div>
       </div>

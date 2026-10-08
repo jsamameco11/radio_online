@@ -5,6 +5,7 @@ import { EpisodeTile } from "@/Components/site/episode-card";
 import { HashtagChip } from "@/Components/site/hashtag-chip";
 import { Section } from "@/Components/site/section";
 import { StationGrid, stationArtwork } from "@/Components/site/station-card";
+import { StationRating } from "@/Components/site/station-rating";
 import { FrequencyTitle, StationLogo, StreamStatusBadge } from "@/Components/station/station-identity";
 import { ButtonLink } from "@/Components/ui/button";
 import { EmptyState } from "@/Components/ui/empty-state";
@@ -46,7 +47,12 @@ function Spotlight({ station }: { station: Station }) {
           <Link href={`/radio/${station.frequency.slug}`} className="text-sm font-medium text-surface/85 underline-offset-4 hover:underline">
             Ver la radio
           </Link>
-          <span className="ml-auto text-xs text-surface/70 tabular">{count(station.listener_count)} oyentes</span>
+          <span className="ml-auto flex items-center gap-3 text-xs text-surface/80 tabular">
+            <span>
+              {count(station.listener_count)} {station.listener_count === 1 ? "persona conectada" : "personas conectadas"}
+            </span>
+            <StationRating station={station} compact className="text-surface/80" />
+          </span>
         </div>
       </div>
     </div>

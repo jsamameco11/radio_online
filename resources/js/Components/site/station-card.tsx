@@ -6,6 +6,7 @@ import { Equalizer, FrequencyTitle, StationLogo, StreamStatusBadge } from "@/Com
 import { count } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { Station } from "@/types";
+import { StationRating } from "./station-rating";
 
 /** Artwork for stations without a cover: their accent color over the ink of the theme. */
 export function stationArtwork(station: Pick<Station, "accent_color">): string {
@@ -56,15 +57,11 @@ export function StationCard({ station, className }: { station: Station; classNam
           station.tagline && <p className="line-clamp-2 text-xs text-muted">{station.tagline}</p>
         )}
         <div className="mt-auto flex items-center gap-3 pt-1 text-xs text-faint tabular">
-          {playing ? (
-            <span className="flex items-center gap-1.5 font-medium text-signal">
-              <Equalizer /> Sonando
-            </span>
-          ) : (
-            <span className="flex items-center gap-1" title="Oyentes ahora">
-              <Headphones className="size-3.5" aria-hidden /> {count(station.listener_count, true)}
-            </span>
-          )}
+          <span className="flex items-center gap-1" title="Personas conectadas">
+            {playing ? <Equalizer className="text-signal" /> : <Headphones className="size-3.5" aria-hidden />}
+            {count(playing ? Math.max(player.state.listeners, station.listener_count) : station.listener_count, true)}
+          </span>
+          <StationRating station={station} compact />
           <span className="flex items-center gap-1" title="Suscriptores">
             <Heart className="size-3.5" aria-hidden /> {count(station.follower_count, true)}
           </span>
@@ -84,8 +81,13 @@ export function StationRow({ station, meta }: { station: Station; meta?: ReactNo
         <Link href={`/radio/${station.frequency.slug}`} className="block before:absolute before:inset-0 before:content-['']">
           <FrequencyTitle station={station} size="sm" />
         </Link>
-        <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
           <StreamStatusBadge status={station.stream_status.value} />
+          <span className="inline-flex items-center gap-1 tabular" title="Personas conectadas">
+            <Headphones className="size-3.5" aria-hidden />
+            {count(station.listener_count, true)}
+          </span>
+          <StationRating station={station} compact />
           {meta}
         </span>
       </span>

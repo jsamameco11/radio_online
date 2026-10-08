@@ -1,22 +1,25 @@
 import { router, useForm, usePage } from "@inertiajs/react";
 import { ImagePlus, Trash2 } from "lucide-react";
 import type { ChangeEvent, FormEvent } from "react";
+import { useEffect, useRef } from "react";
 import { CategoryPicker } from "@/Components/forms/category-picker";
 import { fieldError } from "@/Components/forms/field-error";
 import { HashtagInput } from "@/Components/forms/hashtag-input";
 import { PageErrors } from "@/Components/forms/page-errors";
+import { stationArtwork } from "@/Components/site/station-card";
 import { FrequencyTitle, StationLogo } from "@/Components/station/station-identity";
+import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 import { Field, Input, Select, Textarea } from "@/Components/ui/field";
 import { PageHeader } from "@/Components/ui/page-header";
 import { Panel } from "@/Components/ui/panel";
 import StudioLayout, { useStudioUrl } from "@/Layouts/StudioLayout";
-import type { SharedProps, Station } from "@/types";
+import { cn } from "@/lib/cn";
+import type { SharedProps } from "@/types";
 import type { Option } from "@/types/admin";
 import type { CategoryGroupOption, SocialLinks } from "@/types/station-admin";
 
-/** StationResource also sends avatar_url and banner_url. */
-type StationMedia = Station & { avatar_url?: string | null; banner_url?: string | null };
+type ImageSlot = "logo" | "cover";
 
 interface Props {
   profile: {
@@ -32,15 +35,16 @@ interface Props {
   categoryGroups: CategoryGroupOption[];
   languages: Option[];
   countries: Option[];
-  limits: { categories: number; hashtags: number; hashtag_length: number; image_kb: number };
+  limits: {
+    categories: number;
+    description_min: number;
+    description_max: number;
+    hashtags: number;
+    hashtag_length: number;
+    image_kb: number;
+    image_min: Record<ImageSlot, [number, number]>;
+  };
 }
-
-const SLOTS = [
-  { slot: "logo", label: "Logo", hint: "Cuadrado, se ve en el dial y las listas." },
-  { slot: "avatar", label: "Avatar", hint: "Para chats y menciones." },
-  { slot: "cover", label: "Portada", hint: "Fondo de la página de tu radio." },
-  { slot: "banner", label: "Banner", hint: "Franja horizontal para destacados." },
-] as const;
 
 const LINKS: { key: keyof SocialLinks; label: string; placeholder: string }[] = [
   { key: "website", label: "Sitio web", placeholder: "https://miradio.com" },
@@ -56,22 +60,38 @@ export default function StationProfile({ profile, categoryGroups, languages, cou
   const { studio } = usePage<SharedProps>().props;
   const url = useStudioUrl();
   const form = useForm(profile);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (window.location.hash === "#portada") {
+      document.getElementById("portada")?.scrollIntoView({ block: "center" });
+      return;
+    }
+    if (window.location.hash !== "#descripcion") return;
+    descriptionRef.current?.scrollIntoView({ block: "center" });
+    descriptionRef.current?.focus({ preventScroll: true });
+  }, []);
+
   if (!studio) return null;
-  const station: StationMedia = studio.station;
-  const images: Record<string, string | null> = { logo: station.logo_url, avatar: station.avatar_url ?? null, cover: station.cover_url, banner: station.banner_url ?? null };
+  const descriptionLength = form.data.description.trim().length;
+  const describedEnough = descriptionLength >= limits.description_min;
+  const station = studio.station;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
     form.put(url("/perfil"), { preserveScroll: true });
   };
 
-  const upload = (slot: string) => (event: ChangeEvent<HTMLInputElement>) => {
+  const upload = (slot: ImageSlot) => (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (file) router.post(url(`/perfil/imagenes/${slot}`), { image: file }, { forceFormData: true, preserveScroll: true });
   };
+  const remove = (slot: ImageSlot) => () => router.delete(url(`/perfil/imagenes/${slot}`), { preserveScroll: true });
+  const minSize = (slot: ImageSlot) => `${limits.image_min[slot][0]} × ${limits.image_min[slot][1]} px`;
 
   const preview = { name: station.name, frequency: station.frequency, logo_url: station.logo_url, accent_color: form.data.accent_color || null };
+  const coverBackground = station.cover_url ? undefined : { background: stationArtwork(preview) };
 
   return (
     <StudioLayout title="Perfil de radio">
@@ -80,31 +100,38 @@ export default function StationProfile({ profile, categoryGroups, languages, cou
           <PageHeader eyebrow="Perfil" title="Perfil de radio" description="Lo que ven los oyentes en la página de tu radio y en el dial." />
           <PageErrors only={["image"]} />
 
-          <Panel title="Imágenes" description={`JPG, PNG o WebP de hasta ${Math.round(limits.image_kb / 1024)} MB y al menos 128 × 128 px.`}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {SLOTS.map(({ slot, label, hint }) => (
-                <div key={slot} className="flex items-center gap-3 rounded-xl border border-line p-3">
-                  <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-raised">
-                    {images[slot] ? <img src={images[slot] ?? undefined} alt="" className="size-full object-cover" /> : <ImagePlus className="size-5 text-faint" />}
-                  </div>
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <p className="text-sm font-medium">{label}</p>
-                    <p className="text-xs text-muted">{hint}</p>
-                    <div className="flex gap-2">
-                      <label className="cursor-pointer text-xs font-medium text-signal hover:underline">
-                        {images[slot] ? "Cambiar" : "Subir"}
-                        <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={upload(slot)} />
-                      </label>
-                      {images[slot] && (
-                        <button type="button" onClick={() => router.delete(url(`/perfil/imagenes/${slot}`), { preserveScroll: true })} className="inline-flex items-center gap-1 text-xs text-muted hover:text-danger">
-                          <Trash2 className="size-3" />
-                          Quitar
-                        </button>
-                      )}
-                    </div>
-                  </div>
+          <Panel title="Imágenes" description={`JPG, PNG o WebP de hasta ${Math.round(limits.image_kb / 1024)} MB.`}>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-3 rounded-xl border border-line p-4">
+                <div className="flex aspect-square w-full max-w-40 items-center justify-center overflow-hidden rounded-[1.5rem] bg-raised">
+                  {station.logo_url ? <img src={station.logo_url} alt="Logo de tu radio" className="size-full object-cover" /> : <ImagePlus className="size-6 text-faint" />}
                 </div>
-              ))}
+                <ImageSlotText
+                  label="Logo"
+                  hint={`El cuadrado de tu frecuencia: se ve en el dial, las listas y sobre tu foto de portada. Cuadrado, al menos ${minSize("logo")}.`}
+                  hasImage={station.logo_url !== null}
+                  onUpload={upload("logo")}
+                  onRemove={remove("logo")}
+                />
+              </div>
+
+              <div id="portada" className="scroll-mt-24 space-y-3 rounded-xl border border-line p-4 md:col-span-2">
+                <div className="relative">
+                  <div className="aspect-[3/1] w-full overflow-hidden rounded-xl bg-raised" style={coverBackground}>
+                    {station.cover_url && <img src={station.cover_url} alt="Foto de portada de tu radio" className="size-full object-cover" />}
+                  </div>
+                  <StationLogo station={preview} size="md" className="absolute -bottom-5 left-4 z-10 shadow-lg ring-4 ring-surface" />
+                </div>
+                <div className="pt-4">
+                  <ImageSlotText
+                    label="Foto de portada"
+                    hint={`La franja de arriba en la página de tu radio, detrás de tu logo. Horizontal, ideal 1600 × 530 px y al menos ${minSize("cover")}.`}
+                    hasImage={station.cover_url !== null}
+                    onUpload={upload("cover")}
+                    onRemove={remove("cover")}
+                  />
+                </div>
+              </div>
             </div>
           </Panel>
 
@@ -113,9 +140,38 @@ export default function StationProfile({ profile, categoryGroups, languages, cou
               <Field label="Eslogan" error={form.errors.tagline} className="sm:col-span-2">
                 {(id, invalid) => <Input id={id} invalid={invalid} maxLength={140} value={form.data.tagline} onChange={(event) => form.setData("tagline", event.target.value)} placeholder="La radio del barrio" />}
               </Field>
-              <Field label="Descripción" error={form.errors.description} className="sm:col-span-2">
-                {(id, invalid) => <Textarea id={id} invalid={invalid} rows={5} maxLength={2000} value={form.data.description} onChange={(event) => form.setData("description", event.target.value)} />}
-              </Field>
+              <div id="descripcion" className="scroll-mt-24 sm:col-span-2">
+                <Field
+                  label={
+                    <span className="inline-flex items-center gap-2">
+                      Descripción <Badge tone={describedEnough ? "neutral" : "warning"}>Obligatoria</Badge>
+                    </span>
+                  }
+                  error={form.errors.description}
+                  hint={
+                    <span className="flex justify-between gap-3">
+                      <span>Qué transmites, para quién y qué hace única a tu radio. Mínimo {limits.description_min} caracteres.</span>
+                      <span className={cn("shrink-0 tabular", describedEnough ? "text-faint" : "text-warning")}>
+                        {descriptionLength}/{limits.description_max}
+                      </span>
+                    </span>
+                  }
+                >
+                  {(id, invalid) => (
+                    <Textarea
+                      ref={descriptionRef}
+                      id={id}
+                      invalid={invalid}
+                      rows={5}
+                      aria-required
+                      maxLength={limits.description_max}
+                      value={form.data.description}
+                      onChange={(event) => form.setData("description", event.target.value)}
+                      placeholder="Ej.: Radio Aurora acompaña a Lima con cumbia, salsa y noticias del barrio. Entrevistas a emprendedores locales cada mañana y la agenda cultural de la semana."
+                    />
+                  )}
+                </Field>
+              </div>
               <Field label="Idioma" error={form.errors.language}>
                 {(id, invalid) => (
                   <Select id={id} invalid={invalid} value={form.data.language} onChange={(event) => form.setData("language", event.target.value)}>
@@ -185,10 +241,10 @@ export default function StationProfile({ profile, categoryGroups, languages, cou
         <aside className="xl:sticky xl:top-6 xl:self-start">
           <Panel title="Vista previa">
             <div className="overflow-hidden rounded-2xl border border-line">
-              <div className="h-24 bg-raised bg-cover bg-center" style={station.cover_url ? { backgroundImage: `url(${station.cover_url})` } : { background: form.data.accent_color || undefined }} />
+              <div className="h-24 bg-raised bg-cover bg-center" style={station.cover_url ? { backgroundImage: `url(${station.cover_url})` } : coverBackground} />
               <div className="space-y-2 p-4">
                 <div className="-mt-12 flex items-end gap-3">
-                  <StationLogo station={preview} size="md" className="ring-4 ring-surface" />
+                  <StationLogo station={preview} size="md" className="relative z-10 shadow-lg ring-4 ring-surface" />
                 </div>
                 <FrequencyTitle station={preview} size="md" />
                 {form.data.tagline && <p className="text-sm text-muted">{form.data.tagline}</p>}
@@ -209,5 +265,27 @@ export default function StationProfile({ profile, categoryGroups, languages, cou
         </aside>
       </div>
     </StudioLayout>
+  );
+}
+
+function ImageSlotText({ label, hint, hasImage, onUpload, onRemove }: { label: string; hint: string; hasImage: boolean; onUpload: (event: ChangeEvent<HTMLInputElement>) => void; onRemove: () => void }) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-sm font-medium text-ink">{label}</p>
+      <p className="text-xs text-muted">{hint}</p>
+      <div className="flex items-center gap-3 pt-1">
+        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-raised px-3 py-1.5 text-xs font-medium text-ink ring-1 ring-line-strong hover:ring-signal/50">
+          <ImagePlus className="size-3.5" />
+          {hasImage ? "Cambiar" : "Subir"}
+          <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={onUpload} />
+        </label>
+        {hasImage && (
+          <button type="button" onClick={onRemove} className="inline-flex items-center gap-1 text-xs text-muted hover:text-danger">
+            <Trash2 className="size-3" />
+            Quitar
+          </button>
+        )}
+      </div>
+    </div>
   );
 }

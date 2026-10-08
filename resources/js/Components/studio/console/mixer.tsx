@@ -1,6 +1,8 @@
+import { Mic, Volume2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Panel } from "@/Components/ui/panel";
 import { Switch } from "@/Components/ui/field";
+import { cn } from "@/lib/cn";
 import type { ConsoleApi } from "./use-console";
 
 type FaderKey = "music" | "overlay" | "pads";
@@ -32,26 +34,71 @@ export function Mixer({ api }: { api: ConsoleApi }) {
     }, 120);
   }
 
+  const micPercent = Math.round(api.mic.level * 100);
+  const monitorPercent = Math.round(api.monitorLevel * 100);
+  const canTalk = Boolean(api.snapshot.live.session) && api.mic.input !== "none";
+
   return (
-    <Panel title="Mezcla" description="Lo que oyen todos los oyentes.">
+    <Panel title="Mezclador" description="Lo que oyen todos, tu micrófono y el monitor de cabina.">
       <div className="space-y-4">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="flex items-end justify-between gap-1">
+          <label className="flex flex-col items-center gap-1.5 text-center" title="Nivel de tu micrófono o de la línea">
+            <Mic className="size-3.5 text-muted" />
+            <input
+              type="range"
+              min={0}
+              max={200}
+              value={micPercent}
+              disabled={api.mic.input === "none"}
+              onChange={(event) => api.changeMic({ level: Number(event.target.value) / 100 })}
+              className="desk-fader"
+              aria-label="Volumen del micrófono"
+            />
+            <span className="text-[10px] font-semibold tracking-wide text-faint uppercase">Mic</span>
+            <span className="font-mono text-[10px] text-muted tabular">{micPercent}%</span>
+          </label>
           {FADERS.map((fader) => (
-            <label key={fader.key} className="flex flex-col items-center gap-2 text-center" title={fader.hint}>
-              <span className="font-mono text-xs text-muted tabular">{levels[fader.key]}</span>
+            <label key={fader.key} className="flex flex-col items-center gap-1.5 text-center" title={fader.hint}>
+              <span className="size-3.5" />
               <input
                 type="range"
                 min={0}
                 max={100}
                 value={levels[fader.key]}
                 onChange={(event) => move(fader.key, Number(event.target.value))}
-                className="h-32 w-6 accent-signal [writing-mode:vertical-lr] [direction:rtl]"
+                className="desk-fader"
                 aria-label={`Volumen de ${fader.label.toLowerCase()}`}
               />
-              <span className="text-xs font-medium text-ink">{fader.label}</span>
+              <span className="text-[10px] font-semibold tracking-wide text-faint uppercase">{fader.label}</span>
+              <span className="font-mono text-[10px] text-muted tabular">{levels[fader.key]}%</span>
             </label>
           ))}
+          <label className="flex flex-col items-center gap-1.5 text-center" title="Lo que escuchas tú en esta computadora">
+            <Volume2 className={cn("size-3.5", api.monitor ? "text-royal" : "text-muted")} />
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={monitorPercent}
+              onChange={(event) => api.changeMonitorLevel(Number(event.target.value) / 100)}
+              className="desk-fader"
+              aria-label="Volumen del monitor"
+            />
+            <span className="text-[10px] font-semibold tracking-wide text-faint uppercase">Monitor</span>
+            <span className="font-mono text-[10px] text-muted tabular">{monitorPercent}%</span>
+          </label>
         </div>
+        {canTalk ? (
+          <button
+            type="button"
+            onClick={() => void api.talk(!api.talking)}
+            disabled={!api.micOpen}
+            aria-pressed={api.talking}
+            className={cn("h-8 w-full rounded-lg text-xs font-semibold", api.talking ? "bg-danger text-white" : "bg-onair text-white")}
+          >
+            {api.talking ? (api.speaking ? "Al aire · hablando" : "Micrófono al aire") : "Hablar"}
+          </button>
+        ) : null}
         <Switch checked={live.muted} onChange={(muted) => void api.mix({ muted })} label="Silenciar música" description="La música calla para todos; las capas y la voz siguen." />
         <Switch checked={live.bed} onChange={(bed) => void api.mix({ bed })} label="Música de fondo" description="La música baja al nivel de fondo configurado." />
         <div className="space-y-1.5 border-t border-line pt-3">
@@ -59,16 +106,7 @@ export function Mixer({ api }: { api: ConsoleApi }) {
             <span>Empalme de la consola</span>
             <span className="tabular">{api.blend} s</span>
           </div>
-          <input type="range" min={0} max={12} step={0.5} value={api.blend} onChange={(event) => api.setBlend(Number(event.target.value))} className="w-full accent-signal" aria-label="Segundos del empalme" />
-          {api.monitor ? (
-            <>
-              <div className="flex items-center justify-between text-xs text-muted">
-                <span>Volumen del monitor</span>
-                <span className="tabular">{Math.round(api.monitorLevel * 100)}%</span>
-              </div>
-              <input type="range" min={0} max={1} step={0.05} value={api.monitorLevel} onChange={(event) => api.changeMonitorLevel(Number(event.target.value))} className="w-full accent-signal" aria-label="Volumen del monitor" />
-            </>
-          ) : null}
+          <input type="range" min={0} max={12} step={0.5} value={api.blend} onChange={(event) => api.setBlend(Number(event.target.value))} className="desk-slider w-full" aria-label="Segundos del empalme" />
         </div>
       </div>
     </Panel>

@@ -52,6 +52,24 @@ class Frequency extends Model
         return $this->label.' '.$this->band;
     }
 
+    /**
+     * Frequencies still free to assign, in dial order.
+     *
+     * @return list<array{label: string, display: string}>
+     */
+    public static function freeOptions(): array
+    {
+        return self::query()
+            ->available()
+            ->onDial()
+            ->get(['label', 'band'])
+            ->map(fn (self $frequency): array => [
+                'label' => $frequency->label,
+                'display' => $frequency->display(),
+            ])
+            ->all();
+    }
+
     public function isAvailable(): bool
     {
         return $this->status === FrequencyStatus::Available;

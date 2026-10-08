@@ -59,12 +59,10 @@ export function PlayerBar() {
           </span>
         </Link>
 
-        {playing && (
-          <span className="hidden items-center gap-1.5 text-xs text-muted tabular md:flex" title="Oyentes ahora">
-            <Headphones className="size-4" />
-            {count(state.listeners, true)}
-          </span>
-        )}
+        <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted tabular" title="Personas conectadas">
+          <Headphones className="size-4" />
+          {count(playing ? Math.max(state.listeners, station.listener_count) : station.listener_count, true)}
+        </span>
 
         <div className="hidden items-center gap-2 sm:flex">
           <button

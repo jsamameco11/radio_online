@@ -11,7 +11,7 @@ import { PageHeader } from "@/Components/ui/page-header";
 import { Pagination } from "@/Components/ui/pagination";
 import { Panel } from "@/Components/ui/panel";
 import AdminLayout from "@/Layouts/AdminLayout";
-import { count, dateTime } from "@/lib/format";
+import { count, dateTime, rating } from "@/lib/format";
 import type { Paginated } from "@/types";
 import type { Option, StationRow } from "@/types/admin";
 
@@ -113,7 +113,8 @@ export default function StationsIndex({ stations, filters, statuses, streams, ca
                     <th className="px-5 py-3 font-medium">Radio</th>
                     <th className="px-5 py-3 font-medium">Propietario</th>
                     <th className="px-5 py-3 font-medium">Transmisión</th>
-                    <th className="px-5 py-3 text-right font-medium">Oyentes</th>
+                    <th className="px-5 py-3 text-right font-medium">Conectadas</th>
+                    <th className="px-5 py-3 text-right font-medium">Calificación</th>
                     <th className="px-5 py-3 text-right font-medium">Suscriptores</th>
                     <th className="px-5 py-3 font-medium">Alta</th>
                   </tr>
@@ -142,6 +143,7 @@ export default function StationsIndex({ stations, filters, statuses, streams, ca
                         <StreamStatusBadge status={station.stream_status.value} />
                       </td>
                       <td className="px-5 py-3 text-right tabular">{count(station.listener_count)}</td>
+                      <td className="px-5 py-3 text-right tabular">{station.rating_count > 0 ? `${rating(station.rating_average)} (${count(station.rating_count)})` : "—"}</td>
                       <td className="px-5 py-3 text-right tabular">{count(station.follower_count)}</td>
                       <td className="px-5 py-3 text-xs text-muted">{dateTime(station.created_at, { dateStyle: "medium" })}</td>
                     </tr>

@@ -1,9 +1,10 @@
 import { router, usePage } from "@inertiajs/react";
-import { HandHeart, MessageCircleOff, MessagesSquare, Radio, ShieldCheck, Sparkles, Users, Volume2 } from "lucide-react";
+import { AudioLines, HandHeart, MessageCircleOff, MessagesSquare, Radio, ShieldCheck, Sparkles, Users, Volume2 } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { StreamStatusBadge } from "@/Components/station/station-identity";
 import { StudioChatThread } from "@/Components/studio/chat/studio-chat-thread";
 import { useStudioChat } from "@/Components/studio/chat/use-studio-chat";
+import { useSuperchat } from "@/Components/studio/chat/use-superchat";
 import { Avatar } from "@/Components/ui/avatar";
 import { Button, ButtonLink } from "@/Components/ui/button";
 import { EmptyState } from "@/Components/ui/empty-state";
@@ -39,7 +40,14 @@ export default function Chat({ feed, summary }: Props) {
 
   useEffect(() => () => window.clearTimeout(refreshing.current ?? undefined), []);
 
-  const chat = useStudioChat({ initial: feed, onIncoming: refreshSummary });
+  const superchat = useSuperchat();
+  const chat = useStudioChat({
+    initial: feed,
+    onIncoming: (message) => {
+      refreshSummary();
+      superchat.offer(message);
+    },
+  });
 
   if (!studio) return null;
   const station = studio.station;
@@ -51,14 +59,14 @@ export default function Chat({ feed, summary }: Props) {
         <PageHeader
           eyebrow="En vivo"
           title="Chat en vivo"
-          description="Lo que tus oyentes te escriben mientras estás al aire. Responde como la radio, destaca a quienes te apoyan y modera la conversación."
+          description="Lo que tus oyentes te escriben mientras estás al aire. Responde como la radio, lee en voz alta los superchats que pagan y modera la conversación."
           actions={chat.open ? <StreamStatusBadge status="live" /> : undefined}
         />
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Stat label="Mensajes" value={count(summary.messages)} icon={<MessagesSquare className="size-4" />} hint={summary.session ? `Desde las ${dateTime(summary.session.started_at, { timeStyle: "short" })}` : "En esta transmisión"} />
           <Stat label="Oyentes que escribieron" value={count(summary.writers)} icon={<Users className="size-4" />} />
-          <Stat label="Destacados" value={count(summary.highlighted)} icon={<Sparkles className="size-4" />} hint="Mensajes remarcados por tus oyentes" />
+          <Stat label="Superchats" value={count(summary.highlighted)} icon={<Sparkles className="size-4" />} hint="Mensajes que pagaron para destacarse y poder leerse en voz alta" />
           <Stat label="Para la radio" value={formatMoney(summary.earned_cents)} icon={<HandHeart className="size-4" />} hint="Acreditado por mensajes destacados" />
         </div>
 
@@ -68,6 +76,16 @@ export default function Chat({ feed, summary }: Props) {
               <h2 className="flex items-center gap-2 text-sm font-semibold">
                 <MessagesSquare className="size-4 text-signal" /> Conversación
               </h2>
+              {superchat.supported ? (
+                <button
+                  type="button"
+                  aria-pressed={superchat.auto}
+                  onClick={() => superchat.setAuto(!superchat.auto)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${superchat.auto ? "bg-royal text-white" : "bg-raised text-muted"}`}
+                >
+                  <AudioLines className="size-3.5" /> {superchat.auto ? "Superchat automático" : "Decir superchats"}
+                </button>
+              ) : null}
               {summary.session?.title && <span className="truncate text-xs text-muted">{summary.session.title}</span>}
             </header>
             {chat.open || (chat.feed?.messages.length ?? 0) > 0 ? (
@@ -77,7 +95,7 @@ export default function Chat({ feed, summary }: Props) {
                     <MessageCircleOff className="size-3.5" /> El chat está cerrado: se abre cuando sales en vivo. Esto es lo último que te escribieron.
                   </p>
                 )}
-                <StudioChatThread chat={chat} station={station} className="flex-1" />
+                <StudioChatThread chat={chat} station={station} className="flex-1" superchat={superchat} />
               </>
             ) : (
               <div className="flex flex-1 items-center justify-center p-6">

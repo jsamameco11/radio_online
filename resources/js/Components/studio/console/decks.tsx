@@ -93,7 +93,7 @@ function Deck({ lane, api, library }: { lane: string; api: ConsoleApi; library: 
         <Button size="icon" variant="ghost" disabled={!playing && !fading} onClick={() => void api.stop({ lane })} aria-label={`Cortar ${lane}`} title="Cortar">
           <Square className="size-4" />
         </Button>
-        <input type="range" min={0} max={100} value={volume} onChange={(event) => adjust(Number(event.target.value), duck)} className="min-w-16 flex-1 accent-signal" aria-label={`Volumen de ${lane}`} />
+        <input type="range" min={0} max={100} value={volume} onChange={(event) => adjust(Number(event.target.value), duck)} className="desk-slider min-w-16 flex-1" aria-label={`Volumen de ${lane}`} />
         <span className="w-7 text-right font-mono text-xs text-muted tabular">{volume}</span>
       </div>
 

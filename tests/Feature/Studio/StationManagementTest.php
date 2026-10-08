@@ -97,7 +97,7 @@ class StationManagementTest extends TestCase
         $this->actingAs($manager)
             ->put($this->studioUrl($station, '/perfil'), [
                 'tagline' => 'La voz del barrio',
-                'description' => 'Música y noticias todo el día.',
+                'description' => 'Música y noticias todo el día para los vecinos de Lima: cumbia, salsa, entrevistas y la agenda del barrio.',
                 'language' => 'es',
                 'country' => 'PE',
                 'categories' => [$category->id],
@@ -108,6 +108,47 @@ class StationManagementTest extends TestCase
 
         $this->assertSame('La voz del barrio', $station->fresh()->tagline);
         $this->assertTrue(AuditLog::query()->where('action', 'like', 'station.%')->exists());
+    }
+
+    #[Test]
+    public function the_dashboard_asks_for_the_required_description_until_it_is_written(): void
+    {
+        $station = Station::factory()->create(['description' => null]);
+
+        $this->actingAs($station->owner)
+            ->get($this->studioUrl($station))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('missingDescription', ['started' => false, 'min' => 80])
+                ->where('studio.setup.1', ['key' => 'description', 'label' => 'Escribe la descripción de tu radio (obligatoria)', 'done' => false, 'href' => '/perfil#descripcion']));
+
+        $station->update(['description' => 'Cumbia y salsa.']);
+        $this->actingAs($station->owner)
+            ->get($this->studioUrl($station))
+            ->assertInertia(fn (Assert $page) => $page->where('missingDescription.started', true));
+
+        $station->update(['description' => str_repeat('Música y noticias para el barrio. ', 3)]);
+        $this->actingAs($station->owner)
+            ->get($this->studioUrl($station))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('missingDescription', null)
+                ->where('studio.setup.1.done', true));
+    }
+
+    #[Test]
+    public function the_profile_cannot_be_saved_without_a_real_description(): void
+    {
+        $station = Station::factory()->create();
+        $category = Category::query()->create(['name' => 'Noticias', 'slug' => 'noticias', 'group' => CategoryGroup::Information, 'sort_order' => 1, 'active' => true]);
+        $profile = ['language' => 'es', 'categories' => [$category->id]];
+
+        foreach (['', '   ', 'Música y noticias todo el día.'] as $description) {
+            $this->actingAs($station->owner)
+                ->from($this->studioUrl($station, '/perfil'))
+                ->put($this->studioUrl($station, '/perfil'), [...$profile, 'description' => $description])
+                ->assertSessionHasErrors('description');
+        }
+
+        $this->assertNotSame('Música y noticias todo el día.', $station->fresh()->description);
     }
 
     #[Test]

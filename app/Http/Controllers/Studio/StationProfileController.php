@@ -22,7 +22,7 @@ use Inertia\Response;
 /** Estudio > Perfil de radio: what listeners see on the station page. */
 class StationProfileController extends Controller
 {
-    private const SLOT_LABELS = ['logo' => 'el logo', 'avatar' => 'el avatar', 'cover' => 'la portada', 'banner' => 'el banner'];
+    private const SLOT_LABELS = ['logo' => 'el logo', 'cover' => 'la foto de portada'];
 
     public function __construct(private readonly CurrentStation $current) {}
 
@@ -59,9 +59,12 @@ class StationProfileController extends Controller
             'countries' => Locales::options(Locales::COUNTRIES),
             'limits' => [
                 'categories' => (int) config('platform.stations.max_categories'),
+                'description_min' => (int) config('platform.stations.description_min'),
+                'description_max' => (int) config('platform.stations.description_max'),
                 'hashtags' => (int) config('platform.stations.max_permanent_hashtags'),
                 'hashtag_length' => Hashtags::MAX_LENGTH,
                 'image_kb' => UploadStationImageRequest::MAX_KILOBYTES,
+                'image_min' => UploadStationImageRequest::MIN_SIZE,
             ],
         ]);
     }

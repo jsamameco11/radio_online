@@ -57,6 +57,9 @@ return [
 
     'stations' => [
         'max_categories' => 3,
+        // The description is required: listeners read it first and search ranks it.
+        'description_min' => 80,
+        'description_max' => 2000,
         'max_permanent_hashtags' => 10,
         'max_topic_hashtags' => 5,
     ],

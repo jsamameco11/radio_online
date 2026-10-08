@@ -16,7 +16,7 @@ import { PageHeader } from "@/Components/ui/page-header";
 import { Panel } from "@/Components/ui/panel";
 import AdminLayout from "@/Layouts/AdminLayout";
 import { useAppUrl } from "@/lib/app-url";
-import { count, dateTime } from "@/lib/format";
+import { count, dateTime, rating } from "@/lib/format";
 import type { AuditEntry, FrequencyRequestRow, FrequencyStatusValue, StationRow } from "@/types/admin";
 import type { CategoryGroupOption } from "@/types/station-admin";
 
@@ -113,7 +113,14 @@ export default function FrequencyShow({ frequency, station, closedStations, requ
                     <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
                       <StreamStatusBadge status={station.stream_status.value} />
                       {station.status === "suspended" && <Badge tone="danger">Suspendida</Badge>}
-                      <span>{count(station.listener_count)} oyentes</span>
+                      <span>
+                        {count(station.listener_count)} {station.listener_count === 1 ? "persona conectada" : "personas conectadas"}
+                      </span>
+                      <span>
+                        {station.rating_count > 0
+                          ? `${rating(station.rating_average)} · ${count(station.rating_count)} ${station.rating_count === 1 ? "calificación" : "calificaciones"}`
+                          : "Sin calificaciones"}
+                      </span>
                       <span>{count(station.follower_count)} suscriptores</span>
                       <span>
                         {station.owner.name} · {station.owner.email}

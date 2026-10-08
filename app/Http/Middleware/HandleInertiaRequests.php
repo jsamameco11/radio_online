@@ -7,6 +7,7 @@ use App\Domain\Platform\PlatformHost;
 use App\Domain\Platform\PlatformSettings;
 use App\Domain\Stations\Enums\StationPermission;
 use App\Domain\Stations\Support\CurrentStation;
+use App\Domain\Stations\Support\StationSetup;
 use App\Domain\Storage\MediaStorage;
 use App\Http\Resources\StationResource;
 use App\Models\Station;
@@ -91,6 +92,7 @@ class HandleInertiaRequests extends Middleware
                 fn (StationPermission $permission) => $permission->value,
                 array_filter(StationPermission::cases(), fn (StationPermission $permission) => $everything || $user->canInStation($station, $permission)),
             )),
+            'setup' => app(StationSetup::class)->steps($station, $user, $everything),
             'stations' => $user->stations()
                 ->join('frequencies', 'frequencies.id', '=', 'stations.frequency_id')
                 ->get(['stations.name', 'frequencies.label', 'frequencies.slug'])

@@ -14,8 +14,8 @@ interface HighlightPickerProps {
 }
 
 /**
- * "Destacar": the listener picks how much to pay so their message stands out
- * for the host and every listener; the higher tiers stay pinned on top.
+ * "Superchat": the listener pays so the message stands out and the cabin can
+ * read it aloud. The higher tiers stay pinned on top.
  */
 export function HighlightPicker({ tiers, selected, balance, formatMoney, onSelect, onClose }: HighlightPickerProps) {
   return (
@@ -23,9 +23,9 @@ export function HighlightPicker({ tiers, selected, balance, formatMoney, onSelec
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="flex items-center gap-1.5 text-sm font-semibold">
-            <Sparkles className="size-4 text-gold" /> Destaca tu mensaje
+            <Sparkles className="size-4 text-gold" /> Superchat
           </p>
-          <p className="mt-0.5 text-xs text-muted">Se verá remarcado para la cabina y para todos los oyentes. Los montos mayores quedan fijados arriba.</p>
+          <p className="mt-0.5 text-xs text-muted">Tu mensaje se destaca para todos y la cabina puede leerlo en voz alta. Los montos mayores quedan fijados arriba.</p>
         </div>
         <button type="button" onClick={onClose} className="rounded-lg p-1 text-muted hover:bg-raised hover:text-ink" aria-label="Cerrar">
           <X className="size-4" />

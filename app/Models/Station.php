@@ -38,6 +38,8 @@ class Station extends Model
         'listener_count' => 0,
         'peak_listener_count' => 0,
         'follower_count' => 0,
+        'rating_count' => 0,
+        'rating_average' => 0,
     ];
 
     protected function casts(): array
@@ -49,6 +51,8 @@ class Station extends Model
             'listener_count' => 'integer',
             'peak_listener_count' => 'integer',
             'follower_count' => 'integer',
+            'rating_count' => 'integer',
+            'rating_average' => 'float',
             'latency_ms' => 'integer',
             'bitrate_kbps' => 'integer',
             'last_heartbeat_at' => 'datetime',
@@ -95,6 +99,11 @@ class Station extends Model
     public function topics(): HasMany
     {
         return $this->hasMany(CurrentTopic::class);
+    }
+
+    public function ratings(): HasMany
+    {
+        return $this->hasMany(StationRating::class);
     }
 
     public function followers(): BelongsToMany
@@ -152,6 +161,12 @@ class Station extends Model
     public function isOnAir(): bool
     {
         return $this->stream_status->isAudible();
+    }
+
+    /** The required description is written and long enough to tell listeners what the station is about. */
+    public function hasDescription(): bool
+    {
+        return mb_strlen(trim((string) $this->description)) >= (int) config('platform.stations.description_min');
     }
 
     /** A "Radio monetizada": the platform approved its monetization request. */

@@ -26,6 +26,7 @@ class ResolveStudioStation
         $station = Station::query()
             ->whereHas('frequency', fn ($query) => $query->where('slug', $slug))
             ->with('frequency')
+            ->withCount('members')
             ->firstOrFail();
 
         $user = $request->user();

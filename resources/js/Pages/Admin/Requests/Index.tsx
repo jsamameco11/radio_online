@@ -2,12 +2,12 @@ import { Link, router, useForm } from "@inertiajs/react";
 import { AlertTriangle, Check, Inbox, X } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
+import { ApprovalFields, approvalDefaults } from "@/Components/admin/approval-fields";
 import { ReasonModal } from "@/Components/admin/reason-modal";
-import { fieldError } from "@/Components/forms/field-error";
 import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 import { EmptyState } from "@/Components/ui/empty-state";
-import { Field, Input, Select, Textarea } from "@/Components/ui/field";
+import { Select } from "@/Components/ui/field";
 import { Modal } from "@/Components/ui/modal";
 import { PageHeader } from "@/Components/ui/page-header";
 import { Pagination } from "@/Components/ui/pagination";
@@ -16,7 +16,7 @@ import { Tabs } from "@/Components/ui/tabs";
 import AdminLayout from "@/Layouts/AdminLayout";
 import { ago, dateTime } from "@/lib/format";
 import type { Paginated } from "@/types";
-import type { FrequencyRequestRow, Option } from "@/types/admin";
+import type { FreeFrequency, FrequencyRequestRow, Option } from "@/types/admin";
 
 type Tab = "pending" | "approved" | "rejected";
 
@@ -26,9 +26,10 @@ interface Props {
   kind: string;
   counts: Record<Tab, number>;
   kinds: Option[];
+  freeFrequencies: FreeFrequency[];
 }
 
-export default function RequestsIndex({ requests, tab, kind, counts, kinds }: Props) {
+export default function RequestsIndex({ requests, tab, kind, counts, kinds, freeFrequencies }: Props) {
   const [approving, setApproving] = useState<FrequencyRequestRow | null>(null);
   const [rejecting, setRejecting] = useState<FrequencyRequestRow | null>(null);
 
@@ -127,7 +128,7 @@ export default function RequestsIndex({ requests, tab, kind, counts, kinds }: Pr
         )}
       </div>
 
-      {approving && <ApproveModal item={approving} onClose={() => setApproving(null)} />}
+      {approving && <ApproveModal item={approving} free={freeFrequencies} onClose={() => setApproving(null)} />}
       {rejecting && (
         <ReasonModal
           open
@@ -144,9 +145,8 @@ export default function RequestsIndex({ requests, tab, kind, counts, kinds }: Pr
   );
 }
 
-function ApproveModal({ item, onClose }: { item: FrequencyRequestRow; onClose: () => void }) {
-  const alternatives = item.alternatives ?? [];
-  const form = useForm({ frequency: item.conflict ? (alternatives[0] ?? "") : "", note: "" });
+function ApproveModal({ item, free, onClose }: { item: FrequencyRequestRow; free: FreeFrequency[]; onClose: () => void }) {
+  const form = useForm(approvalDefaults(item.frequency.label, item.conflict, free));
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -157,6 +157,7 @@ function ApproveModal({ item, onClose }: { item: FrequencyRequestRow; onClose: (
     <Modal
       open
       onClose={onClose}
+      size="lg"
       title={`Aprobar ${item.station_name}`}
       description={item.kind === "frequency_change" ? "La radio se mudará a la nueva frecuencia y la anterior quedará libre." : "Se creará la radio y su propietario podrá entrar al estudio de inmediato."}
       footer={
@@ -164,32 +165,24 @@ function ApproveModal({ item, onClose }: { item: FrequencyRequestRow; onClose: (
           <Button variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
-          <Button type="submit" form="approve-request" loading={form.processing}>
+          <Button type="submit" form="approve-request" loading={form.processing} disabled={form.data.frequency === ""}>
             Aprobar
           </Button>
         </>
       }
     >
       <form id="approve-request" onSubmit={submit} className="space-y-4">
-        <Field
-          label="Frecuencia"
-          hint={item.conflict ? "La pedida ya no está libre: elige una cercana o escribe otra." : `Vacío para usar la solicitada (${item.frequency.label}).`}
-          error={fieldError(form.errors, "frequency", "request", "user")}
-        >
-          {(id, invalid) => (
-            <div className="flex flex-wrap items-center gap-2">
-              <Input id={id} invalid={invalid} value={form.data.frequency} onChange={(event) => form.setData("frequency", event.target.value)} placeholder={item.frequency.label} className="w-32 tabular" />
-              {alternatives.map((label) => (
-                <Button key={label} size="sm" variant={form.data.frequency === label ? "primary" : "secondary"} onClick={() => form.setData("frequency", label)}>
-                  {label}
-                </Button>
-              ))}
-            </div>
-          )}
-        </Field>
-        <Field label="Nota" hint="Opcional. Se incluye en el correo de aprobación." error={form.errors.note}>
-          {(id, invalid) => <Textarea id={id} invalid={invalid} rows={3} maxLength={500} value={form.data.note} onChange={(event) => form.setData("note", event.target.value)} />}
-        </Field>
+        <ApprovalFields
+          requestedLabel={item.frequency.label}
+          requestedDisplay={item.frequency.display}
+          conflict={item.conflict}
+          free={free}
+          frequency={form.data.frequency}
+          note={form.data.note}
+          errors={form.errors}
+          onFrequency={(value) => form.setData("frequency", value)}
+          onNote={(value) => form.setData("note", value)}
+        />
       </form>
     </Modal>
   );

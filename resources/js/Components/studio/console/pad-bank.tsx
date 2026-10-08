@@ -99,12 +99,15 @@ export function PadBank({ api, initial, library, max }: { api: ConsoleApi; initi
                 onClick={() => void firePad(pad)}
                 title={`${pad.title} · ${duration(pad.duration)}`}
                 className={cn(
-                  "flex h-20 w-full flex-col items-start justify-between rounded-xl border p-2.5 text-left transition active:scale-[0.98] disabled:cursor-default",
-                  sounding.has(pad.id) ? "border-signal bg-signal-soft" : "border-line bg-raised hover:border-line-strong",
+                  "flex h-24 w-full flex-col items-start justify-between rounded-xl border p-2.5 text-left transition active:scale-[0.98] disabled:cursor-default",
+                  sounding.has(pad.id) ? "border-royal bg-royal text-white shadow-[0_8px_24px_-12px_var(--color-royal)]" : "border-royal/35 bg-royal-soft text-ink hover:border-royal/70",
                 )}
               >
-                <span className="font-mono text-[10px] text-faint">{KEYS[index] ?? ""}</span>
-                <span className="line-clamp-2 text-xs font-medium text-ink">{shortTitle(pad.title, 30)}</span>
+                <span className={cn("font-mono text-[10px]", sounding.has(pad.id) ? "text-white/70" : "text-faint")}>{KEYS[index] ?? ""}</span>
+                <span className="line-clamp-2 text-xs font-semibold">{shortTitle(pad.title, 28)}</span>
+                <span className={cn("font-mono text-[10px] tracking-wide uppercase", sounding.has(pad.id) ? "text-white/75" : "text-muted")}>
+                  {pad.kind_label} · {duration(pad.duration)}
+                </span>
               </button>
               {editing ? (
                 <div className="absolute inset-x-1 bottom-1 flex justify-between">

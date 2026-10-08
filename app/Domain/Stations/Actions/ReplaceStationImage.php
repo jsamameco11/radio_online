@@ -11,17 +11,16 @@ use Illuminate\Http\UploadedFile;
 use InvalidArgumentException;
 
 /**
- * Uploads (or removes) one of the station images: logo, avatar, cover or
- * banner. The previous file is deleted once the new key is saved.
+ * Uploads (or removes) one of the station images: the logo (the square of
+ * its frequency) or the cover photo (the strip on top of its page). The
+ * previous file is deleted once the new key is saved.
  */
 final class ReplaceStationImage
 {
     /** Image slot => [column, folder]. */
     public const SLOTS = [
         'logo' => ['logo_path', MediaFolder::Logos],
-        'avatar' => ['avatar_path', MediaFolder::Avatars],
         'cover' => ['cover_path', MediaFolder::Covers],
-        'banner' => ['banner_path', MediaFolder::Covers],
     ];
 
     public function __construct(

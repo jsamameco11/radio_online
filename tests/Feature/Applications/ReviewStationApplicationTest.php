@@ -7,6 +7,7 @@ use App\Domain\Applications\Actions\PurgeApplicationDocuments;
 use App\Domain\Applications\Enums\DocumentType;
 use App\Domain\Frequencies\Enums\FrequencyRequestStatus;
 use App\Models\AuditLog;
+use App\Models\Frequency;
 use App\Models\FrequencyRequest;
 use App\Models\StationApplication;
 use App\Models\User;
@@ -66,7 +67,8 @@ class ReviewStationApplicationTest extends TestCase
                 ->where('account.id', $this->application->frequencyRequest->user_id)
                 ->has('duplicates', 1)
                 ->where('duplicates.0.request_id', $previous->frequency_request_id)
-                ->where('duplicates.0.status', 'rejected'));
+                ->where('duplicates.0.status', 'rejected')
+                ->where('freeFrequencies', Frequency::freeOptions()));
     }
 
     #[Test]

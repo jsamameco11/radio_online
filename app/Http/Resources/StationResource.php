@@ -37,8 +37,6 @@ class StationResource extends JsonResource
             'tagline' => $this->tagline,
             'logo_url' => $storage->url($this->logo_path),
             'cover_url' => $storage->url($this->cover_path),
-            'avatar_url' => $storage->url($this->avatar_path),
-            'banner_url' => $storage->url($this->banner_path),
             'accent_color' => $this->accent_color,
             'status' => $this->status->value,
             'stream_status' => [
@@ -48,6 +46,8 @@ class StationResource extends JsonResource
             ],
             'listener_count' => $this->listener_count,
             'follower_count' => $this->follower_count,
+            'rating_average' => round((float) $this->rating_average, 2),
+            'rating_count' => $this->rating_count,
             'categories' => $this->whenLoaded('categories', fn () => $this->categories
                 ->map(fn (Category $category) => ['id' => $category->id, 'name' => $category->name, 'slug' => $category->slug])
                 ->values()

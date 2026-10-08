@@ -5,6 +5,11 @@ export function money(cents: number, currency = "USD"): string {
   return new Intl.NumberFormat(locale, { style: "currency", currency, currencyDisplay: "symbol" }).format(cents / 100);
 }
 
+/** 4.833 → "4,8" */
+export function rating(value: number): string {
+  return new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
+}
+
 /** 12843 → "12 843"; compact: 12843 → "12,8 mil" */
 export function count(value: number, compact = false): string {
   return new Intl.NumberFormat(locale, compact ? { notation: "compact", maximumFractionDigits: 1 } : {}).format(value);

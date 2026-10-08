@@ -31,6 +31,8 @@ export interface StationRow {
   listener_count: number;
   peak_listener_count: number;
   follower_count: number;
+  rating_average: number;
+  rating_count: number;
   last_heartbeat_at: string | null;
   suspended_at: string | null;
   suspension_reason: string | null;
@@ -92,7 +94,12 @@ export interface FrequencyRequestRow {
   reviewed_at: string | null;
   review_note: string | null;
   created_at: string;
-  alternatives?: string[];
+}
+
+/** A free frequency the staff can assign when approving a request. */
+export interface FreeFrequency {
+  label: string;
+  display: string;
 }
 
 /** App\Http\Resources\Admin\ReportResource */

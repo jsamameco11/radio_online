@@ -28,6 +28,7 @@ import { SidebarShell } from "@/Components/shell/sidebar-shell";
 import { UserMenu } from "@/Components/shell/user-menu";
 import { FrequencyTitle, StationLogo, StreamStatusBadge } from "@/Components/station/station-identity";
 import { LiveChatDock } from "@/Components/studio/chat/live-chat-dock";
+import { SetupBanner } from "@/Components/studio/setup-banner";
 import { useAppUrl } from "@/lib/app-url";
 import type { SharedProps, StationPermission } from "@/types";
 
@@ -46,7 +47,7 @@ export function useStudioCan(): (permission: StationPermission) => boolean {
 type Item = NavItem & { permission?: StationPermission | StationPermission[] };
 
 /** Studio of one station: dark, tool-like, with every section in the aside. */
-export default function StudioLayout({ title, children }: { title: string; children: ReactNode }) {
+export default function StudioLayout({ title, setup = true, wide = false, children }: { title: string; setup?: boolean; wide?: boolean; children: ReactNode }) {
   const { studio } = usePage<SharedProps>().props;
   const appUrl = useAppUrl();
   const url = useStudioUrl();
@@ -122,6 +123,7 @@ export default function StudioLayout({ title, children }: { title: string; child
   return (
     <SidebarShell
       dark
+      wide={wide}
       groups={visible}
       brand={
         <Link href="/" className="flex min-w-0 items-center gap-3">
@@ -168,6 +170,7 @@ export default function StudioLayout({ title, children }: { title: string; child
       }
     >
       <Head title={`${title} · ${station.frequency.display}`} />
+      {setup && <SetupBanner />}
       {children}
       <LiveChatDock />
     </SidebarShell>

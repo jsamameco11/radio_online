@@ -28,6 +28,8 @@ interface SidebarShellProps {
   topbar: ReactNode;
   footer?: ReactNode;
   dark?: boolean;
+  /** The console desk uses the full width instead of the reading column. */
+  wide?: boolean;
   children: ReactNode;
 }
 
@@ -37,7 +39,7 @@ function isActive(current: string, item: { href: string; prefix?: boolean }): bo
 }
 
 /** Aside navigation + top bar + content, with a drawer on small screens. Shared by the studio and the admin panel. */
-export function SidebarShell({ brand, groups, topbar, footer, dark = false, children }: SidebarShellProps) {
+export function SidebarShell({ brand, groups, topbar, footer, dark = false, wide = false, children }: SidebarShellProps) {
   const { url } = usePage();
   const current = url.split("?")[0];
   const [open, setOpen] = useState(false);
@@ -119,7 +121,7 @@ export function SidebarShell({ brand, groups, topbar, footer, dark = false, chil
           </button>
           <div className="flex min-w-0 flex-1 items-center justify-between gap-3">{topbar}</div>
         </header>
-        <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:py-8">{children}</main>
+        <main className={cn("mx-auto w-full px-4 py-6 sm:px-6", wide ? "max-w-[1920px] lg:py-4" : "max-w-[1600px] lg:py-8")}>{children}</main>
       </div>
       <Flash />
     </div>

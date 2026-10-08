@@ -314,7 +314,7 @@ function Composer({ chat, url, formatMoney, onPosted }: { chat: ChatSnapshot; ur
           onKeyDown={onKeyDown}
           maxLength={limits.max_length}
           rows={2}
-          placeholder={selected ? "Escribe el mensaje que quieres destacar…" : "Escríbele a la cabina…"}
+          placeholder={selected ? "Escribe el superchat que quieres que se lea en voz alta…" : "Escríbele a la cabina…"}
           aria-label="Mensaje para el chat"
           className="block w-full resize-none bg-transparent px-3 pt-2 text-sm text-ink placeholder:text-faint focus:outline-none"
         />
@@ -328,14 +328,14 @@ function Composer({ chat, url, formatMoney, onPosted }: { chat: ChatSnapshot; ur
               selected && look ? cn(look.badge) : "bg-gold-soft text-gold hover:bg-gold hover:text-white",
             )}
           >
-            <Sparkles className="size-3.5" /> {selected ? formatMoney(selected.cents) : "Destacar"}
+            <Sparkles className="size-3.5" /> {selected ? formatMoney(selected.cents) : "Superchat"}
           </button>
           <div className="flex items-center gap-2">
             <span className={cn("text-[0.68rem] tabular", body.length >= limits.max_length ? "text-danger" : "text-faint")}>
               {body.length}/{limits.max_length}
             </span>
             <Button type="submit" size="sm" variant={selected ? "signal" : "primary"} loading={sending} disabled={!trimmed} icon={<SendHorizontal className="size-3.5" />}>
-              {selected ? "Enviar destacado" : "Enviar"}
+              {selected ? "Enviar superchat" : "Enviar"}
             </Button>
           </div>
         </div>

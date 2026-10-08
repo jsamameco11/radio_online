@@ -2,19 +2,18 @@ import { Link, useForm, usePage } from "@inertiajs/react";
 import { AlertTriangle, ArrowLeft, Check, ExternalLink, FileText, Lock, ShieldCheck, X } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
 import { useState } from "react";
+import { ApprovalFields, approvalDefaults } from "@/Components/admin/approval-fields";
 import { ReasonModal } from "@/Components/admin/reason-modal";
-import { fieldError } from "@/Components/forms/field-error";
 import { Avatar } from "@/Components/ui/avatar";
 import { Badge } from "@/Components/ui/badge";
 import type { Tone } from "@/Components/ui/badge";
 import { Button, buttonClasses } from "@/Components/ui/button";
-import { Field, Input, Textarea } from "@/Components/ui/field";
 import { PageHeader } from "@/Components/ui/page-header";
 import { Panel } from "@/Components/ui/panel";
 import AdminLayout from "@/Layouts/AdminLayout";
 import { ago, dateTime } from "@/lib/format";
 import type { SharedProps } from "@/types";
-import type { FrequencyRequestRow } from "@/types/admin";
+import type { FreeFrequency, FrequencyRequestRow } from "@/types/admin";
 import type { ApplicantAccount, ApplicationDossier, DuplicateApplication } from "@/types/applications";
 
 interface Props {
@@ -22,6 +21,7 @@ interface Props {
   application: ApplicationDossier;
   account: ApplicantAccount;
   duplicates: DuplicateApplication[];
+  freeFrequencies: FreeFrequency[];
 }
 
 const statusTone: Record<FrequencyRequestRow["status"], Tone> = { pending: "warning", approved: "onair", rejected: "danger", cancelled: "neutral" };
@@ -50,7 +50,7 @@ function ExternalUrl({ href }: { href: string }) {
   );
 }
 
-export default function ApplicationShow({ request, application, account, duplicates }: Props) {
+export default function ApplicationShow({ request, application, account, duplicates, freeFrequencies }: Props) {
   const { auth } = usePage<SharedProps>().props;
   const [rejecting, setRejecting] = useState(false);
   const photo = application.files.find((file) => file.slug === "foto");
@@ -290,7 +290,7 @@ export default function ApplicationShow({ request, application, account, duplica
           <aside className="space-y-6">
             <Panel title="Decisión">
               {request.status === "pending" ? (
-                <ApproveForm request={request} onReject={() => setRejecting(true)} />
+                <ApproveForm request={request} free={freeFrequencies} onReject={() => setRejecting(true)} />
               ) : (
                 <div className="space-y-2 text-sm">
                   <Badge tone={statusTone[request.status]}>{request.status_label}</Badge>
@@ -360,9 +360,8 @@ export default function ApplicationShow({ request, application, account, duplica
   );
 }
 
-function ApproveForm({ request, onReject }: { request: FrequencyRequestRow; onReject: () => void }) {
-  const alternatives = request.alternatives ?? [];
-  const form = useForm({ frequency: request.conflict ? (alternatives[0] ?? "") : "", note: "" });
+function ApproveForm({ request, free, onReject }: { request: FrequencyRequestRow; free: FreeFrequency[]; onReject: () => void }) {
+  const form = useForm(approvalDefaults(request.frequency.label, request.conflict, free));
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -371,27 +370,19 @@ function ApproveForm({ request, onReject }: { request: FrequencyRequestRow; onRe
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <Field
-        label="Frecuencia"
-        hint={request.conflict ? "La pedida ya no está libre: elige una cercana o escribe otra." : `Vacío para usar la solicitada (${request.frequency.label}).`}
-        error={fieldError(form.errors, "frequency", "request", "user")}
-      >
-        {(id, invalid) => (
-          <div className="flex flex-wrap items-center gap-2">
-            <Input id={id} invalid={invalid} value={form.data.frequency} onChange={(event) => form.setData("frequency", event.target.value)} placeholder={request.frequency.label} className="w-28 tabular" />
-            {alternatives.map((label) => (
-              <Button key={label} size="sm" variant={form.data.frequency === label ? "primary" : "secondary"} onClick={() => form.setData("frequency", label)}>
-                {label}
-              </Button>
-            ))}
-          </div>
-        )}
-      </Field>
-      <Field label="Nota" hint="Opcional. Se incluye en el correo de aprobación." error={form.errors.note}>
-        {(id, invalid) => <Textarea id={id} invalid={invalid} rows={3} maxLength={500} value={form.data.note} onChange={(event) => form.setData("note", event.target.value)} />}
-      </Field>
+      <ApprovalFields
+        requestedLabel={request.frequency.label}
+        requestedDisplay={request.frequency.display}
+        conflict={request.conflict}
+        free={free}
+        frequency={form.data.frequency}
+        note={form.data.note}
+        errors={form.errors}
+        onFrequency={(value) => form.setData("frequency", value)}
+        onNote={(value) => form.setData("note", value)}
+      />
       <div className="flex gap-2">
-        <Button type="submit" loading={form.processing} icon={<Check className="size-4" />} className="flex-1">
+        <Button type="submit" loading={form.processing} disabled={form.data.frequency === ""} icon={<Check className="size-4" />} className="flex-1">
           Aprobar
         </Button>
         <Button variant="ghost" icon={<X className="size-4" />} onClick={onReject}>

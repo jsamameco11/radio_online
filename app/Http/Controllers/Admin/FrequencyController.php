@@ -69,6 +69,8 @@ class FrequencyController extends Controller
                     'owner' => $frequency->station->owner->name,
                     'stream_status' => $frequency->station->stream_status->value,
                     'listeners' => $frequency->station->listener_count,
+                    'rating_average' => round((float) $frequency->station->rating_average, 2),
+                    'rating_count' => $frequency->station->rating_count,
                 ],
             ]);
 

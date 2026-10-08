@@ -23,7 +23,7 @@ class StationFactory extends Factory
             'owner_id' => User::factory(),
             'name' => 'Radio '.fake()->unique()->firstName(),
             'tagline' => fake()->sentence(5),
-            'description' => fake()->paragraph(),
+            'description' => fake()->sentences(5, true),
             'status' => StationStatus::Active,
             'visibility' => StationVisibility::Public,
             'stream_status' => StreamStatus::Offline,

@@ -13,6 +13,7 @@ use App\Http\Controllers\Public\LiveController;
 use App\Http\Controllers\Public\ReportController;
 use App\Http\Controllers\Public\SearchController;
 use App\Http\Controllers\Public\StationController;
+use App\Http\Controllers\Public\StationRatingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -36,6 +37,7 @@ Route::name('site.')->group(function () {
         Route::get('/episodios/{episode}', [EpisodeController::class, 'show'])->whereUuid('episode')->name('episodes.show');
 
         Route::middleware(['auth', 'verified'])->group(function () {
+            Route::post('/calificar', [StationRatingController::class, 'store'])->middleware('throttle:30,1')->name('rate');
             Route::post('/suscribirme', [FollowController::class, 'store'])->middleware('throttle:30,1')->name('follow');
             Route::delete('/suscribirme', [FollowController::class, 'destroy'])->middleware('throttle:30,1')->name('unfollow');
             Route::post('/reportar', [ReportController::class, 'station'])->middleware('throttle:10,1')->name('report');

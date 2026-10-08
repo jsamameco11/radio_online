@@ -80,6 +80,42 @@ class FrequencyAdminTest extends TestCase
     }
 
     #[Test]
+    public function the_pending_list_offers_every_free_frequency(): void
+    {
+        $station = Station::factory()->create();
+        $this->changeRequest($station, Frequency::factory()->create());
+
+        $this->actingAs($this->staff(PlatformRole::Admin))
+            ->get($this->controlUrl('/admin/solicitudes'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Requests/Index')
+                ->where('freeFrequencies', Frequency::freeOptions()));
+    }
+
+    #[Test]
+    public function approving_can_assign_another_free_frequency_and_keeps_the_note(): void
+    {
+        $station = Station::factory()->create();
+        $target = Frequency::factory()->create();
+        $other = Frequency::factory()->create();
+        $request = $this->changeRequest($station, $target);
+        $note = '¡Felicitaciones! Has obtenido tu frecuencia en vivo. Utilízala con responsabilidad.';
+
+        $this->actingAs($this->staff(PlatformRole::Admin))
+            ->post($this->controlUrl("/admin/solicitudes/{$request->id}/aprobar"), [
+                'frequency' => $other->label,
+                'note' => $note,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($other->id, $station->fresh()->frequency_id);
+        $this->assertSame(FrequencyStatus::Available, $target->fresh()->status);
+        $this->assertSame(FrequencyStatus::Active, $other->fresh()->status);
+        $this->assertSame($note, $request->fresh()->review_note);
+    }
+
+    #[Test]
     public function rejecting_requires_a_note(): void
     {
         $station = Station::factory()->create();

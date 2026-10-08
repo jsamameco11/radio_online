@@ -1,12 +1,14 @@
 import { Link, usePage } from "@inertiajs/react";
-import { Bell, BellOff, Maximize2, MessagesSquare, Minus, Sparkles } from "lucide-react";
+import { AudioLines, Bell, BellOff, Maximize2, MessagesSquare, Minus, Sparkles, Square } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { tierLook } from "@/Components/chat/highlight-tiers";
 import { StreamStatusBadge } from "@/Components/station/station-identity";
 import { credited, StudioChatThread } from "@/Components/studio/chat/studio-chat-thread";
 import { useStudioChat } from "@/Components/studio/chat/use-studio-chat";
+import { useSuperchat } from "@/Components/studio/chat/use-superchat";
 import { useStudioCan, useStudioUrl } from "@/Layouts/StudioLayout";
 import { cn } from "@/lib/cn";
+import { usePersistedFlag } from "@/lib/persisted";
 import type { SharedProps } from "@/types";
 import type { StudioChatMessage } from "@/types/chat";
 
@@ -34,21 +36,6 @@ function chime(): void {
   }
 }
 
-function usePersisted(key: string, initial: boolean): [boolean, (value: boolean) => void] {
-  const [value, setValue] = useState(() => {
-    const stored = window.localStorage.getItem(key);
-    return stored === null ? initial : stored === "1";
-  });
-  const update = useCallback(
-    (next: boolean) => {
-      window.localStorage.setItem(key, next ? "1" : "0");
-      setValue(next);
-    },
-    [key],
-  );
-  return [value, update];
-}
-
 /**
  * The floating chat window of the studio: while the station is live, the
  * host keeps the chat at hand on every studio page (the console included),
@@ -68,10 +55,11 @@ function Dock() {
   const { studio, app } = usePage<SharedProps>().props;
   const studioUrl = useStudioUrl();
   const slug = studio?.station.frequency.slug ?? "";
-  const [expanded, setExpanded] = usePersisted(`studio-chat:${slug}:open`, false);
-  const [sound, setSound] = usePersisted(`studio-chat:${slug}:sound`, true);
+  const [expanded, setExpanded] = usePersistedFlag(`studio-chat:${slug}:open`, false);
+  const [sound, setSound] = usePersistedFlag(`studio-chat:${slug}:sound`, true);
   const [unread, setUnread] = useState(0);
   const [preview, setPreview] = useState<StudioChatMessage | null>(null);
+  const superchat = useSuperchat();
 
   const onIncoming = useCallback(
     (message: StudioChatMessage) => {
@@ -79,9 +67,10 @@ function Dock() {
       if (message.highlight) {
         if (sound) chime();
         if (!expanded) setPreview(message);
+        superchat.offer(message);
       }
     },
-    [expanded, sound],
+    [expanded, sound, superchat],
   );
 
   const chat = useStudioChat({ onIncoming });
@@ -108,11 +97,27 @@ function Dock() {
     <div className="fixed right-4 bottom-4 z-40 flex flex-col items-end gap-3 text-ink">
       {expanded ? (
         <section className="flex h-[34rem] max-h-[calc(100vh-6rem)] w-[24rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl" aria-label="Chat en vivo">
-          <header className="flex items-center gap-2 border-b border-line px-3 py-2.5">
+          <header className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2.5">
             <MessagesSquare className="size-4 text-signal" />
             <h2 className="text-sm font-semibold">Chat en vivo</h2>
             <StreamStatusBadge status="live" className="ml-1" />
+            {superchat.supported ? (
+              <button
+                type="button"
+                aria-pressed={superchat.auto}
+                onClick={() => superchat.setAuto(!superchat.auto)}
+                title={superchat.auto ? "Cada superchat se lee en voz alta al llegar. Clic para leerlos solo cuando tú lo pidas." : "Leer en voz alta cada mensaje que un oyente pague."}
+                className={cn("inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold", superchat.auto ? "bg-royal text-white" : "text-muted hover:bg-raised hover:text-ink")}
+              >
+                <AudioLines className="size-3.5" /> Superchat
+              </button>
+            ) : null}
             <div className="ml-auto flex items-center gap-0.5">
+              {superchat.current ? (
+                <button type="button" onClick={superchat.stop} className="rounded-lg p-1.5 text-royal hover:bg-royal-soft" aria-label="Detener la lectura del superchat" title="Detener la lectura">
+                  <Square className="size-4" />
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => setSound(!sound)}
@@ -130,7 +135,12 @@ function Dock() {
               </button>
             </div>
           </header>
-          <StudioChatThread chat={chat} station={station} className="flex-1" />
+          {superchat.current ? (
+            <p className="flex items-center gap-2 border-b border-royal/30 bg-royal-soft px-3 py-1.5 text-xs font-medium text-royal">
+              <AudioLines className="size-3.5" /> Leyendo un superchat en voz alta
+            </p>
+          ) : null}
+          <StudioChatThread chat={chat} station={station} className="flex-1" superchat={superchat} />
         </section>
       ) : (
         <>
@@ -145,7 +155,7 @@ function Dock() {
                 <Sparkles className={cn("size-3.5", previewLook.accent)} />
                 <span className="truncate font-semibold">{preview.user?.name ?? "Oyente"}</span>
                 <span className={cn("ml-auto rounded-full px-1.5 py-px text-[0.65rem] font-bold tabular", previewLook.badge)}>
-                  {credited(preview.highlight.credited_cents, app.currency)}
+                  Superchat {credited(preview.highlight.credited_cents, app.currency)}
                 </span>
               </span>
               <span className="relative mt-1 line-clamp-2 block text-sm">{preview.body}</span>

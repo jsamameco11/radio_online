@@ -36,6 +36,16 @@ export function ConsoleBar({ api, timezone }: { api: ConsoleApi; timezone: strin
         {next ? <span className="shrink-0 font-mono text-xs text-faint tabular">en {duration((next.start - now) / 1000)}</span> : null}
       </span>
 
+      <Button
+        size="sm"
+        variant={snapshot.autopilot.repeat ? "secondary" : "ghost"}
+        icon={<Repeat className="size-3.5" />}
+        aria-pressed={snapshot.autopilot.repeat}
+        onClick={() => void api.setRepeat(!snapshot.autopilot.repeat)}
+        title={snapshot.autopilot.repeat ? "Al terminar, la música automática vuelve a empezar." : "La música automática suena una sola vez y después queda en silencio."}
+      >
+        {snapshot.autopilot.repeat ? "Repetir" : "No repetir"}
+      </Button>
       <span className="inline-flex items-center gap-1 text-sm text-muted" title="Oyentes ahora">
         <Users className="size-4" /> {radio.listeners}
       </span>

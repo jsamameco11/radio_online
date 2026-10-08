@@ -1,5 +1,5 @@
 import { usePage } from "@inertiajs/react";
-import { AlertCircle, CornerUpLeft, Eye, EyeOff, SendHorizontal, Volume2, VolumeX, X } from "lucide-react";
+import { AlertCircle, AudioLines, CornerUpLeft, Eye, EyeOff, SendHorizontal, Square, Volume2, VolumeX, X } from "lucide-react";
 import type { FormEvent, KeyboardEvent } from "react";
 import { useMemo, useRef, useState } from "react";
 import type { ChatStation } from "@/Components/chat/chat-message";
@@ -15,6 +15,14 @@ import { dateTime, money } from "@/lib/format";
 import { HttpError } from "@/lib/http";
 import type { SharedProps } from "@/types";
 import type { StudioChatMessage } from "@/types/chat";
+
+/** Reads a paid message aloud. `current` is the Superchat being spoken right now. */
+export interface SuperchatControls {
+  supported: boolean;
+  current: string | null;
+  speak: (message: StudioChatMessage) => void;
+  stop: () => void;
+}
 
 export const MUTE_TERMS: { minutes: number | null; label: string }[] = [
   { minutes: 10, label: "10 minutos" },
@@ -33,7 +41,7 @@ export function credited(cents: number, currency: string): string {
  * with its moderation actions (answer, hide, silence its author) and a
  * composer that writes as the station.
  */
-export function StudioChatThread({ chat, station, className }: { chat: StudioChat; station: ChatStation; className?: string }) {
+export function StudioChatThread({ chat, station, className, superchat }: { chat: StudioChat; station: ChatStation; className?: string; superchat?: SuperchatControls }) {
   const { app } = usePage<SharedProps>().props;
   const { feed } = chat;
   const [replyTo, setReplyTo] = useState<StudioChatMessage | null>(null);
@@ -95,6 +103,8 @@ export function StudioChatThread({ chat, station, className }: { chat: StudioCha
             const hidden = message.status.value === "hidden";
             const author = message.user;
             const muted = author !== null && mutedIds.has(author.id);
+            const speaking = superchat?.current === message.id;
+            const canSpeak = Boolean(superchat?.supported && message.highlight && !hidden);
 
             return (
               <ChatMessageItem
@@ -108,20 +118,40 @@ export function StudioChatThread({ chat, station, className }: { chat: StudioCha
                 createdAt={message.created_at}
                 dimmed={hidden}
                 note={
-                  hidden || muted || (message.author === "station" && message.sent_by) ? (
-                    <p className="mt-0.5 text-[0.68rem] text-faint">
-                      {[
-                        hidden && `Oculto${message.hidden_by ? ` por ${message.hidden_by}` : " por reportes"}`,
-                        muted && "Autor silenciado",
-                        message.author === "station" && message.sent_by && `Escrito por ${message.sent_by}`,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
+                  hidden || muted || (message.author === "station" && message.sent_by) || canSpeak ? (
+                    <div className="mt-1 space-y-1">
+                      {hidden || muted || (message.author === "station" && message.sent_by) ? (
+                        <p className="text-[0.68rem] text-faint">
+                          {[
+                            hidden && `Oculto${message.hidden_by ? ` por ${message.hidden_by}` : " por reportes"}`,
+                            muted && "Autor silenciado",
+                            message.author === "station" && message.sent_by && `Escrito por ${message.sent_by}`,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                      ) : null}
+                      {canSpeak ? (
+                        <button
+                          type="button"
+                          onClick={() => (speaking ? superchat?.stop() : superchat?.speak(message))}
+                          title="Se escucha en los altavoces de esta consola"
+                          className="inline-flex items-center gap-1 rounded-full bg-royal px-2 py-0.5 text-[0.68rem] font-semibold text-white hover:opacity-90"
+                        >
+                          {speaking ? <Square className="size-3" /> : <AudioLines className="size-3" />}
+                          {speaking ? "Detener superchat" : "Decir superchat"}
+                        </button>
+                      ) : null}
+                    </div>
                   ) : undefined
                 }
                 actions={
                   <>
+                    {canSpeak ? (
+                      <MessageAction label={speaking ? "Detener superchat" : "Decir superchat"} onClick={() => (speaking ? superchat?.stop() : superchat?.speak(message))}>
+                        {speaking ? <Square className="size-3.5" /> : <AudioLines className="size-3.5" />}
+                      </MessageAction>
+                    ) : null}
                     {message.author === "listener" && !hidden && (
                       <MessageAction label="Responder" onClick={() => setReplyTo(message)}>
                         <CornerUpLeft className="size-3.5" />
