@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Domain\Access\Support\SessionHandoff;
 use App\Domain\Applications\Actions\PurgeApplicationDocuments;
 use App\Domain\Applications\Actions\SubmitStationApplication;
 use App\Domain\Applications\Enums\ContentType;
@@ -85,7 +86,7 @@ class StationApplicationController extends Controller
                     'id' => $station->id,
                     'display_name' => $station->displayName(),
                     'role' => StationRole::from($station->pivot->role)->label(),
-                    'studio_url' => PlatformHost::Studio->url($station->frequency->slug),
+                    'studio_url' => SessionHandoff::link(PlatformHost::Studio, '/'.$station->frequency->slug),
                     'public_url' => '/radio/'.$station->frequency->slug,
                 ])
                 ->values()

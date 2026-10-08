@@ -11,6 +11,7 @@ import { SiteFlash } from "@/Components/site/site-flash";
 import { SiteSearch } from "@/Components/site/site-search";
 import { ButtonLink, buttonClasses } from "@/Components/ui/button";
 import { WalletChip } from "@/Components/wallet/wallet-chip";
+import { useAppUrl } from "@/lib/app-url";
 import { cn } from "@/lib/cn";
 import { useSignInUrl } from "@/lib/sign-in";
 import type { SharedProps } from "@/types";
@@ -39,10 +40,11 @@ function isActive(current: string, href: string): boolean {
 }
 
 function StudioCta({ className }: { className?: string }) {
-  const { auth, app } = usePage<SharedProps>().props;
+  const { auth } = usePage<SharedProps>().props;
+  const appUrl = useAppUrl();
   if (auth.user?.has_studio) {
     return (
-      <a href={app.urls.studio} className={buttonClasses("secondary", "md", className)}>
+      <a href={appUrl("studio")} className={buttonClasses("secondary", "md", className)}>
         <Mic2 className="size-4" /> Mi consola
       </a>
     );

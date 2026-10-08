@@ -1,5 +1,5 @@
 import { Head, Link, usePage } from "@inertiajs/react";
-import { ArrowRight, ExternalLink, Headphones, Mic2, RadioTower, Users } from "lucide-react";
+import { ArrowRight, ExternalLink, Headphones, Mic2, Users } from "lucide-react";
 import { UserMenu } from "@/Components/shell/user-menu";
 import { BrandMark, BrandName } from "@/Components/site/brand";
 import { SiteFlash } from "@/Components/site/site-flash";
@@ -11,12 +11,11 @@ import type { SharedProps, Station } from "@/types";
 
 interface Props {
   stations: { station: Station; role: string; listen_url: string }[];
-  adminUrl: string | null;
   createUrl: string;
 }
 
 /** Home of the creators' console: every station this user works on, one click from its studio. */
-export default function ChooseStation({ stations, adminUrl, createUrl }: Props) {
+export default function ChooseStation({ stations, createUrl }: Props) {
   const { auth } = usePage<SharedProps>().props;
   const firstName = auth.user?.name.split(" ")[0] ?? "";
 
@@ -37,17 +36,10 @@ export default function ChooseStation({ stations, adminUrl, createUrl }: Props) 
       </header>
 
       <main className="mx-auto max-w-6xl space-y-10 px-4 pt-12 pb-20 sm:px-6">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold tracking-[0.2em] text-signal uppercase">Hola, {firstName}</p>
-            <h1 className="font-display text-3xl font-semibold sm:text-4xl">¿A qué estudio entras hoy?</h1>
-            <p className="max-w-xl text-muted">Cada emisora tiene su propia consola en vivo, programación, biblioteca, chat y ganancias.</p>
-          </div>
-          {adminUrl && (
-            <a href={adminUrl} className={buttonClasses("secondary")}>
-              <RadioTower className="size-4" /> Administración
-            </a>
-          )}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold tracking-[0.2em] text-signal uppercase">Hola, {firstName}</p>
+          <h1 className="font-display text-3xl font-semibold sm:text-4xl">¿A qué estudio entras hoy?</h1>
+          <p className="max-w-xl text-muted">Cada emisora tiene su propia consola en vivo, programación, biblioteca, chat y ganancias.</p>
         </div>
 
         {stations.length === 0 ? (

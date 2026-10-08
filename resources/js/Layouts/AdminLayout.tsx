@@ -20,6 +20,7 @@ import type { ReactNode } from "react";
 import type { NavGroup, NavItem } from "@/Components/shell/sidebar-shell";
 import { SidebarShell } from "@/Components/shell/sidebar-shell";
 import { UserMenu } from "@/Components/shell/user-menu";
+import { useAppUrl } from "@/lib/app-url";
 import type { SharedProps } from "@/types";
 
 type Item = NavItem & { permission?: string };
@@ -27,6 +28,7 @@ type Item = NavItem & { permission?: string };
 /** Platform control panel (super admin, admins and moderators). */
 export default function AdminLayout({ title, children }: { title: string; children: ReactNode }) {
   const { auth, app } = usePage<SharedProps>().props;
+  const appUrl = useAppUrl();
   const can = (permission?: string) => !permission || Boolean(auth.user?.permissions.includes(permission));
 
   const groups: { label?: string; items: Item[] }[] = [
@@ -94,7 +96,7 @@ export default function AdminLayout({ title, children }: { title: string; childr
           <h1 className="truncate text-sm font-semibold">{title}</h1>
           <div className="flex items-center gap-2">
             {auth.user?.has_studio && (
-              <a href={app.urls.studio} className="hidden rounded-xl px-3 py-1.5 text-sm text-muted hover:bg-raised hover:text-ink sm:block">
+              <a href={appUrl("studio")} className="hidden rounded-xl px-3 py-1.5 text-sm text-muted hover:bg-raised hover:text-ink sm:block">
                 Mi consola
               </a>
             )}

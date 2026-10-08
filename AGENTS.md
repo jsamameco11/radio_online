@@ -10,7 +10,7 @@ Internet radio platform: every station owns an FM-style frequency ("89.30 FM · 
 | `STUDIO_HOST` (`consola-fullradio.miacademiapreu.com`) | Creators' console: station teams (and staff with `studios.enter`) run each studio at `/{frequency}/*` (`/89-30/consola`) | `routes/studio/*.php` |
 | `CONTROL_HOST` (`control-turadioonline.miacademiapreu.com`) | Platform staff only: admin (`/admin/*`); old `/estudio/*` links redirect 301 to the console | `routes/control/*.php` |
 
-`App\Domain\Platform\PlatformHost` tells which host answered and builds absolute URLs (`PlatformHost::Studio->url('89-30')`); the frontend gets it as `app.host` / `app.urls`. Links to another host are plain `<a href>`, never Inertia `<Link>`. Each host keeps its own session cookie.
+`App\Domain\Platform\PlatformHost` tells which host answered and builds absolute URLs (`PlatformHost::Studio->url('89-30')`); the frontend gets it as `app.host` / `app.urls`. Links to another host are plain `<a href>`, never Inertia `<Link>`. Each host keeps its own session cookie: build those links with `useAppUrl()` (frontend) or `SessionHandoff::link()` (backend) so the session goes along between the public site and the console (single-use pass through `/ir/{escuchar|consola}` → `/acceso/{pass}`); the control host never accepts one.
 
 `routes/account.php` (profile, security) and `routes/auth.php` are registered on every host; `routes/webhooks.php` has no session middleware. Routing is wired in `bootstrap/app.php` — add routes to the file of your area, never to `bootstrap/app.php`.
 

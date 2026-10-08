@@ -1,4 +1,4 @@
-import { Link, router, useForm, usePage } from "@inertiajs/react";
+import { Link, router, useForm } from "@inertiajs/react";
 import { ArrowLeft, Lock, Radio, Unlock, Wrench } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
@@ -15,8 +15,8 @@ import { Modal } from "@/Components/ui/modal";
 import { PageHeader } from "@/Components/ui/page-header";
 import { Panel } from "@/Components/ui/panel";
 import AdminLayout from "@/Layouts/AdminLayout";
+import { useAppUrl } from "@/lib/app-url";
 import { count, dateTime } from "@/lib/format";
-import type { SharedProps } from "@/types";
 import type { AuditEntry, FrequencyRequestRow, FrequencyStatusValue, StationRow } from "@/types/admin";
 import type { CategoryGroupOption } from "@/types/station-admin";
 
@@ -44,7 +44,7 @@ interface Props {
 }
 
 export default function FrequencyShow({ frequency, station, closedStations, requests, history, categories, maxCategories, can }: Props) {
-  const { app } = usePage<SharedProps>().props;
+  const appUrl = useAppUrl();
   const [assigning, setAssigning] = useState(false);
   const [reserving, setReserving] = useState(false);
   const free = station === null;
@@ -125,7 +125,7 @@ export default function FrequencyShow({ frequency, station, closedStations, requ
                       Ver radio
                     </ButtonLink>
                     {can.enterStudio && (
-                      <a href={`${app.urls.studio}/${frequency.slug}`} target="_blank" rel="noreferrer" className={buttonClasses("ghost", "sm")}>
+                      <a href={appUrl("studio", `/${frequency.slug}`)} target="_blank" rel="noreferrer" className={buttonClasses("ghost", "sm")}>
                         Entrar al estudio
                       </a>
                     )}

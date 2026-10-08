@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Domain\Access\Enums\Permission;
+use App\Domain\Access\Support\SessionHandoff;
 use App\Domain\Platform\PlatformHost;
 use Closure;
 use Illuminate\Http\Request;
@@ -23,6 +24,6 @@ class EnsureStudioAccess
             return $next($request);
         }
 
-        return redirect()->away(PlatformHost::Public->url('/obten-tu-frecuencia'));
+        return redirect(SessionHandoff::link(PlatformHost::Public, '/obten-tu-frecuencia'));
     }
 }

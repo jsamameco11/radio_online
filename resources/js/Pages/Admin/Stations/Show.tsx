@@ -13,6 +13,7 @@ import { Field, Input, Select, Textarea } from "@/Components/ui/field";
 import { Modal } from "@/Components/ui/modal";
 import { Panel, Stat } from "@/Components/ui/panel";
 import AdminLayout from "@/Layouts/AdminLayout";
+import { useAppUrl } from "@/lib/app-url";
 import { ago, count, dateTime, money } from "@/lib/format";
 import type { SharedProps } from "@/types";
 import type { AuditEntry, Broadcast, Option, ReportRow, StationRow } from "@/types/admin";
@@ -47,6 +48,7 @@ interface Props {
 
 export default function StationShow({ station, team, stats, settings, reports, broadcasts, audit, options, can }: Props) {
   const { app } = usePage<SharedProps>().props;
+  const appUrl = useAppUrl();
   const [editing, setEditing] = useState(false);
   const [suspending, setSuspending] = useState(false);
   const closedAt = station.deleted_at;
@@ -80,13 +82,13 @@ export default function StationShow({ station, team, stats, settings, reports, b
           </div>
           <div className="flex flex-wrap gap-2">
             {!closed && (
-              <a href={`${app.urls.public}/radio/${station.frequency.slug}`} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-medium text-muted hover:bg-raised hover:text-ink">
+              <a href={appUrl("public", `/radio/${station.frequency.slug}`)} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-medium text-muted hover:bg-raised hover:text-ink">
                 <ExternalLink className="size-4" />
                 Página pública
               </a>
             )}
             {can.enterStudio && (
-              <a href={`${app.urls.studio}/${station.frequency.slug}`} target="_blank" rel="noreferrer" className={buttonClasses("secondary")}>
+              <a href={appUrl("studio", `/${station.frequency.slug}`)} target="_blank" rel="noreferrer" className={buttonClasses("secondary")}>
                 Entrar al estudio
               </a>
             )}

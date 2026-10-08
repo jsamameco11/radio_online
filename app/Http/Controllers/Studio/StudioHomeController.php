@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Studio;
 
+use App\Domain\Access\Support\SessionHandoff;
 use App\Domain\Platform\PlatformHost;
 use App\Domain\Stations\Enums\StationRole;
-use App\Domain\Stations\Support\StationLinks;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\StationResource;
 use App\Models\Station;
@@ -24,7 +24,7 @@ class StudioHomeController extends Controller
         $user = $request->user();
         $stations = $user->stations()->with(['frequency', 'categories'])->orderBy('name')->get();
 
-        if (! $user->isStaff() && $stations->count() === 1) {
+        if ($stations->count() === 1) {
             return redirect()->route('studio.dashboard', ['studio' => $stations->first()->frequency->slug]);
         }
 
@@ -32,10 +32,9 @@ class StudioHomeController extends Controller
             'stations' => $stations->map(fn (Station $station) => [
                 'station' => StationResource::make($station)->resolve($request),
                 'role' => StationRole::from($station->pivot->role)->label(),
-                'listen_url' => StationLinks::listen($station),
+                'listen_url' => SessionHandoff::link(PlatformHost::Public, '/radio/'.$station->frequency->slug),
             ])->values()->all(),
-            'adminUrl' => $user->isStaff() ? PlatformHost::Control->url('/admin') : null,
-            'createUrl' => PlatformHost::Public->url('/obten-tu-frecuencia'),
+            'createUrl' => SessionHandoff::link(PlatformHost::Public, '/obten-tu-frecuencia'),
         ]);
     }
 }

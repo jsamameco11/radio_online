@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Domain\Access\Support\SessionHandoff;
 use App\Domain\Chat\ChatFeed;
 use App\Domain\Discovery\Queries\EpisodeCatalog;
 use App\Domain\Discovery\Queries\StationDirectory;
+use App\Domain\Platform\PlatformHost;
 use App\Domain\Stations\Support\StationLinks;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Public\ReportContentRequest;
@@ -64,7 +66,7 @@ class StationController extends Controller
         return [
             'station' => StationResource::make($station)->resolve(),
             'isFollowing' => $user !== null && $user->follows()->whereKey($station->id)->exists(),
-            'studioUrl' => $user?->roleIn($station) === null ? null : StationLinks::studio($station),
+            'studioUrl' => $user?->roleIn($station) === null ? null : SessionHandoff::link(PlatformHost::Studio, '/'.$station->frequency->slug),
             'shareUrl' => StationLinks::listen($station),
             'reportReasons' => ReportContentRequest::reasonOptions(),
         ];

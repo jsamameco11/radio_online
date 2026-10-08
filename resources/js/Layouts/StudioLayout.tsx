@@ -28,6 +28,7 @@ import { SidebarShell } from "@/Components/shell/sidebar-shell";
 import { UserMenu } from "@/Components/shell/user-menu";
 import { FrequencyTitle, StationLogo, StreamStatusBadge } from "@/Components/station/station-identity";
 import { LiveChatDock } from "@/Components/studio/chat/live-chat-dock";
+import { useAppUrl } from "@/lib/app-url";
 import type { SharedProps, StationPermission } from "@/types";
 
 /** Base URL of the open studio on the creators' console: "/89-30". */
@@ -46,7 +47,8 @@ type Item = NavItem & { permission?: StationPermission | StationPermission[] };
 
 /** Studio of one station: dark, tool-like, with every section in the aside. */
 export default function StudioLayout({ title, children }: { title: string; children: ReactNode }) {
-  const { studio, app } = usePage<SharedProps>().props;
+  const { studio } = usePage<SharedProps>().props;
+  const appUrl = useAppUrl();
   const url = useStudioUrl();
   const can = useStudioCan();
 
@@ -140,7 +142,7 @@ export default function StudioLayout({ title, children }: { title: string; child
           </div>
           <div className="flex items-center gap-2">
             <a
-              href={`${app.urls.public}/radio/${station.frequency.slug}`}
+              href={appUrl("public", `/radio/${station.frequency.slug}`)}
               target="_blank"
               rel="noreferrer"
               className="hidden items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm text-muted hover:bg-raised hover:text-ink sm:inline-flex"

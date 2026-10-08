@@ -3,6 +3,7 @@ import { ChevronDown, Headphones, LogOut, Mic2, RadioTower, ShieldCheck, UserRou
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/Components/ui/avatar";
+import { useAppUrl } from "@/lib/app-url";
 import type { SharedProps } from "@/types";
 
 type Host = SharedProps["app"]["host"];
@@ -20,8 +21,9 @@ function useOtherApps(): { host: Host; label: string; icon: LucideIcon }[] {
 
 /** Account dropdown of the top bars, with the way to the other applications. */
 export function UserMenu() {
-  const { auth, app } = usePage<SharedProps>().props;
+  const { auth } = usePage<SharedProps>().props;
   const others = useOtherApps();
+  const appUrl = useAppUrl();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -56,7 +58,7 @@ export function UserMenu() {
             <div className="border-t border-line py-1">
               <p className="px-4 pt-2 pb-1 text-[0.68rem] font-semibold tracking-[0.14em] text-faint uppercase">Ir a</p>
               {others.map(({ host, label, icon: Icon }) => (
-                <a key={host} href={app.urls[host]} className="flex items-center gap-2.5 px-4 py-2 text-sm text-muted hover:bg-raised hover:text-ink">
+                <a key={host} href={appUrl(host)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-muted hover:bg-raised hover:text-ink">
                   <Icon className="size-4" /> {label}
                 </a>
               ))}

@@ -31,7 +31,7 @@ class StudioHostAccessTest extends TestCase
     {
         $this->actingAs(User::factory()->create())
             ->get($this->consoleUrl('/'))
-            ->assertRedirect($this->publicUrl('/obten-tu-frecuencia'));
+            ->assertRedirect($this->consoleUrl('/ir/escuchar?a=%2Fobten-tu-frecuencia'));
     }
 
     #[Test]
@@ -65,9 +65,8 @@ class StudioHostAccessTest extends TestCase
                 ->where('stations.0.station.name', 'Radio Aurora')
                 ->where('stations.0.role', StationRole::Owner->label())
                 ->where('stations.1.role', StationRole::Host->label())
-                ->where('stations.1.listen_url', $this->publicUrl('/radio/'.$second->frequency->slug))
-                ->where('adminUrl', null)
-                ->where('createUrl', $this->publicUrl('/obten-tu-frecuencia')));
+                ->where('stations.1.listen_url', '/ir/escuchar?a=%2Fradio%2F'.$second->frequency->slug)
+                ->where('createUrl', '/ir/escuchar?a=%2Fobten-tu-frecuencia'));
     }
 
     #[Test]
@@ -82,7 +81,7 @@ class StudioHostAccessTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Studio/ChooseStation')
                 ->has('stations', 0)
-                ->where('adminUrl', $this->controlUrl('/admin')));
+                ->missing('adminUrl'));
 
         $this->actingAs($staff)->get($this->studioUrl($station))->assertOk();
     }
@@ -116,6 +115,6 @@ class StudioHostAccessTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('app.host', 'public')
                 ->where('app.urls.studio', config('platform.urls.studio'))
-                ->where('studioUrl', $this->studioUrl($station)));
+                ->where('studioUrl', '/ir/consola?a=%2F'.$station->frequency->slug));
     }
 }

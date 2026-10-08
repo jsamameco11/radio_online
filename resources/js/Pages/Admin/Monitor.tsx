@@ -8,6 +8,7 @@ import { ButtonLink, buttonClasses } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/field";
 import { PageHeader } from "@/Components/ui/page-header";
 import AdminLayout from "@/Layouts/AdminLayout";
+import { useAppUrl } from "@/lib/app-url";
 import { cn } from "@/lib/cn";
 import { ago, count, dateTime } from "@/lib/format";
 import { http, HttpError } from "@/lib/http";
@@ -171,7 +172,7 @@ export default function Monitor({ cells: initialCells, statuses, staleSeconds, g
 }
 
 function DetailDrawer({ slug, onClose, permissions }: { slug: string; onClose: () => void; permissions: string[] }) {
-  const { app } = usePage<SharedProps>().props;
+  const appUrl = useAppUrl();
   const [detail, setDetail] = useState<MonitorDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -275,7 +276,7 @@ function DetailDrawer({ slug, onClose, permissions }: { slug: string; onClose: (
                     </ButtonLink>
                   )}
                   {permissions.includes("studios.enter") && (
-                    <a href={`${app.urls.studio}/${detail.frequency.slug}`} target="_blank" rel="noreferrer" className={buttonClasses("ghost", "sm")}>
+                    <a href={appUrl("studio", `/${detail.frequency.slug}`)} target="_blank" rel="noreferrer" className={buttonClasses("ghost", "sm")}>
                       Entrar al estudio
                     </a>
                   )}
