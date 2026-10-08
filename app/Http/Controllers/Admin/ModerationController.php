@@ -15,6 +15,7 @@ use App\Models\Episode;
 use App\Models\GiftMessage;
 use App\Models\Report;
 use App\Models\Station;
+use App\Models\StationStory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\RedirectResponse;
@@ -32,6 +33,7 @@ class ModerationController extends Controller
         Episode::class => ['station.frequency'],
         GiftMessage::class => ['giftTransaction.sender', 'giftTransaction.station.frequency'],
         ChatMessage::class => ['user', 'station.frequency'],
+        StationStory::class => ['station.frequency'],
     ];
 
     private const TABS = [
@@ -40,7 +42,7 @@ class ModerationController extends Controller
         'dismissed' => [ReportStatus::Dismissed],
     ];
 
-    private const TYPES = ['station', 'episode', 'gift_message', 'chat_message'];
+    private const TYPES = ['station', 'episode', 'gift_message', 'chat_message', 'station_story'];
 
     public function index(Request $request): Response
     {
@@ -69,6 +71,7 @@ class ModerationController extends Controller
                 ['value' => 'episode', 'label' => 'Episodios'],
                 ['value' => 'gift_message', 'label' => 'Mensajes de regalo'],
                 ['value' => 'chat_message', 'label' => 'Mensajes del chat'],
+                ['value' => 'station_story', 'label' => 'Estados'],
             ],
         ]);
     }
@@ -136,6 +139,7 @@ class ModerationController extends Controller
             $content instanceof Episode => $content->station,
             $content instanceof GiftMessage => $content->giftTransaction?->station,
             $content instanceof ChatMessage => $content->station,
+            $content instanceof StationStory => $content->station,
             default => null,
         };
 

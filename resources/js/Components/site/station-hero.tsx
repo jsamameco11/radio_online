@@ -1,7 +1,8 @@
 import { Camera, Headphones, Heart, Mic2, TrendingUp } from "lucide-react";
 import type { ReactNode } from "react";
 import { ListenButton, usePlayer } from "@/Components/player";
-import { Equalizer, FrequencyTitle, StationLogo, StreamStatusBadge } from "@/Components/station/station-identity";
+import { Equalizer, FrequencyTitle, StreamStatusBadge } from "@/Components/station/station-identity";
+import { StoryLogo } from "@/Components/stories/story-logo";
 import { buttonClasses } from "@/Components/ui/button";
 import { count } from "@/lib/format";
 import type { StationContext } from "@/types/site";
@@ -36,7 +37,7 @@ export function StationHero({ context, peak, extra }: { context: StationContext;
       </div>
       <div className="space-y-5 px-5 pb-6 sm:px-8">
         <div className="-mt-12 flex flex-wrap items-end gap-5 sm:-mt-16">
-          <StationLogo station={station} size="lg" className="relative z-10 shadow-xl ring-4 ring-surface sm:size-32 sm:rounded-[2rem]" />
+          <StoryLogo station={station} className="relative z-10 shadow-xl ring-4 ring-surface sm:size-32 sm:rounded-[2rem]" />
           <div className="flex flex-1 flex-wrap items-center justify-end gap-2 pb-1">
             <ListenButton station={station} size="lg" />
             <FollowButton station={station} following={context.isFollowing} />

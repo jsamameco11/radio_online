@@ -2,6 +2,7 @@ import { Link, usePage } from "@inertiajs/react";
 import { AudioLines, Bell, BellOff, Maximize2, MessagesSquare, Minus, Sparkles, Square } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { tierLook } from "@/Components/chat/highlight-tiers";
+import { StickerArt } from "@/Components/chat/stickers/sticker-art";
 import { Equalizer, StreamStatusBadge } from "@/Components/station/station-identity";
 import { credited, StudioChatThread } from "@/Components/studio/chat/studio-chat-thread";
 import { useStudioChat } from "@/Components/studio/chat/use-studio-chat";
@@ -181,7 +182,8 @@ function Dock() {
                   Superchat {credited(preview.highlight.credited_cents, app.currency)}
                 </span>
               </span>
-              <span className="relative mt-1 line-clamp-2 block text-sm">{preview.body}</span>
+              {preview.sticker && <StickerArt sticker={preview.sticker} size="sm" className="relative mt-1.5 ml-1 block" />}
+              {preview.body && <span className="relative mt-1 line-clamp-2 block text-sm">{preview.body}</span>}
             </button>
           )}
           <button

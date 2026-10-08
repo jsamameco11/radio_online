@@ -1,12 +1,15 @@
 import { usePage } from "@inertiajs/react";
-import { AlertCircle, AudioLines, CornerUpLeft, Eye, EyeOff, SendHorizontal, Square, Volume2, VolumeX, X } from "lucide-react";
+import { AlertCircle, AudioLines, CornerUpLeft, Eye, EyeOff, SendHorizontal, Square, Sticker, Volume2, VolumeX, X } from "lucide-react";
 import type { FormEvent, KeyboardEvent } from "react";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { ChatStation } from "@/Components/chat/chat-message";
 import { ChatMessageItem, MessageAction, NewMessagesPill } from "@/Components/chat/chat-message";
 import { newClientKey } from "@/Components/chat/highlight-tiers";
 import type { PinnedItem } from "@/Components/chat/pinned-strip";
 import { PinnedStrip } from "@/Components/chat/pinned-strip";
+import { messagePreview } from "@/Components/chat/stickers/preview";
+import { StickerArt } from "@/Components/chat/stickers/sticker-art";
+import { StickerPicker } from "@/Components/chat/stickers/sticker-picker";
 import { useStickToBottom } from "@/Components/chat/use-stick-to-bottom";
 import type { StudioChat } from "@/Components/studio/chat/use-studio-chat";
 import { Button } from "@/Components/ui/button";
@@ -14,7 +17,7 @@ import { cn } from "@/lib/cn";
 import { dateTime, money } from "@/lib/format";
 import { HttpError } from "@/lib/http";
 import type { SharedProps } from "@/types";
-import type { StudioChatMessage } from "@/types/chat";
+import type { ChatStickerOption, ChatStickerRef, StudioChatMessage } from "@/types/chat";
 
 /** Reads a paid message aloud. `current` is the Superchat being spoken right now. */
 export interface SuperchatControls {
@@ -61,7 +64,7 @@ export function StudioChatThread({ chat, station, className, superchat }: { chat
                 level: message.highlight.level,
                 amount: credited(message.highlight.credited_cents, app.currency),
                 name: message.user?.name ?? "Oyente",
-                body: message.body,
+                body: messagePreview(message),
                 createdAt: message.created_at,
                 pinnedUntil: message.highlight.pinned_until,
               },
@@ -111,6 +114,7 @@ export function StudioChatThread({ chat, station, className, superchat }: { chat
                 key={message.id}
                 author={message.author}
                 body={message.body}
+                sticker={message.sticker}
                 user={message.user}
                 station={station}
                 highlight={message.highlight ? { level: message.highlight.level, amount: credited(message.highlight.credited_cents, app.currency) } : null}
@@ -209,11 +213,12 @@ export function StudioChatThread({ chat, station, className, superchat }: { chat
       <StationComposer
         disabled={!chat.open}
         maxLength={feed?.limits.max_length ?? 200}
+        stickers={feed?.limits.stickers ?? []}
         station={station}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}
-        onSend={async (body, key) => {
-          await chat.reply(body, key, replyTo?.id ?? null);
+        onSend={async (body, key, sticker) => {
+          await chat.reply(body, key, replyTo?.id ?? null, sticker?.key ?? null);
           setReplyTo(null);
           window.requestAnimationFrame(() => scroll.scrollToBottom());
         }}
@@ -225,33 +230,52 @@ export function StudioChatThread({ chat, station, className, superchat }: { chat
 interface StationComposerProps {
   disabled: boolean;
   maxLength: number;
+  stickers: ChatStickerOption[];
   station: ChatStation;
   replyTo: StudioChatMessage | null;
   onCancelReply: () => void;
-  onSend: (body: string, clientKey: string) => Promise<void>;
+  onSend: (body: string, clientKey: string, sticker: ChatStickerRef | null) => Promise<void>;
 }
 
-function StationComposer({ disabled, maxLength, station, replyTo, onCancelReply, onSend }: StationComposerProps) {
+function StationComposer({ disabled, maxLength, stickers, station, replyTo, onCancelReply, onSend }: StationComposerProps) {
   const [body, setBody] = useState("");
+  const [sticker, setSticker] = useState<ChatStickerRef | null>(null);
+  const [stickering, setStickering] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const clientKey = useRef<string | null>(null);
+  const stickerToggle = useRef<HTMLButtonElement>(null);
+  const closeStickers = useCallback(() => setStickering(false), []);
   const trimmed = body.trim();
 
-  const send = async (event?: FormEvent) => {
+  /** Sends the composer; `instant` is a sticker picked with no text, which goes out at once. */
+  const send = async (event?: FormEvent, instant?: ChatStickerRef) => {
     event?.preventDefault();
-    if (!trimmed || sending || disabled) return;
-    const key = (clientKey.current ??= newClientKey());
+    const attached = instant ?? sticker;
+    if ((!trimmed && !attached) || sending || disabled) return;
+    const key = instant ? newClientKey() : (clientKey.current ??= newClientKey());
     setSending(true);
     setError(null);
     try {
-      await onSend(trimmed, key);
+      await onSend(trimmed, key, attached);
       setBody("");
+      setSticker(null);
       clientKey.current = null;
     } catch (failure) {
+      if (instant) setSticker(instant);
       setError(failure instanceof HttpError ? failure.firstError() : "Se perdió la conexión. Inténtalo otra vez.");
     } finally {
       setSending(false);
+    }
+  };
+
+  const pickSticker = (choice: ChatStickerRef) => {
+    setStickering(false);
+    clientKey.current = null;
+    if (!trimmed && !sending) {
+      void send(undefined, choice);
+    } else {
+      setSticker(choice);
     }
   };
 
@@ -263,12 +287,17 @@ function StationComposer({ disabled, maxLength, station, replyTo, onCancelReply,
   };
 
   return (
-    <footer className="border-t border-line px-3 pt-2.5 pb-3">
+    <footer className="relative border-t border-line px-3 pt-2.5 pb-3">
+      {stickering && (
+        <div className="absolute inset-x-2 bottom-full z-10 mb-2">
+          <StickerPicker stickers={stickers} onPick={pickSticker} onClose={closeStickers} toggle={stickerToggle} />
+        </div>
+      )}
       {replyTo && (
         <div className="mb-2 flex items-center gap-2 rounded-xl bg-raised px-2.5 py-1.5 text-xs">
           <CornerUpLeft className="size-3.5 shrink-0 text-signal" />
           <span className="shrink-0 font-semibold">{replyTo.user?.name ?? "Oyente"}</span>
-          <span className="truncate text-muted">{replyTo.body}</span>
+          <span className="truncate text-muted">{messagePreview(replyTo)}</span>
           <span className="ml-auto shrink-0 text-faint">{dateTime(replyTo.created_at, { timeStyle: "short" })}</span>
           <button type="button" onClick={onCancelReply} className="rounded p-0.5 text-muted hover:text-ink" aria-label="Cancelar respuesta">
             <X className="size-3.5" />
@@ -279,6 +308,26 @@ function StationComposer({ disabled, maxLength, station, replyTo, onCancelReply,
         <p className="mb-2 text-xs text-danger" role="alert">
           {error}
         </p>
+      )}
+      {sticker && (
+        <div className="mb-2 flex items-center gap-3 rounded-xl border border-line bg-raised py-1.5 pr-2.5 pl-2">
+          <StickerArt sticker={sticker} size="sm" />
+          <span className="min-w-0 flex-1 text-xs">
+            <span className="block truncate font-semibold text-ink">Sticker «{sticker.label}»</span>
+            <span className="block text-muted">Va con tu próximo mensaje.</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setSticker(null);
+              clientKey.current = null;
+            }}
+            className="rounded p-0.5 text-muted hover:text-ink"
+            aria-label="Quitar sticker"
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
       )}
       <form onSubmit={send} className={cn("rounded-xl border border-line-strong bg-surface transition focus-within:border-ink", disabled && "opacity-60")}>
         <textarea
@@ -296,14 +345,32 @@ function StationComposer({ disabled, maxLength, station, replyTo, onCancelReply,
           className="block w-full resize-none bg-transparent px-3 pt-2 text-sm text-ink placeholder:text-faint focus:outline-none"
         />
         <div className="flex items-center justify-between gap-2 px-2 pb-2">
-          <span className="truncate text-[0.68rem] text-faint">
-            Publicas como <span className="font-display font-semibold text-muted tabular">{station.frequency.label}</span> · {station.name}
-          </span>
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              ref={stickerToggle}
+              type="button"
+              disabled={disabled || stickers.length === 0}
+              onClick={() => setStickering((open) => !open)}
+              aria-expanded={stickering}
+              aria-haspopup="dialog"
+              aria-label="Stickers"
+              title="Stickers"
+              className={cn(
+                "inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition disabled:cursor-not-allowed disabled:opacity-50",
+                stickering || sticker ? "bg-royal text-white" : "bg-royal-soft text-royal hover:bg-royal hover:text-white",
+              )}
+            >
+              <Sticker className="size-4" />
+            </button>
+            <span className="truncate text-[0.68rem] text-faint">
+              Publicas como <span className="font-display font-semibold text-muted tabular">{station.frequency.label}</span> · {station.name}
+            </span>
+          </div>
           <div className="flex shrink-0 items-center gap-2">
             <span className={cn("text-[0.68rem] tabular", body.length >= maxLength ? "text-danger" : "text-faint")}>
               {body.length}/{maxLength}
             </span>
-            <Button type="submit" size="sm" variant="signal" loading={sending} disabled={!trimmed || disabled} icon={<SendHorizontal className="size-3.5" />}>
+            <Button type="submit" size="sm" variant="signal" loading={sending} disabled={(!trimmed && !sticker) || disabled} icon={<SendHorizontal className="size-3.5" />}>
               {replyTo ? "Responder" : "Enviar"}
             </Button>
           </div>

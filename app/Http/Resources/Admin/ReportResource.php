@@ -9,6 +9,7 @@ use App\Models\Episode;
 use App\Models\GiftMessage;
 use App\Models\Report;
 use App\Models\Station;
+use App\Models\StationStory;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -75,9 +76,17 @@ class ReportResource extends JsonResource
                 'type' => 'chat_message',
                 'type_label' => 'Mensaje del chat',
                 'title' => $content->author === ChatAuthor::Station ? 'Respuesta de la emisora' : 'Mensaje de '.($content->user->name ?? 'un oyente'),
-                'excerpt' => $content->body,
+                'excerpt' => $content->preview(),
                 'station' => $content->station === null ? null : $this->station($content->station),
                 'hidden' => ! $content->isVisible(),
+            ],
+            $content instanceof StationStory => [
+                'type' => 'station_story',
+                'type_label' => 'Estado',
+                'title' => 'Estado ('.mb_strtolower($content->kind->label()).')',
+                'excerpt' => $content->text,
+                'station' => $content->station === null ? null : $this->station($content->station),
+                'hidden' => $content->expires_at->isPast(),
             ],
             default => [
                 'type' => $this->reportable_type,

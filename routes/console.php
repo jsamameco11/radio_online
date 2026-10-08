@@ -2,8 +2,11 @@
 
 use App\Domain\Applications\Actions\PurgeApplicationDocuments;
 use App\Domain\Growth\GrowthProgram;
+use App\Domain\Integrity\IntegrityScanner;
+use App\Domain\Integrity\Subscribers;
 use App\Domain\Stations\Enums\StationStatus;
 use App\Domain\Stations\Support\CurrentStation;
+use App\Domain\Stories\Actions\PruneExpiredStories;
 use App\Domain\Streaming\Enums\StreamStatus;
 use App\Domain\Streaming\PlaybackHealth;
 use App\Domain\Streaming\StreamingSweep;
@@ -46,7 +49,22 @@ Artisan::command('growth:sweep', function (CurrentStation $current, GrowthProgra
     $this->info("Radios revisadas: {$stations->count()}");
 })->purpose('Unlock the growth milestones every station reached and tell owners when they can request monetization');
 
+Artisan::command('stories:prune', function (PruneExpiredStories $prune) {
+    $this->info('Estados eliminados: '.$prune->handle());
+})->purpose('Delete the expired stories of every station and their files');
+
+Artisan::command('integrity:qualify', function (Subscribers $subscribers) {
+    $this->info('Suscripciones que empezaron a contar: '.$subscribers->promote());
+})->purpose('Count the pending subscriptions of the accounts that proved to be real listeners');
+
+Artisan::command('integrity:scan', function (IntegrityScanner $scanner) {
+    $this->info('Alertas registradas o actualizadas: '.$scanner->scan());
+})->purpose('Look for bot farms behind the subscribers and the audience of every station');
+
 Schedule::command('streaming:sweep')->everyMinute()->withoutOverlapping();
+Schedule::command('integrity:qualify')->everyTenMinutes()->withoutOverlapping();
+Schedule::command('integrity:scan')->everyFifteenMinutes()->withoutOverlapping();
+Schedule::command('stories:prune')->hourly()->withoutOverlapping();
 Schedule::command('growth:sweep')->dailyAt('09:00')->timezone((string) config('platform.timezone'))->withoutOverlapping();
 Schedule::command('streaming:check-files')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('streaming:purge-recordings')->daily();

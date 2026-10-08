@@ -3,6 +3,7 @@
 namespace App\Domain\Chat;
 
 use App\Domain\Chat\Enums\ChatAuthor;
+use App\Domain\Chat\Enums\ChatSticker;
 use App\Domain\Chat\Support\HighlightTiers;
 use App\Domain\Storage\MediaStorage;
 use App\Http\Resources\ChatMessageResource;
@@ -77,7 +78,7 @@ final class ChatFeed
                 ])
                 ->values()
                 ->all(),
-            'limits' => ['max_length' => (int) config('platform.chat.max_message_length')],
+            'limits' => ['max_length' => (int) config('platform.chat.max_message_length'), 'stickers' => ChatSticker::catalog()],
         ];
     }
 
@@ -135,13 +136,14 @@ final class ChatFeed
     }
 
     /**
-     * @return array{max_length: int, tiers: list<array{cents: int, pin_seconds: int, level: int}>}
+     * @return array{max_length: int, tiers: list<array{cents: int, pin_seconds: int, level: int}>, stickers: list<array{key: string, label: string, pack: string, pack_label: string}>}
      */
     public static function limits(): array
     {
         return [
             'max_length' => (int) config('platform.chat.max_message_length'),
             'tiers' => HighlightTiers::all(),
+            'stickers' => ChatSticker::catalog(),
         ];
     }
 

@@ -4,6 +4,7 @@ import {
   BadgeDollarSign,
   BarChart3,
   CalendarClock,
+  CircleDashed,
   Disc3,
   ExternalLink,
   Gift,
@@ -94,6 +95,7 @@ export default function StudioLayout({ title, setup = true, wide = false, childr
       label: "Emisora",
       items: [
         { label: "Perfil de radio", href: url("/perfil"), icon: AudioLines, permission: "station.profile" },
+        { label: "Estados", href: url("/estados"), icon: CircleDashed, permission: "station.profile" },
         {
           label: "Configuración",
           href: url("/configuracion"),

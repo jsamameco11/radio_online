@@ -17,6 +17,18 @@ export interface ChatReplyRef {
   body: string | null;
 }
 
+/** A sticker on a message: App\Domain\Chat\Enums\ChatSticker value and its Spanish name. */
+export interface ChatStickerRef {
+  key: string;
+  label: string;
+}
+
+/** ChatSticker::catalog(): every sticker the chat accepts, in picker order. */
+export interface ChatStickerOption extends ChatStickerRef {
+  pack: string;
+  pack_label: string;
+}
+
 /** config('platform.chat.highlight_tiers'), cheapest first. */
 export interface HighlightTier {
   cents: number;
@@ -28,7 +40,9 @@ export interface HighlightTier {
 export interface ChatMessage {
   id: string;
   author: ChatAuthor;
+  /** Empty when the message is only a sticker. */
   body: string;
+  sticker: ChatStickerRef | null;
   user: ChatUser | null;
   highlight: { cents: number; level: number; pinned_until: string | null } | null;
   reply_to: ChatReplyRef | null;
@@ -41,7 +55,7 @@ export interface ChatSnapshot {
   messages: ChatMessage[];
   pinned: ChatMessage[];
   viewer: { signed_in: boolean; verified: boolean; muted: boolean; muted_until: string | null };
-  limits: { max_length: number; tiers: HighlightTier[] };
+  limits: { max_length: number; tiers: HighlightTier[]; stickers: ChatStickerOption[] };
 }
 
 /** POST /radio/{frequency}/chat */
@@ -56,7 +70,9 @@ export type ChatMessageStatus = "visible" | "hidden";
 export interface StudioChatMessage {
   id: string;
   author: ChatAuthor;
+  /** Empty when the message is only a sticker. */
   body: string;
+  sticker: ChatStickerRef | null;
   user: ChatUser | null;
   highlight: { level: number; credited_cents: number; pinned_until: string | null } | null;
   reply_to: ChatReplyRef | null;
@@ -79,7 +95,7 @@ export interface StudioChatFeed {
   messages: StudioChatMessage[];
   pinned: StudioChatMessage[];
   mutes: ChatMuteEntry[];
-  limits: { max_length: number };
+  limits: { max_length: number; stickers: ChatStickerOption[] };
 }
 
 /** ChatFeed::summary(): the chat of the live transmission on air (or the last one). */

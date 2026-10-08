@@ -16,6 +16,7 @@ function spanishVoice(): SpeechSynthesisVoice | null {
 
 function line(message: StudioChatMessage): string {
   const name = message.user?.name ?? "Un oyente";
+  if (message.body.trim() === "" && message.sticker) return `Superchat. ${name} envió el sticker ${message.sticker.label}.`.slice(0, 280);
   return `Superchat de ${name}. ${message.body}`.slice(0, 280);
 }
 

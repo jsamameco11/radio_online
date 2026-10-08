@@ -88,9 +88,9 @@ export function useStudioChat({ initial, onIncoming }: { initial?: StudioChatFee
   }, [base, stationId, open, load, accept]);
 
   const reply = useCallback(
-    async (body: string, clientKey: string, replyTo: string | null) => {
+    async (body: string, clientKey: string, replyTo: string | null, sticker: string | null = null) => {
       if (!base) return;
-      const result = await http.post<{ message: StudioChatMessage }>(`${base}/mensajes`, { body, client_key: clientKey, reply_to: replyTo });
+      const result = await http.post<{ message: StudioChatMessage }>(`${base}/mensajes`, { body, sticker, client_key: clientKey, reply_to: replyTo });
       accept(result.message);
     },
     [base, accept],

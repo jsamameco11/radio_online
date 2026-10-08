@@ -1,5 +1,5 @@
 import { Link, usePage } from "@inertiajs/react";
-import { AlertCircle, Flag, LogIn, MailCheck, MessageCircleOff, MessagesSquare, SendHorizontal, Sparkles, VolumeX, Wallet, X } from "lucide-react";
+import { AlertCircle, Flag, LogIn, MailCheck, MessageCircleOff, MessagesSquare, SendHorizontal, Sparkles, Sticker, VolumeX, Wallet, X } from "lucide-react";
 import type { FormEvent, KeyboardEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChatMessageItem, MessageAction, NewMessagesPill } from "@/Components/chat/chat-message";
@@ -8,6 +8,9 @@ import { newClientKey, tierLook } from "@/Components/chat/highlight-tiers";
 import type { PinnedItem } from "@/Components/chat/pinned-strip";
 import { PinnedStrip } from "@/Components/chat/pinned-strip";
 import { ReportMessageDialog } from "@/Components/chat/report-message-dialog";
+import { messagePreview } from "@/Components/chat/stickers/preview";
+import { StickerArt } from "@/Components/chat/stickers/sticker-art";
+import { StickerPicker } from "@/Components/chat/stickers/sticker-picker";
 import { useStickToBottom } from "@/Components/chat/use-stick-to-bottom";
 import { StreamStatusBadge } from "@/Components/station/station-identity";
 import { Button, ButtonLink } from "@/Components/ui/button";
@@ -18,7 +21,7 @@ import { HttpError, http } from "@/lib/http";
 import { realtime } from "@/lib/realtime";
 import { useSignInUrl } from "@/lib/sign-in";
 import type { SharedProps, Station } from "@/types";
-import type { ChatMessage, ChatSnapshot, ChatVisibilityEvent, PostedChatMessage } from "@/types/chat";
+import type { ChatMessage, ChatSnapshot, ChatStickerRef, ChatVisibilityEvent, PostedChatMessage } from "@/types/chat";
 import type { Option } from "@/types/site";
 
 const POLL_WITHOUT_SOCKET_MS = 4_000;
@@ -93,7 +96,7 @@ export function LiveChat({ station, initial, reportReasons, className }: { stati
                 level: message.highlight.level,
                 amount: formatMoney(message.highlight.cents),
                 name: message.user?.name ?? "Oyente",
-                body: message.body,
+                body: messagePreview(message),
                 createdAt: message.created_at,
                 pinnedUntil: message.highlight.pinned_until,
               },
@@ -138,6 +141,7 @@ export function LiveChat({ station, initial, reportReasons, className }: { stati
                     key={message.id}
                     author={message.author}
                     body={message.body}
+                    sticker={message.sticker}
                     user={message.user}
                     station={station}
                     highlight={message.highlight ? { level: message.highlight.level, amount: formatMoney(message.highlight.cents) } : null}
@@ -180,15 +184,19 @@ function Composer({ chat, url, formatMoney, onPosted }: { chat: ChatSnapshot; ur
   const [body, setBody] = useState("");
   const [tier, setTier] = useState<number | null>(null);
   const [picking, setPicking] = useState(false);
+  const [sticker, setSticker] = useState<ChatStickerRef | null>(null);
+  const [stickering, setStickering] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<{ text: string; topUp: boolean } | null>(null);
   const clientKey = useRef<string | null>(null);
+  const stickerToggle = useRef<HTMLButtonElement>(null);
+  const closeStickers = useCallback(() => setStickering(false), []);
   const signInUrl = useSignInUrl();
 
   useEffect(() => {
     clientKey.current = null;
-  }, [body, tier]);
+  }, [body, tier, sticker]);
 
   useEffect(() => onWalletChange(setBalance), []);
 
@@ -238,15 +246,17 @@ function Composer({ chat, url, formatMoney, onPosted }: { chat: ChatSnapshot; ur
   const look = selected ? tierLook(selected.level) : null;
   const trimmed = body.trim();
 
-  const send = async (event?: FormEvent) => {
+  /** Sends the composer; `instant` is a sticker picked with nothing else to send, which goes out at once. */
+  const send = async (event?: FormEvent, instant?: ChatStickerRef) => {
     event?.preventDefault();
-    if (!trimmed || sending) return;
-    const key = (clientKey.current ??= newClientKey());
+    const attached = instant ?? sticker;
+    if ((!trimmed && !attached) || sending) return;
+    const key = instant ? newClientKey() : (clientKey.current ??= newClientKey());
 
     setSending(true);
     setError(null);
     try {
-      const result = await http.post<PostedChatMessage>(url, { body: trimmed, client_key: key, highlight_cents: tier });
+      const result = await http.post<PostedChatMessage>(url, { body: trimmed, sticker: attached?.key ?? null, client_key: key, highlight_cents: tier });
       onPosted(result.message);
       if (result.balance_cents !== null) {
         setBalance(result.balance_cents);
@@ -254,9 +264,11 @@ function Composer({ chat, url, formatMoney, onPosted }: { chat: ChatSnapshot; ur
       }
       setBody("");
       setTier(null);
+      setSticker(null);
       setPicking(false);
       clientKey.current = null;
     } catch (failure) {
+      if (instant) setSticker(instant);
       if (failure instanceof HttpError) {
         const topUp = failure.body.reason === "insufficient_balance";
         setError({ text: failure.firstError(), topUp });
@@ -266,6 +278,15 @@ function Composer({ chat, url, formatMoney, onPosted }: { chat: ChatSnapshot; ur
       }
     } finally {
       setSending(false);
+    }
+  };
+
+  const pickSticker = (choice: ChatStickerRef) => {
+    setStickering(false);
+    if (!trimmed && tier === null && !sending) {
+      void send(undefined, choice);
+    } else {
+      setSticker(choice);
     }
   };
 
@@ -281,6 +302,12 @@ function Composer({ chat, url, formatMoney, onPosted }: { chat: ChatSnapshot; ur
       {picking && (
         <div className="absolute inset-x-2 bottom-full z-10 mb-2">
           <HighlightPicker tiers={limits.tiers} selected={tier} balance={balance} formatMoney={formatMoney} onSelect={setTier} onClose={() => setPicking(false)} />
+        </div>
+      )}
+
+      {stickering && (
+        <div className="absolute inset-x-2 bottom-full z-10 mb-2">
+          <StickerPicker stickers={limits.stickers} onPick={pickSticker} onClose={closeStickers} toggle={stickerToggle} />
         </div>
       )}
 
@@ -307,6 +334,19 @@ function Composer({ chat, url, formatMoney, onPosted }: { chat: ChatSnapshot; ur
         </div>
       )}
 
+      {sticker && (
+        <div className="mb-2 flex items-center gap-3 rounded-xl border border-line bg-raised py-1.5 pr-2.5 pl-2">
+          <StickerArt sticker={sticker} size="sm" />
+          <span className="min-w-0 flex-1 text-xs">
+            <span className="block truncate font-semibold text-ink">Sticker «{sticker.label}»</span>
+            <span className="block text-muted">Va con tu próximo mensaje.</span>
+          </span>
+          <button type="button" onClick={() => setSticker(null)} className="rounded p-0.5 text-muted hover:text-ink" aria-label="Quitar sticker">
+            <X className="size-3.5" />
+          </button>
+        </div>
+      )}
+
       <form onSubmit={send} className={cn("rounded-xl border bg-surface transition focus-within:border-ink", look ? cn("ring-2", look.ring, "border-transparent") : "border-line-strong")}>
         <textarea
           value={body}
@@ -314,27 +354,48 @@ function Composer({ chat, url, formatMoney, onPosted }: { chat: ChatSnapshot; ur
           onKeyDown={onKeyDown}
           maxLength={limits.max_length}
           rows={2}
-          placeholder={selected ? "Escribe el superchat que quieres que se lea en voz alta…" : "Escríbele a la cabina…"}
+          placeholder={selected ? "Escribe el superchat que quieres que se lea en voz alta…" : sticker ? "Acompaña tu sticker con un mensaje (opcional)…" : "Escríbele a la cabina…"}
           aria-label="Mensaje para el chat"
           className="block w-full resize-none bg-transparent px-3 pt-2 text-sm text-ink placeholder:text-faint focus:outline-none"
         />
         <div className="flex items-center justify-between gap-2 px-2 pb-2">
-          <button
-            type="button"
-            onClick={() => setPicking((open) => !open)}
-            aria-expanded={picking}
-            className={cn(
-              "inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition",
-              selected && look ? cn(look.badge) : "bg-gold-soft text-gold hover:bg-gold hover:text-white",
-            )}
-          >
-            <Sparkles className="size-3.5" /> {selected ? formatMoney(selected.cents) : "Superchat"}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setPicking((open) => !open);
+                setStickering(false);
+              }}
+              aria-expanded={picking}
+              className={cn(
+                "inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition",
+                selected && look ? cn(look.badge) : "bg-gold-soft text-gold hover:bg-gold hover:text-white",
+              )}
+            >
+              <Sparkles className="size-3.5" /> {selected ? formatMoney(selected.cents) : "Superchat"}
+            </button>
+            <button
+              ref={stickerToggle}
+              type="button"
+              onClick={() => {
+                setStickering((open) => !open);
+                setPicking(false);
+              }}
+              aria-expanded={stickering}
+              aria-haspopup="dialog"
+              className={cn(
+                "inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition",
+                stickering || sticker ? "bg-royal text-white" : "bg-royal-soft text-royal hover:bg-royal hover:text-white",
+              )}
+            >
+              <Sticker className="size-3.5" /> Stickers
+            </button>
+          </div>
           <div className="flex items-center gap-2">
             <span className={cn("text-[0.68rem] tabular", body.length >= limits.max_length ? "text-danger" : "text-faint")}>
               {body.length}/{limits.max_length}
             </span>
-            <Button type="submit" size="sm" variant={selected ? "signal" : "primary"} loading={sending} disabled={!trimmed} icon={<SendHorizontal className="size-3.5" />}>
+            <Button type="submit" size="sm" variant={selected ? "signal" : "primary"} loading={sending} disabled={!trimmed && !sticker} icon={<SendHorizontal className="size-3.5" />}>
               {selected ? "Enviar superchat" : "Enviar"}
             </Button>
           </div>

@@ -19,7 +19,7 @@ Locally: `turadioonline.localhost:8000`, `consola-fullradio.localhost:8000` and 
 ## Architecture
 
 - **Laravel is the control plane, never the audio transport.** Listeners play files from storage (Wasabi) following the server-computed program; live voice travels over WebRTC; Laravel only signals, schedules and records metadata.
-- `app/Domain/<Area>/` holds business logic: `Actions/` (one public `handle()` per use case), services, `Enums/`, `Events/`, `Listeners/`, `Support/`. Areas: Access, Audit, Discovery, Frequencies, Gifts, Moderation, Payments, Stations, Storage, Streaming, Studio, Wallet.
+- `app/Domain/<Area>/` holds business logic: `Actions/` (one public `handle()` per use case), services, `Enums/`, `Events/`, `Listeners/`, `Support/`. Areas: Access, Audit, Discovery, Frequencies, Gifts, Integrity, Moderation, Payments, Stations, Storage, Stories, Streaming, Studio, Wallet.
 - Controllers are thin: validate with a Form Request (`app/Http/Requests/<Area>/`), authorize, call an Action/service, return an Inertia page or redirect. Controllers live in `app/Http/Controllers/{Public,Account,Admin,Studio,Webhooks}/`.
 - API-shaped data for Inertia goes through `app/Http/Resources/*Resource` and is passed with `->resolve()`; always eager load what the resource reads (lazy loading throws outside production).
 - Jobs in `app/Jobs/`, broadcast events implement `ShouldBroadcast` on the channels defined in `routes/channels.php`.
@@ -42,6 +42,12 @@ Locally: `turadioonline.localhost:8000`, `consola-fullradio.localhost:8000` and 
 
 - Integer cents, currency `USD`. Never mutate a balance directly: every change is a `wallet_transactions` row with `balance_before_cents`, `balance_after_cents` and a unique `idempotency_key`, written inside a DB transaction with the wallet row locked.
 - Minimum deposit and presets come from `config('platform.wallet')`. Every gift and highlighted chat message is split with `GiftFee::split()`: `processor_fee_percent` (card processor) + `platform_fee_percent` (platform) are deducted and the station is credited the rest. Stations only ever see the amount credited to them — never prices paid, percentages or deductions. Withdrawals start at `config('platform.monetization.min_withdrawal_cents')`. All financial validation happens in the backend.
+
+### Audience integrity
+
+- Subscribers and live audience are protected against bot farms (`App\Domain\Integrity`, `config('platform.integrity')`). Follow and unfollow only through `FollowStation` / `UnfollowStation`: a follow is `pending` until `Subscribers` qualifies its account, and `follower_count` only counts `counted` follows (`Subscribers::recount()` after bulk changes).
+- The live count comes from `Audience::count()` only: suspect sessions never count, each account counts once, guests are capped per network. Statistics read `listener_sessions` with `suspect = false` and `follows` with `status = counted`.
+- `IntegrityScanner` files `integrity_alerts` (Admin > Integridad); purging flags the accounts (`FlagAccounts`), which the staff can undo from the user page.
 
 ### Files
 

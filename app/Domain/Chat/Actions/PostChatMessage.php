@@ -5,6 +5,7 @@ namespace App\Domain\Chat\Actions;
 use App\Domain\Audit\AuditTrail;
 use App\Domain\Chat\ChatRoom;
 use App\Domain\Chat\Enums\ChatAuthor;
+use App\Domain\Chat\Enums\ChatSticker;
 use App\Domain\Chat\Events\ChatMessagePosted;
 use App\Domain\Chat\Events\ChatMessageReceived;
 use App\Domain\Chat\Support\ChatModeration;
@@ -30,6 +31,9 @@ use Illuminate\Validation\ValidationException;
  * listener pays the tier price, the station is credited its share and the
  * processor and platform fees stay out, all in one database transaction.
  *
+ * A message is text, a sticker or both; the text filters (links, blocked
+ * words) only read the text, every other rule applies to stickers too.
+ *
  * Slow mode spaces out the free messages of each listener; a paid highlight
  * skips it and does not start its countdown. The idempotency key comes from
  * the client, so a retried request posts (and charges) only once.
@@ -42,7 +46,7 @@ final class PostChatMessage
         private readonly AuditTrail $audit,
     ) {}
 
-    public function handle(User $author, Station $station, string $body, string $clientKey, ?int $highlightCents = null): ChatMessage
+    public function handle(User $author, Station $station, string $body, string $clientKey, ?int $highlightCents = null, ?ChatSticker $sticker = null): ChatMessage
     {
         $key = 'chat:'.$author->id.':'.$clientKey;
 
@@ -54,7 +58,7 @@ final class PostChatMessage
         $body = trim($body);
         $tier = $highlightCents === null ? null : HighlightTiers::find($highlightCents);
         $moderation = ChatModeration::of($station);
-        $this->validate($author, $station, $body, $highlightCents, $tier, $moderation);
+        $this->validate($author, $station, $body, $sticker, $highlightCents, $tier, $moderation);
 
         $station->loadMissing('frequency');
         $text = MessageFilter::apply($body, $moderation->blockedWords)['text'];
@@ -62,11 +66,11 @@ final class PostChatMessage
 
         if ($tier === null) {
             $this->enterSlowMode($author, $station, $moderation);
-            [$message, $created] = $this->post($key, $author, $station, $session, $text);
+            [$message, $created] = $this->post($key, $author, $station, $session, $text, $sticker);
         } else {
             $from = $this->ledger->open($author);
             $to = $this->ledger->open($station);
-            [$message, $created] = DB::transaction(fn () => $this->postHighlighted($key, $author, $station, $session, $text, $tier, $from, $to), 3);
+            [$message, $created] = DB::transaction(fn () => $this->postHighlighted($key, $author, $station, $session, $text, $sticker, $tier, $from, $to), 3);
         }
 
         if (! $created) {
@@ -93,10 +97,10 @@ final class PostChatMessage
     /**
      * @return array{0: ChatMessage, 1: bool} The message and whether this call created it.
      */
-    private function post(string $key, User $author, Station $station, ?StreamSession $session, string $text): array
+    private function post(string $key, User $author, Station $station, ?StreamSession $session, string $text, ?ChatSticker $sticker): array
     {
         try {
-            return [ChatMessage::query()->create($this->attributes($key, $author, $station, $session, $text)), true];
+            return [ChatMessage::query()->create($this->attributes($key, $author, $station, $session, $text, $sticker)), true];
         } catch (UniqueConstraintViolationException) {
             return [$this->find($key) ?? throw ValidationException::withMessages(['body' => 'No pudimos enviar tu mensaje. Inténtalo de nuevo.']), false];
         }
@@ -106,7 +110,7 @@ final class PostChatMessage
      * @param  array{cents: int, pin_seconds: int, level: int}  $tier
      * @return array{0: ChatMessage, 1: bool} The message and whether this call created it.
      */
-    private function postHighlighted(string $key, User $author, Station $station, ?StreamSession $session, string $text, array $tier, Wallet $from, Wallet $to): array
+    private function postHighlighted(string $key, User $author, Station $station, ?StreamSession $session, string $text, ?ChatSticker $sticker, array $tier, Wallet $from, Wallet $to): array
     {
         $message = new ChatMessage;
         $message->id = $message->newUniqueId();
@@ -131,7 +135,7 @@ final class PostChatMessage
         }
 
         $message->fill([
-            ...$this->attributes($key, $author, $station, $session, $text),
+            ...$this->attributes($key, $author, $station, $session, $text, $sticker),
             'highlight_cents' => $fee->totalCents,
             'processor_fee_cents' => $fee->processorFeeCents,
             'platform_fee_cents' => $fee->platformFeeCents,
@@ -147,7 +151,7 @@ final class PostChatMessage
     /**
      * @return array<string, mixed>
      */
-    private function attributes(string $key, User $author, Station $station, ?StreamSession $session, string $text): array
+    private function attributes(string $key, User $author, Station $station, ?StreamSession $session, string $text, ?ChatSticker $sticker): array
     {
         return [
             'station_id' => $station->id,
@@ -155,6 +159,7 @@ final class PostChatMessage
             'user_id' => $author->id,
             'author' => ChatAuthor::Listener,
             'body' => $text,
+            'sticker' => $sticker,
             'idempotency_key' => $key,
         ];
     }
@@ -162,7 +167,7 @@ final class PostChatMessage
     /**
      * @param  array{cents: int, pin_seconds: int, level: int}|null  $tier
      */
-    private function validate(User $author, Station $station, string $body, ?int $highlightCents, ?array $tier, ChatModeration $moderation): void
+    private function validate(User $author, Station $station, string $body, ?ChatSticker $sticker, ?int $highlightCents, ?array $tier, ChatModeration $moderation): void
     {
         $max = (int) config('platform.chat.max_message_length');
         $errors = [];
@@ -175,8 +180,8 @@ final class PostChatMessage
             $errors['body'] = $mute->until === null
                 ? 'La emisora pausó tus mensajes en este chat. Puedes seguir leyendo la conversación.'
                 : 'La emisora pausó tus mensajes en este chat hasta las '.$mute->until->timezone((string) config('platform.timezone'))->format('H:i').'. Puedes seguir leyendo la conversación.';
-        } elseif ($body === '') {
-            $errors['body'] = 'Escribe un mensaje.';
+        } elseif ($body === '' && $sticker === null) {
+            $errors['body'] = 'Escribe un mensaje o elige un sticker.';
         } elseif (mb_strlen($body) > $max) {
             $errors['body'] = "El mensaje puede tener como máximo {$max} caracteres.";
         } elseif ($moderation->blockLinks && ChatModeration::containsLink($body)) {

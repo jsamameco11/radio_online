@@ -1,18 +1,20 @@
 import { ArrowDown, CornerDownRight, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 import { tierLook } from "@/Components/chat/highlight-tiers";
+import { StickerArt } from "@/Components/chat/stickers/sticker-art";
 import { StationLogo } from "@/Components/station/station-identity";
 import { Avatar } from "@/Components/ui/avatar";
 import { cn } from "@/lib/cn";
 import { dateTime } from "@/lib/format";
 import type { Station } from "@/types";
-import type { ChatAuthor, ChatReplyRef, ChatUser } from "@/types/chat";
+import type { ChatAuthor, ChatReplyRef, ChatStickerRef, ChatUser } from "@/types/chat";
 
 export type ChatStation = Pick<Station, "name" | "logo_url" | "accent_color" | "frequency">;
 
 interface ChatMessageItemProps {
   author: ChatAuthor;
   body: string;
+  sticker: ChatStickerRef | null;
   user: ChatUser | null;
   station: ChatStation;
   /** Tier level and the amount the viewer may see (the price for listeners, the credit for the team). */
@@ -30,7 +32,7 @@ function time(iso: string): string {
 }
 
 /** One message of a live chat, shared by the station page and the studio windows. */
-export function ChatMessageItem({ author, body, user, station, highlight, replyTo, createdAt, mine = false, dimmed = false, note, actions }: ChatMessageItemProps) {
+export function ChatMessageItem({ author, body, sticker, user, station, highlight, replyTo, createdAt, mine = false, dimmed = false, note, actions }: ChatMessageItemProps) {
   const fromStation = author === "station";
   const name = fromStation ? station.name : (user?.name ?? "Oyente");
   const look = highlight ? tierLook(highlight.level) : null;
@@ -44,6 +46,7 @@ export function ChatMessageItem({ author, body, user, station, highlight, replyT
   );
 
   const avatar = fromStation ? <StationLogo station={station} size="xs" /> : <Avatar name={name} src={user?.avatar_url} size="sm" />;
+  const art = sticker && <StickerArt sticker={sticker} size="lg" className="my-1.5 ml-1 block" />;
 
   if (look && highlight) {
     return (
@@ -60,7 +63,8 @@ export function ChatMessageItem({ author, body, user, station, highlight, replyT
               <span className={cn("text-[0.68rem] font-semibold tracking-wide uppercase", look.accent)}>{look.name}</span>
             </div>
             {reply}
-            <p className="mt-1 text-[0.95rem] leading-snug font-medium break-words whitespace-pre-line text-ink">{body}</p>
+            {art}
+            {body && <p className="mt-1 text-[0.95rem] leading-snug font-medium break-words whitespace-pre-line text-ink">{body}</p>}
             <p className="mt-1 text-[0.68rem] text-muted">
               {time(createdAt)}
               {mine && " · tu mensaje"}
@@ -98,7 +102,8 @@ export function ChatMessageItem({ author, body, user, station, highlight, replyT
           <span className="ml-auto shrink-0 text-[0.68rem] text-faint group-hover:invisible">{time(createdAt)}</span>
         </div>
         {reply}
-        <p className="text-sm leading-snug break-words whitespace-pre-line text-ink">{body}</p>
+        {art}
+        {body && <p className="text-sm leading-snug break-words whitespace-pre-line text-ink">{body}</p>}
         {note}
       </div>
       {actions && <div className="absolute top-1 right-1 flex gap-0.5 opacity-0 transition group-focus-within:opacity-100 group-hover:opacity-100">{actions}</div>}

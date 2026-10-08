@@ -37,6 +37,7 @@ class ChatController extends Controller
             body: (string) $request->validated('body'),
             clientKey: (string) $request->validated('client_key'),
             highlightCents: $request->highlightCents(),
+            sticker: $request->sticker(),
         );
 
         $message->loadMissing(['user', 'replyTo.user']);

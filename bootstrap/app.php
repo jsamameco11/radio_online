@@ -42,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     Route::group([], base_path('routes/public/listen.php'));
                     Route::group([], base_path('routes/public/wallet.php'));
                     Route::group([], base_path('routes/public/chat.php'));
+                    Route::group([], base_path('routes/public/stories.php'));
                 });
 
                 Route::domain(config('platform.hosts.studio'))
@@ -60,6 +61,7 @@ return Application::configure(basePath: dirname(__DIR__))
                                 Route::group([], base_path('routes/studio/gifts.php'));
                                 Route::group([], base_path('routes/studio/chat.php'));
                                 Route::group([], base_path('routes/studio/growth.php'));
+                                Route::group([], base_path('routes/studio/stories.php'));
                             });
                     });
 

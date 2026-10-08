@@ -24,6 +24,7 @@ class ChatMessageResource extends JsonResource
             'id' => $this->id,
             'author' => $this->author->value,
             'body' => $this->body,
+            'sticker' => PublicChatMessageResource::sticker($this->resource),
             'user' => PublicChatMessageResource::author($this->resource),
             'highlight' => $this->isHighlighted() ? [
                 'level' => HighlightTiers::levelOf($this->highlight_cents),

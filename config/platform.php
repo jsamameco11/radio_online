@@ -146,6 +146,22 @@ return [
     ],
 
     /*
+    | Estados: photos, videos and texts a station shares for lifetime_hours.
+    | Video length is measured with ffprobe (next to ffmpeg) when available.
+    */
+    'stories' => [
+        'lifetime_hours' => 24,
+        'max_active' => 30,
+        'max_text' => 250,
+        'image_types' => ['jpg', 'jpeg', 'png', 'webp'],
+        'max_image_mb' => 10,
+        'video_types' => ['mp4', 'webm', 'mov'],
+        'video_mimetypes' => ['video/mp4', 'video/webm', 'video/quicktime'],
+        'max_video_mb' => 60,
+        'max_video_seconds' => 60,
+    ],
+
+    /*
     | Listening: the live microphone reaches listeners over WebRTC (a TURN
     | relay lets it cross strict networks), presence windows and the checks
     | that keep broken library files off the air.

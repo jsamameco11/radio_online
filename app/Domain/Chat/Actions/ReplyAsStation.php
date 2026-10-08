@@ -4,6 +4,7 @@ namespace App\Domain\Chat\Actions;
 
 use App\Domain\Chat\ChatRoom;
 use App\Domain\Chat\Enums\ChatAuthor;
+use App\Domain\Chat\Enums\ChatSticker;
 use App\Domain\Chat\Events\ChatMessagePosted;
 use App\Domain\Chat\Events\ChatMessageReceived;
 use App\Models\ChatMessage;
@@ -15,13 +16,14 @@ use Illuminate\Validation\ValidationException;
 /**
  * A member of the station team writes in the chat as the station, to
  * everyone or answering one message. Listeners see the station's identity,
- * never the team member; the team keeps who wrote it.
+ * never the team member; the team keeps who wrote it. A reply can be text,
+ * a sticker or both.
  */
 final class ReplyAsStation
 {
     public function __construct(private readonly ChatRoom $room) {}
 
-    public function handle(User $member, Station $station, string $body, string $clientKey, ?ChatMessage $replyTo = null): ChatMessage
+    public function handle(User $member, Station $station, string $body, string $clientKey, ?ChatMessage $replyTo = null, ?ChatSticker $sticker = null): ChatMessage
     {
         $key = 'chat:'.$member->id.':'.$clientKey;
 
@@ -35,7 +37,7 @@ final class ReplyAsStation
 
         $error = match (true) {
             ! $this->room->isOpen($station) => 'El chat se abre cuando la radio está en vivo.',
-            $body === '' => 'Escribe un mensaje.',
+            $body === '' && $sticker === null => 'Escribe un mensaje o elige un sticker.',
             mb_strlen($body) > $max => "El mensaje puede tener como máximo {$max} caracteres.",
             $replyTo !== null && $replyTo->station_id !== $station->id => 'Ese mensaje no es de este chat.',
             default => null,
@@ -52,6 +54,7 @@ final class ReplyAsStation
                 'author' => ChatAuthor::Station,
                 'reply_to_id' => $replyTo?->id,
                 'body' => $body,
+                'sticker' => $sticker,
                 'idempotency_key' => $key,
             ]);
         } catch (UniqueConstraintViolationException) {

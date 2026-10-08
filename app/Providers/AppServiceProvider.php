@@ -27,6 +27,7 @@ use App\Models\Payment;
 use App\Models\Report;
 use App\Models\Station;
 use App\Models\StationMember;
+use App\Models\StationStory;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
@@ -80,6 +81,7 @@ class AppServiceProvider extends ServiceProvider
             'chat_message' => ChatMessage::class,
             'monetization_request' => MonetizationRequest::class,
             'withdrawal_request' => WithdrawalRequest::class,
+            'station_story' => StationStory::class,
         ]);
 
         Frequency::observe(PublishMonitorChanges::class);

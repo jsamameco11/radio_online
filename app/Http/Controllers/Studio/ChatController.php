@@ -51,7 +51,7 @@ class ChatController extends Controller
     {
         $replyTo = $request->filled('reply_to') ? $this->find((string) $request->validated('reply_to')) : null;
 
-        $message = $reply->handle($request->user(), $this->current->get(), (string) $request->validated('body'), (string) $request->validated('client_key'), $replyTo);
+        $message = $reply->handle($request->user(), $this->current->get(), (string) $request->validated('body'), (string) $request->validated('client_key'), $replyTo, $request->sticker());
         $message->loadMissing(['user', 'sender', 'hider', 'replyTo.user']);
 
         return response()->json(['message' => ChatMessageResource::make($message)->resolve($request)], $message->wasRecentlyCreated ? 201 : 200);

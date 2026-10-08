@@ -11,7 +11,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * A chat message as listeners see it: the author's public name and avatar,
- * the highlight tier the listener paid for and the message it answers.
+ * its sticker, the highlight tier the listener paid for and the message it answers.
  * Never fees, emails or moderation data. Eager load "user" and "replyTo.user".
  *
  * @mixin ChatMessage
@@ -24,6 +24,7 @@ class ChatMessageResource extends JsonResource
             'id' => $this->id,
             'author' => $this->author->value,
             'body' => $this->body,
+            'sticker' => self::sticker($this->resource),
             'user' => self::author($this->resource),
             'highlight' => $this->isHighlighted() ? [
                 'cents' => $this->highlight_cents,
@@ -52,6 +53,14 @@ class ChatMessageResource extends JsonResource
     }
 
     /**
+     * @return array{key: string, label: string}|null
+     */
+    public static function sticker(ChatMessage $message): ?array
+    {
+        return $message->sticker === null ? null : ['key' => $message->sticker->value, 'label' => $message->sticker->label()];
+    }
+
+    /**
      * @return array{id: string, author: string, name: string|null, body: string|null}|null
      */
     public static function replyTo(ChatMessage $message): ?array
@@ -65,7 +74,7 @@ class ChatMessageResource extends JsonResource
             'id' => $original->id,
             'author' => $original->author->value,
             'name' => $original->author === ChatAuthor::Listener ? $original->user?->name : null,
-            'body' => $original->isVisible() ? mb_strimwidth($original->body, 0, 90, '…') : null,
+            'body' => $original->isVisible() ? mb_strimwidth($original->preview(), 0, 90, '…') : null,
         ];
     }
 }

@@ -25,6 +25,7 @@ enum MediaFolder: string
     case Resumes = 'resumes';
     case Certificates = 'certificates';
     case FactoryEffects = 'factory-effects';
+    case Stories = 'stories';
 
     /** Files every station points to (one copy for the whole platform): no station may delete them. */
     public function isShared(): bool

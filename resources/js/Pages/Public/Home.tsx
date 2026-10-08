@@ -7,6 +7,7 @@ import { Section } from "@/Components/site/section";
 import { StationGrid, stationArtwork } from "@/Components/site/station-card";
 import { StationRating } from "@/Components/site/station-rating";
 import { FrequencyTitle, StationLogo, StreamStatusBadge } from "@/Components/station/station-identity";
+import { StoriesRail } from "@/Components/stories/stories-rail";
 import { ButtonLink } from "@/Components/ui/button";
 import { EmptyState } from "@/Components/ui/empty-state";
 import SiteLayout from "@/Layouts/SiteLayout";
@@ -67,6 +68,7 @@ export default function Home({ onAir, popular, trending, categories, episodes, s
   return (
     <SiteLayout title="Inicio">
       <div className="space-y-14">
+        <StoriesRail className="-mb-8" />
         <section className="grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-stretch">
           <div className="flex flex-col justify-between gap-8 rounded-[2rem] border border-line bg-surface p-6 sm:p-10">
             <div className="space-y-4">
