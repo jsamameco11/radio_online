@@ -63,9 +63,12 @@ function tone(kind: string, quiet: boolean): string {
   return quiet ? "bg-onair/25 text-onair" : solid;
 }
 
-function tick(span: number): number {
+/** Room a ruler label needs, in pixels, so the times never touch each other or the edge. */
+const MARK_WIDTH = 64;
+
+function tick(span: number, marks: number): number {
   const steps = [5_000, 10_000, 15_000, 30_000, 60_000, 300_000, 900_000, 1_800_000, 3_600_000, 10_800_000, 21_600_000];
-  return steps.find((step) => span / step <= 8) ?? 21_600_000;
+  return steps.find((step) => span / step <= marks) ?? 21_600_000;
 }
 
 function covered(block: ScheduleBlock, queue: ProgramItem[]): boolean {
@@ -91,8 +94,18 @@ export function LiveTimeline({ api, library, day, timezone }: { api: ConsoleApi;
   const [origin, setOrigin] = useState<number | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const board = useRef<HTMLDivElement | null>(null);
+  const ruler = useRef<HTMLDivElement | null>(null);
+  const [rulerWidth, setRulerWidth] = useState(0);
   const start = follow ? now - span * 0.28 : (origin ?? now - span * 0.28);
   const ratio = (now - start) / span;
+
+  useEffect(() => {
+    const node = ruler.current;
+    if (!node) return;
+    const observer = new ResizeObserver(([entry]) => setRulerWidth(entry.contentRect.width));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const node = board.current;
@@ -176,11 +189,11 @@ export function LiveTimeline({ api, library, day, timezone }: { api: ConsoleApi;
   }
 
   const marks: number[] = [];
-  const step = tick(span);
+  const step = tick(span, rulerWidth ? Math.min(8, Math.max(2, Math.floor(rulerWidth / MARK_WIDTH))) : 8);
   for (let at = Math.ceil(start / step) * step; at < start + span; at += step) marks.push(at);
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-line bg-surface" aria-label="Línea de tiempo en vivo">
+    <section className="min-w-0 overflow-hidden rounded-xl border border-line bg-surface" aria-label="Línea de tiempo en vivo">
       <header className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
         <h2 className="mr-auto text-[0.68rem] font-semibold tracking-[0.16em] text-faint uppercase">Línea de tiempo en vivo</h2>
         <div role="radiogroup" aria-label="Zoom de la línea de tiempo" className="flex flex-wrap gap-0.5 rounded-lg bg-canvas p-0.5">
@@ -220,10 +233,10 @@ export function LiveTimeline({ api, library, day, timezone }: { api: ConsoleApi;
       </header>
 
       <div ref={board} className="relative cursor-grab touch-none active:cursor-grabbing" onPointerDown={panFrom}>
-        <div className="relative ml-28 h-7 border-b border-line bg-canvas">
+        <div ref={ruler} className="relative ml-28 h-7 border-b border-line bg-canvas">
           {marks.map((at) => (
-            <span key={at} className="absolute top-0 h-full border-l border-line pl-1 font-mono text-[10px] leading-7 text-faint tabular" style={{ left: `${((at - start) / span) * 100}%` }}>
-              {clock(at, timezone, span <= 600_000)}
+            <span key={at} className="absolute top-0 h-full border-l border-line pl-1 font-mono text-[10px] leading-7 whitespace-nowrap text-faint tabular" style={{ left: `${((at - start) / span) * 100}%` }}>
+              {!rulerWidth || ((at - start) / span) * rulerWidth + MARK_WIDTH <= rulerWidth ? clock(at, timezone, span <= 600_000) : null}
             </span>
           ))}
         </div>

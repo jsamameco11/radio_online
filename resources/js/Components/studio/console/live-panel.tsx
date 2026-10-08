@@ -32,19 +32,20 @@ export function LivePanel({ api }: { api: ConsoleApi }) {
 
   return (
     <Panel
+      dense
       title="Transmisión en vivo"
       description={session ? "Estás al aire. La voz llega a cada oyente por una conexión directa." : "Abre la transmisión para hablar al aire con tu micrófono."}
       actions={api.capturing ? <span className="inline-flex items-center gap-1.5 text-xs font-medium text-danger"><Circle className="size-2.5 animate-pulse fill-current" /> Grabando</span> : null}
     >
-      <div className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2">
+      <div className="space-y-3">
+        <div className="grid gap-2 @xs:grid-cols-2">
           <Field label="Locutor">{(id) => <Input id={id} value={api.hostName} maxLength={80} onChange={(event) => api.setHostName(event.target.value)} onBlur={() => session && void api.saveTitles()} />}</Field>
           <Field label="Programa">
             {(id) => <Input id={id} value={api.title} maxLength={120} placeholder="Por ejemplo «Mañanas al día»" onChange={(event) => api.setTitle(event.target.value)} onBlur={() => session && void api.saveTitles()} />}
           </Field>
         </div>
 
-        <div role="radiogroup" aria-label="Entrada de la consola" className="grid gap-1.5 sm:grid-cols-3">
+        <div role="radiogroup" aria-label="Entrada de la consola" className="grid gap-1.5 @lg:grid-cols-3">
           {INPUTS.map((option) => (
             <button
               key={option.value}
@@ -52,15 +53,16 @@ export function LivePanel({ api }: { api: ConsoleApi }) {
               role="radio"
               aria-checked={mic.input === option.value}
               onClick={() => api.changeMic({ input: option.value })}
+              title={option.hint}
               className={cn(
-                "flex items-start gap-2 rounded-xl border p-2.5 text-left transition",
+                "flex min-w-0 items-start gap-2 rounded-lg border px-2.5 py-2 text-left transition",
                 mic.input === option.value ? "border-signal/50 bg-signal-soft text-ink" : "border-line bg-raised text-muted hover:text-ink",
               )}
             >
               <span className="mt-0.5 shrink-0">{option.icon}</span>
-              <span>
-                <span className="block text-xs font-semibold">{option.label}</span>
-                <span className="block text-[11px] leading-snug text-muted">{option.hint}</span>
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold break-words">{option.label}</span>
+                <span className="block text-[11px] leading-snug break-words text-muted">{option.hint}</span>
               </span>
             </button>
           ))}
@@ -70,7 +72,6 @@ export function LivePanel({ api }: { api: ConsoleApi }) {
           <div className="flex flex-wrap items-center gap-2">
             {mic.input !== "none" ? (
               <Button
-                size="lg"
                 variant={api.talking ? "danger" : "primary"}
                 icon={api.talking ? <Mic className="size-5" /> : <MicOff className="size-5" />}
                 onClick={() => void api.talk(!api.talking)}
@@ -90,8 +91,8 @@ export function LivePanel({ api }: { api: ConsoleApi }) {
             </Button>
           </div>
         ) : (
-          <div className="flex flex-wrap items-center gap-3">
-            <Button size="lg" variant="signal" icon={<Radio className="size-5" />} loading={api.busy} onClick={() => void api.startLive(record && !external)}>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <Button variant="signal" icon={<Radio className="size-4" />} loading={api.busy} onClick={() => void api.startLive(record && !external)}>
               Abrir transmisión en vivo
             </Button>
             <Checkbox label="Grabar la transmisión" checked={record && !external} disabled={external} onChange={(event) => setRecord(event.target.checked)} />
@@ -111,9 +112,9 @@ export function LivePanel({ api }: { api: ConsoleApi }) {
               <LevelMeter analyser={api.micOpen ? (api.caster.current?.analyser ?? null) : null} label={line ? "Señal de la línea" : "Señal del micrófono"} />
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2 @xs:grid-cols-2">
               {api.devices.length > 1 ? (
-                <Field label={line ? "Entrada de la mezcladora o interfaz" : "Micrófono"} className="sm:col-span-2">
+                <Field label={line ? "Entrada de la mezcladora o interfaz" : "Micrófono"} className="@xs:col-span-2">
                   {(id) => (
                     <Select id={id} value={mic.deviceId} onChange={(event) => api.changeMic({ deviceId: event.target.value })}>
                       <option value="">Predeterminado del sistema</option>

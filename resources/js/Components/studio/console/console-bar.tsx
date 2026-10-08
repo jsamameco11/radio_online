@@ -1,10 +1,13 @@
 import { Headphones, Mic, Power, Repeat, Users } from "lucide-react";
 import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
+import { cn } from "@/lib/cn";
 import { duration } from "@/lib/format";
 import { clock, currentItem, shortTitle } from "@/lib/radio/format";
 import type { ConsoleApi } from "./use-console";
 import { kindLabel } from "./labels";
+
+const STAT = "inline-flex h-8 items-center gap-1.5 rounded-lg bg-raised px-2.5 text-xs text-muted";
 
 /** The console's status line: what is on air now and next, the audience and the master switches. */
 export function ConsoleBar({ api, timezone }: { api: ConsoleApi; timezone: string }) {
@@ -15,25 +18,25 @@ export function ConsoleBar({ api, timezone }: { api: ConsoleApi; timezone: strin
   const onAirLive = Boolean(live.session || radio.live.cut);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-surface px-4 py-3">
+    <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-line bg-canvas p-1.5">
       <Badge tone={!config.on_air ? "neutral" : onAirLive ? "danger" : "onair"}>
         <span className={`size-2 rounded-full bg-current ${onAirLive ? "animate-pulse" : ""}`} />
         {!config.on_air ? "Fuera del aire" : radio.live.cut ? "En vivo" : live.session ? "Transmisión abierta" : "Piloto automático"}
       </Badge>
-      {live.session && live.started_at ? <span className="font-mono text-sm text-ink tabular">{duration((now - live.started_at) / 1000)}</span> : null}
-      <span className="font-mono text-sm text-muted tabular" title={`Hora de la radio (${timezone})`}>
+      {live.session && live.started_at ? <span className={cn(STAT, "font-mono text-ink tabular")}>{duration((now - live.started_at) / 1000)}</span> : null}
+      <span className={cn(STAT, "font-mono tabular")} title={`Hora de la radio (${timezone})`}>
         {clock(now, timezone, true)}
       </span>
 
-      <span className="flex min-w-0 flex-1 items-center gap-2 text-sm" title={current?.title}>
-        <span className="text-xs font-medium tracking-wide text-faint uppercase">Ahora</span>
-        <span className="truncate text-ink">{current ? shortTitle(current.title, 60) : "—"}</span>
-        {current ? <span className="shrink-0 font-mono text-xs text-onair tabular">-{duration((current.end - now) / 1000)}</span> : null}
+      <span className={cn(STAT, "min-w-0 flex-1 basis-48")} title={current?.title}>
+        <span className="shrink-0 text-[10px] font-semibold tracking-wider text-faint uppercase">Ahora</span>
+        <span className="min-w-0 truncate text-ink">{current ? shortTitle(current.title, 60) : "—"}</span>
+        {current ? <span className="shrink-0 font-mono text-onair tabular">-{duration((current.end - now) / 1000)}</span> : null}
       </span>
-      <span className="hidden min-w-0 items-center gap-2 text-sm lg:flex" title={next?.title}>
-        <span className="text-xs font-medium tracking-wide text-faint uppercase">Sigue</span>
-        <span className="max-w-56 truncate text-muted">{next ? `${kindLabel(next.kind)} · ${next.title}` : "—"}</span>
-        {next ? <span className="shrink-0 font-mono text-xs text-faint tabular">en {duration((next.start - now) / 1000)}</span> : null}
+      <span className={cn(STAT, "hidden max-w-80 min-w-0 xl:inline-flex")} title={next?.title}>
+        <span className="shrink-0 text-[10px] font-semibold tracking-wider text-faint uppercase">Sigue</span>
+        <span className="min-w-0 truncate">{next ? `${kindLabel(next.kind)} · ${next.title}` : "—"}</span>
+        {next ? <span className="shrink-0 font-mono text-faint tabular">en {duration((next.start - now) / 1000)}</span> : null}
       </span>
 
       <Button
@@ -46,12 +49,12 @@ export function ConsoleBar({ api, timezone }: { api: ConsoleApi; timezone: strin
       >
         {snapshot.autopilot.repeat ? "Repetir" : "No repetir"}
       </Button>
-      <span className="inline-flex items-center gap-1 text-sm text-muted" title="Oyentes ahora">
-        <Users className="size-4" /> {radio.listeners}
+      <span className={STAT} title="Oyentes ahora">
+        <Users className="size-3.5" /> {radio.listeners}
       </span>
       {live.session ? (
-        <span className="inline-flex items-center gap-1 text-sm text-muted" title="Oyentes con la voz en vivo conectada">
-          <Mic className="size-4" /> {snapshot.voice}
+        <span className={STAT} title="Oyentes con la voz en vivo conectada">
+          <Mic className="size-3.5" /> {snapshot.voice}
           {api.connected !== snapshot.voice ? <span className="text-faint">({api.connected})</span> : null}
         </span>
       ) : null}

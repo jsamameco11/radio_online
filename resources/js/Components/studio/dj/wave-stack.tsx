@@ -34,7 +34,7 @@ export function WaveStack({ engine, state, browsing }: WaveStackProps) {
           <Minus className="size-3.5" />
         </Button>
         {browsing ? (
-          <span className="ml-auto truncate">
+          <span className="ml-auto min-w-0 truncate">
             Navegador del controlador: <span className="font-medium text-ink">{browsing}</span>
           </span>
         ) : null}
@@ -42,7 +42,7 @@ export function WaveStack({ engine, state, browsing }: WaveStackProps) {
       {DECKS.map((id) => (
         <div key={id} className="flex items-center gap-2">
           <span className={cn("w-4 text-center font-display text-xs font-bold", state.decks[id].playing ? "text-onair" : "text-faint")}>{id + 1}</span>
-          <WaveScroller engine={engine} id={id} deck={state.decks[id]} span={ZOOMS[zoom]} className="h-16" />
+          <WaveScroller engine={engine} id={id} deck={state.decks[id]} span={ZOOMS[zoom]} className="h-12" />
         </div>
       ))}
     </div>

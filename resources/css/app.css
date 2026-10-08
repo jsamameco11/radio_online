@@ -154,6 +154,48 @@ body {
   outline-offset: 2px;
 }
 
+/* The live console: one dark chassis holding every module, like a broadcast board. */
+.desk {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--raised) 45%, transparent), transparent 16rem),
+    color-mix(in oklab, var(--canvas) 65%, var(--surface));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--ink) 7%, transparent),
+    0 28px 60px -36px color-mix(in oklab, var(--canvas) 90%, transparent);
+}
+
+/* A vinyl record: fine grooves, the gaps between tracks and a light that stays still while it turns. */
+.vinyl-disc {
+  background:
+    radial-gradient(circle, transparent 47%, color-mix(in oklab, var(--line-strong) 80%, var(--canvas)) 47.5% 48.5%, transparent 49%),
+    radial-gradient(circle, transparent 62%, color-mix(in oklab, var(--line-strong) 80%, var(--canvas)) 62.5% 63.5%, transparent 64%),
+    radial-gradient(circle, transparent 78%, color-mix(in oklab, var(--line-strong) 80%, var(--canvas)) 78.5% 79.5%, transparent 80%),
+    repeating-radial-gradient(circle, var(--canvas) 0 2px, color-mix(in oklab, var(--line) 70%, var(--canvas)) 2px 3px);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ink) 8%, transparent);
+}
+
+.vinyl-sheen {
+  background: conic-gradient(
+    from 35deg,
+    transparent 0deg,
+    color-mix(in oklab, var(--ink) 10%, transparent) 22deg,
+    transparent 55deg 180deg,
+    color-mix(in oklab, var(--ink) 7%, transparent) 202deg,
+    transparent 235deg
+  );
+}
+
+.vinyl-arm {
+  transform-origin: 50% 7%;
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vinyl-arm {
+    transition: none;
+  }
+}
+
 /* Studio desk: a thin, rounded scrollbar for the console asides. */
 .desk-scroll {
   scrollbar-width: thin;

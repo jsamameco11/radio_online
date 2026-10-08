@@ -42,9 +42,9 @@ export function AutopilotPanel({ api, playlists, library, timezone }: { api: Con
   }
 
   return (
-    <Panel title="Música automática" actions={<Badge tone={running ? "onair" : autopilot.finished || silent ? "warning" : "neutral"}>{status}</Badge>}>
-      <div className="space-y-3">
-        <p className="text-sm text-muted" title={automatic?.title}>
+    <Panel dense title="Música automática" actions={<Badge tone={running ? "onair" : autopilot.finished || silent ? "warning" : "neutral"}>{status}</Badge>}>
+      <div className="space-y-2.5">
+        <p className="text-xs break-words text-muted" title={automatic?.title}>
           {running && automatic ? (
             <>
               Ahora: <span className="text-ink">{shortTitle(automatic.title, 48)}</span> · {autopilot.label}
@@ -85,7 +85,7 @@ export function AutopilotPanel({ api, playlists, library, timezone }: { api: Con
         <Field label="Canción de partida" hint={playlist ? "Debe estar en la lista elegida." : undefined}>
           {(id) => <TrackPicker id={id} library={library} value={first} onChange={setFirst} kinds={["song"]} placeholder={playlist && !shuffle ? "Desde la primera de la lista" : "Cualquiera (al azar)"} />}
         </Field>
-        <Button className="w-full" variant="signal" icon={<Play className="size-4" />} loading={busy} onClick={() => void start()} title="Suena para todos los oyentes en unos segundos">
+        <Button size="sm" className="w-full" variant="signal" icon={<Play className="size-3.5" />} loading={busy} onClick={() => void start()} title="Suena para todos los oyentes en unos segundos">
           {running ? "Empezar ahora" : "Iniciar música automática"}
         </Button>
       </div>

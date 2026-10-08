@@ -140,8 +140,8 @@ export function StudioGiftInbox({ className }: { className?: string }) {
   const pendingVoices = gifts.filter((gift) => gift.message?.has_voice && gift.message.status.value === "visible" && !gift.message.played_at).length;
 
   return (
-    <section className={cn("flex min-h-0 flex-col rounded-2xl border border-line bg-surface", className)}>
-      <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
+    <section className={cn("flex min-h-0 min-w-0 flex-col rounded-xl border border-line bg-surface", className)}>
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2">
         <div className="flex items-center gap-2">
           <GiftIcon className="size-4 text-gold" />
           <h2 className="text-sm font-semibold">Regalos en vivo</h2>

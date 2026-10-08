@@ -17,24 +17,24 @@ export function FxUnit({ engine, state }: { engine: DjEngine; state: DjState }) 
   const bpm = source !== undefined ? engine.effectiveBpm(source) : null;
 
   return (
-    <section aria-label="Efectos" className="space-y-3 rounded-2xl border border-line bg-surface p-4">
-      <header className="flex items-center justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-semibold text-ink">Beat FX</h3>
-          <p className="text-xs text-muted">{bpm ? `Sincronizado a ${bpm.toFixed(1)} BPM` : "A 120 BPM hasta que suene un deck con BPM"}</p>
+    <section aria-label="Efectos" className="min-w-0 space-y-2.5 rounded-xl border border-line bg-surface p-3">
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="text-[13px] font-semibold text-ink">Beat FX</h3>
+          <p className="text-[11px] text-muted">{bpm ? `Sincronizado a ${bpm.toFixed(1)} BPM` : "A 120 BPM hasta que suene un deck con BPM"}</p>
         </div>
         <button
           type="button"
           onClick={() => engine.setFx({ on: !fx.on })}
           aria-pressed={fx.on}
-          className={cn("flex h-10 items-center gap-1.5 rounded-xl border-2 px-4 text-sm font-bold transition", fx.on ? "border-info bg-info text-white" : "border-info/50 bg-info-soft text-info")}
+          className={cn("flex h-8 shrink-0 items-center gap-1.5 rounded-lg border-2 px-3 text-xs font-bold transition", fx.on ? "border-info bg-info text-white" : "border-info/50 bg-info-soft text-info")}
         >
           <Power className="size-4" /> {fx.on ? "FX ON" : "FX OFF"}
         </button>
       </header>
       <Segmented label="Efecto" value={fx.kind} options={KINDS} onChange={(kind) => engine.setFx({ kind })} tone="info" className="grid grid-cols-3 gap-1.5" buttonClassName="h-8 rounded-lg text-xs" />
-      <div className="flex items-end gap-4">
-        <div className="flex-1 space-y-1.5">
+      <div className="flex items-end gap-3">
+        <div className="min-w-0 flex-1 space-y-1.5">
           <span className="text-[10px] font-bold tracking-wide text-muted uppercase">Tiempos</span>
           <Segmented label="Tiempos del efecto" value={fx.beats} options={BEATS} onChange={(beats) => engine.setFx({ beats })} tone="info" className="flex flex-wrap gap-1" buttonClassName="h-7 min-w-9 px-1.5 font-mono text-[11px] font-normal" />
           <span className="block pt-1 text-[10px] font-bold tracking-wide text-muted uppercase">Aplicar en</span>

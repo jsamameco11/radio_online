@@ -53,6 +53,7 @@ export function SwitchPanel({ api, day, playlists, timezone }: { api: ConsoleApi
 
   return (
     <Panel
+      dense
       title="Vivo y música automática"
       description={status}
       actions={
@@ -74,11 +75,11 @@ export function SwitchPanel({ api, day, playlists, timezone }: { api: ConsoleApi
         </div>
       }
     >
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="space-y-2.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <Badge tone={cut ? "danger" : block && auto ? "warning" : "neutral"}>{cut ? "En vivo" : block && auto ? `Vivo programado hasta ${clock(block.end, timezone)}` : "Música automática"}</Badge>
-          <span className="text-xs text-muted">Fuente del vivo: {external ? "señal externa (OBS, Icecast)" : "esta consola"}</span>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
+          <span className="min-w-0 text-xs break-words text-muted">Fuente del vivo: {external ? "señal externa (OBS, Icecast)" : "esta consola"}</span>
+          <div className="ml-auto flex max-w-full flex-wrap items-center gap-2">
             <span className="text-xs font-medium text-muted">{cut ? "Al volver suena" : "Sigue en automático"}</span>
             <SourcePicker
               playlists={playlists}
@@ -90,13 +91,14 @@ export function SwitchPanel({ api, day, playlists, timezone }: { api: ConsoleApi
               }}
             />
             {cut ? (
-              <Button variant="signal" icon={<Undo2 className="size-4" />} loading={busy} onClick={() => void act(() => api.resumeMusic(changed ? { playlist, shuffle } : undefined))}>
+              <Button size="sm" variant="signal" icon={<Undo2 className="size-3.5" />} loading={busy} onClick={() => void act(() => api.resumeMusic(changed ? { playlist, shuffle } : undefined))}>
                 Volver a la música
               </Button>
             ) : (
               <Button
+                size="sm"
                 variant="danger"
-                icon={<Radio className="size-4" />}
+                icon={<Radio className="size-3.5" />}
                 disabled={!external && !snapshot.live.session}
                 loading={busy}
                 title={!external && !snapshot.live.session ? "Abre la transmisión en vivo primero" : "Corta la música automática para todos los oyentes"}

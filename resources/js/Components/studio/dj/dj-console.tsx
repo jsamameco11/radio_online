@@ -67,16 +67,17 @@ export function DjConsole({ api, library, pads }: DjConsoleProps) {
 
   if (failed) {
     return (
-      <Panel title="Consola DJ">
-        <p className="text-sm text-muted">Este navegador no puede abrir la consola DJ. Usa Chrome, Edge o Firefox actualizados en una computadora.</p>
+      <Panel title="Consola DJ" dense>
+        <p className="text-xs text-muted">Este navegador no puede abrir la consola DJ. Usa Chrome, Edge o Firefox actualizados en una computadora.</p>
       </Panel>
     );
   }
 
   return (
     <Panel
+      dense
       title="Consola DJ"
-      description="Dos decks, mezclador, efectos y sampler. Prepara en tus auriculares y pon la mezcla al aire cuando quieras."
+      description="Dos vinilos, mezclador, efectos y sampler. Prepara en tus auriculares y pon la mezcla al aire cuando quieras."
       actions={
         <>
           <Button size="sm" variant={controller ? "signal" : "secondary"} icon={<Cable className="size-3.5" />} onClick={() => setMidiOpen(true)}>
@@ -96,13 +97,13 @@ export function DjConsole({ api, library, pads }: DjConsoleProps) {
       }
     >
       {!engine || !state ? (
-        <p className="text-sm text-muted">Encendiendo la consola DJ…</p>
+        <p className="text-xs text-muted">Encendiendo la consola DJ…</p>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-2.5">
           <AirBar engine={engine} api={api} onAir={onAir} canAir={canAir} onNotice={setNotice} />
 
           {notice ? (
-            <div role="status" className="flex items-start justify-between gap-3 rounded-xl bg-warning-soft px-4 py-2 text-sm text-warning">
+            <div role="status" className="flex items-start justify-between gap-3 rounded-lg bg-warning-soft px-3 py-2 text-xs text-warning">
               <p>{notice}</p>
               <button type="button" onClick={() => setNotice(null)} aria-label="Cerrar aviso" className="opacity-70 hover:opacity-100">
                 <X className="size-4" />
@@ -112,7 +113,7 @@ export function DjConsole({ api, library, pads }: DjConsoleProps) {
 
           <WaveStack engine={engine} state={state} browsing={midi.connected ? (browsed?.title ?? null) : null} />
 
-          <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+          <div className="grid gap-2.5 lg:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
             <DjDeck engine={engine} id={0} deck={state.decks[0]} sampler={state.sampler} library={library} onNotice={setNotice} />
             <div className="lg:order-last lg:col-span-2 2xl:order-none 2xl:col-span-1">
               <DjMixer engine={engine} state={state} />
@@ -120,7 +121,7 @@ export function DjConsole({ api, library, pads }: DjConsoleProps) {
             <DjDeck engine={engine} id={1} deck={state.decks[1]} sampler={state.sampler} library={library} onNotice={setNotice} />
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-2.5 lg:grid-cols-2">
             <FxUnit engine={engine} state={state} />
             <SamplerPanel engine={engine} state={state} library={library} />
           </div>

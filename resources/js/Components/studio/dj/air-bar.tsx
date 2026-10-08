@@ -47,15 +47,15 @@ export function AirBar({ engine, api, onAir, canAir, onNotice }: AirBarProps) {
 
   return (
     <div className="space-y-1.5">
-      <div className={cn("flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3", onAir ? "border-onair/50 bg-onair-soft" : "border-line bg-raised")}>
-        <span className={cn("inline-flex items-center gap-2 text-sm font-semibold", onAir ? "text-onair" : "text-muted")}>
-          <span className={cn("size-2.5 rounded-full", onAir ? "animate-onair bg-onair" : "bg-faint")} />
+      <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border px-3 py-2", onAir ? "border-onair/50 bg-onair-soft" : "border-line bg-raised")}>
+        <span className={cn("inline-flex min-w-0 items-center gap-2 text-xs font-semibold", onAir ? "text-onair" : "text-muted")}>
+          <span className={cn("size-2 shrink-0 rounded-full", onAir ? "animate-onair bg-onair" : "bg-faint")} />
           {onAir ? "La mezcla está al aire" : "Pre-escucha: la mezcla solo suena en tus auriculares"}
         </span>
         <Checkbox label="Cortar la música automática al salir al aire" checked={cutOnAir} onChange={(event) => setCutOnAir(event.target.checked)} className="text-xs" />
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="ml-auto flex max-w-full flex-wrap items-center gap-2">
           {canChooseOutput && outputs.length > 1 ? (
-            <Select value={output} onChange={(event) => void chooseOutput(event.target.value)} className="h-9 w-56 text-xs" aria-label="Salida de los auriculares">
+            <Select value={output} onChange={(event) => void chooseOutput(event.target.value)} className="h-8 w-full max-w-56 min-w-0 text-xs" aria-label="Salida de los auriculares">
               <option value="">Auriculares: salida del sistema</option>
               {outputs.map((device, index) => (
                 <option key={device.deviceId || index} value={device.deviceId}>
@@ -65,8 +65,9 @@ export function AirBar({ engine, api, onAir, canAir, onNotice }: AirBarProps) {
             </Select>
           ) : null}
           <Button
+            size="sm"
             variant={onAir ? "danger" : "signal"}
-            icon={<Radio className="size-4" />}
+            icon={<Radio className="size-3.5" />}
             disabled={!onAir && !canAir}
             title={canAir ? undefined : "Abre la transmisión en vivo (con cualquier entrada) para poner la mezcla al aire"}
             onClick={() => void toggleAir()}
@@ -75,7 +76,7 @@ export function AirBar({ engine, api, onAir, canAir, onNotice }: AirBarProps) {
           </Button>
         </div>
       </div>
-      {!canAir && !onAir ? <p className="text-xs text-muted">Para salir al aire abre la transmisión en vivo arriba. Si no usarás micrófono, elige la entrada «Solo consola DJ».</p> : null}
+      {!canAir && !onAir ? <p className="text-[11px] text-muted">Para salir al aire abre la transmisión en vivo arriba. Si no usarás micrófono, elige la entrada «Solo consola DJ».</p> : null}
     </div>
   );
 }

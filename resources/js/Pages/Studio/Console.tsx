@@ -55,31 +55,32 @@ export default function Console({ snapshot, pads, library, playlists, kinds, day
 
   return (
     <StudioLayout title="Consola en vivo" setup={false} wide>
-      <div className="space-y-3">
-        {notice ? (
-          <div role="status" className={cn("flex items-start justify-between gap-4 rounded-xl px-4 py-2.5 text-sm", notice.tone === "error" ? "bg-danger-soft text-danger" : "bg-onair-soft text-onair")}>
-            <p>{notice.text}</p>
-            <button type="button" onClick={() => api.setNotice(null)} className="opacity-70 hover:opacity-100" aria-label="Cerrar aviso">
-              <X className="size-4" />
-            </button>
-          </div>
-        ) : null}
+      {notice ? (
+        <div role="status" className={cn("mb-2 flex items-start justify-between gap-4 rounded-xl px-4 py-2.5 text-sm", notice.tone === "error" ? "bg-danger-soft text-danger" : "bg-onair-soft text-onair")}>
+          <p className="min-w-0 break-words">{notice.text}</p>
+          <button type="button" onClick={() => api.setNotice(null)} className="opacity-70 hover:opacity-100" aria-label="Cerrar aviso">
+            <X className="size-4" />
+          </button>
+        </div>
+      ) : null}
 
+      <div className="desk space-y-2 rounded-[1.4rem] border border-line-strong p-1.5 sm:p-2.5">
         <ConsoleBar api={api} timezone={timezone} />
         <SwitchPanel api={api} day={day} playlists={playlists} timezone={timezone} />
+        <UpcomingAlerts api={api} timezone={timezone} />
 
-        <div className="grid items-start gap-3 xl:grid-cols-[16.5rem_minmax(0,1fr)_auto]">
+        <div className={cn("grid items-start gap-2", bankOpen ? "xl:grid-cols-[15rem_minmax(0,1fr)_20rem]" : "xl:grid-cols-[15rem_minmax(0,1fr)_2.75rem]")}>
           <LibraryRail api={api} library={library} />
           <LiveTimeline api={api} library={library} day={day} timezone={timezone} />
           {bankOpen ? (
-            <div className="w-full xl:w-[22rem]">
-              <div className="mb-1.5 flex items-center justify-between px-1">
-                <p className="text-[0.68rem] font-semibold tracking-[0.16em] text-faint uppercase">Panel derecho</p>
-                <button type="button" onClick={() => toggleBank(false)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-muted hover:bg-raised hover:text-ink" aria-label="Replegar la botonera">
+            <div className="flex min-w-0 flex-col xl:h-0 xl:min-h-full">
+              <div className="mb-1 flex items-center justify-between px-1">
+                <p className="text-[0.65rem] font-semibold tracking-[0.16em] text-faint uppercase">Panel derecho</p>
+                <button type="button" onClick={() => toggleBank(false)} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted hover:bg-raised hover:text-ink" aria-label="Replegar la botonera">
                   Replegar <PanelRightClose className="size-3.5" />
                 </button>
               </div>
-              <div className="desk-scroll max-h-[40rem] overflow-y-auto overscroll-contain rounded-2xl">
+              <div className="desk-scroll max-h-[28rem] min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-xl xl:max-h-none">
                 <PadBank api={api} initial={pads} library={library} max={limits.pads} />
               </div>
             </div>
@@ -87,7 +88,7 @@ export default function Console({ snapshot, pads, library, playlists, kinds, day
             <button
               type="button"
               onClick={() => toggleBank(true)}
-              className="flex h-40 w-full flex-row items-center justify-center gap-2 rounded-2xl border border-line bg-surface text-muted hover:text-ink xl:h-auto xl:min-h-40 xl:w-11 xl:flex-col"
+              className="flex h-11 w-full flex-row items-center justify-center gap-2 rounded-xl border border-line bg-surface text-muted hover:text-ink xl:h-0 xl:min-h-full xl:flex-col"
               aria-expanded={false}
               aria-label="Mostrar la botonera"
             >
@@ -97,33 +98,32 @@ export default function Console({ snapshot, pads, library, playlists, kinds, day
           )}
         </div>
 
-        <div className="grid gap-3 xl:grid-cols-[18rem_minmax(0,1fr)]">
+        <div className="grid items-start gap-2 lg:grid-cols-[17.5rem_minmax(0,1fr)]">
           <Mixer api={api} />
           <Decks api={api} library={library} />
         </div>
 
-        <section aria-label="Consola DJ" data-region="dj-console">
-          <DjConsole api={api} library={library} pads={pads} />
-        </section>
-
-        <UpcomingAlerts api={api} timezone={timezone} />
-
-        <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-4">
+        <div className="grid items-start gap-2 md:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1.15fr)]">
           <LivePanel api={api} />
           <AutopilotPanel api={api} playlists={playlists} library={library} timezone={timezone} />
           <LaunchNow api={api} library={library} />
           <TodayList day={day} now={api.now} timezone={timezone} autofill={api.snapshot.config.autofill} upcoming={api.snapshot.upcoming} scheduleUrl={canSchedule ? url("/programacion") : null} />
         </div>
 
-        <section aria-label="Tema del programa" data-region="topic-editor">
-          <TopicEditor />
+        <section aria-label="Consola DJ" data-region="dj-console">
+          <DjConsole api={api} library={library} pads={pads} />
         </section>
 
-        {can("gifts.view") ? (
-          <section aria-label="Regalos de los oyentes" data-region="gift-inbox">
-            <StudioGiftInbox />
+        <div className={cn("grid items-start gap-2", can("gifts.view") && "lg:grid-cols-2")}>
+          <section aria-label="Tema del programa" data-region="topic-editor" className="min-w-0">
+            <TopicEditor />
           </section>
-        ) : null}
+          {can("gifts.view") ? (
+            <section aria-label="Regalos de los oyentes" data-region="gift-inbox" className="min-w-0">
+              <StudioGiftInbox />
+            </section>
+          ) : null}
+        </div>
       </div>
 
       {api.capture?.status === "ready" ? (

@@ -23,8 +23,8 @@ export function DjMixer({ engine, state }: { engine: DjEngine; state: DjState })
   };
 
   return (
-    <section aria-label="Mezclador DJ" className="space-y-3 rounded-2xl border border-line bg-surface p-4">
-      <div className="grid grid-cols-[auto_auto_auto] justify-center gap-4">
+    <section aria-label="Mezclador DJ" className="h-full space-y-3 rounded-xl border border-line bg-surface p-3">
+      <div className="grid grid-cols-[auto_auto_auto] justify-center gap-3">
         <MixerStrip engine={engine} id={0} channel={state.channels[0]} meter={meter(0)} />
         <MixerMaster engine={engine} state={state} meters={[meter(2), meter(3)]} />
         <MixerStrip engine={engine} id={1} channel={state.channels[1]} meter={meter(1)} />

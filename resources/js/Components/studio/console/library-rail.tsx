@@ -60,12 +60,12 @@ export function LibraryRail({ api, library }: { api: ConsoleApi; library: Broadc
   }
 
   return (
-    <section className="flex max-h-[40rem] flex-col overflow-hidden rounded-2xl border border-line bg-surface" aria-label="Biblioteca">
-      <header className="flex items-center justify-between gap-2 border-b border-line px-3 py-2.5">
+    <section className="flex max-h-[28rem] min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-surface xl:h-0 xl:max-h-none xl:min-h-full" aria-label="Biblioteca">
+      <header className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
         <h2 className="text-[0.68rem] font-semibold tracking-[0.16em] text-faint uppercase">Biblioteca · arrastra</h2>
         <span className="font-mono text-xs text-muted tabular">{library.length}</span>
       </header>
-      <div className="space-y-2 border-b border-line p-2.5">
+      <div className="space-y-2 border-b border-line p-2">
         <label className="relative block">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-faint" />
           <input
@@ -123,7 +123,7 @@ export function LibraryRail({ api, library }: { api: ConsoleApi; library: Broadc
           </li>
         ))}
       </ul>
-      <div className="border-t border-line p-2.5">
+      <div className="border-t border-line p-2">
         <p className="mb-1.5 text-[10px] text-muted">Elige un sonido para enviarlo a</p>
         <div className="flex flex-wrap gap-1">
           {SEND.map((item) => (

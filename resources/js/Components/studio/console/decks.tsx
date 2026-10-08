@@ -15,8 +15,8 @@ const FADES = [0, 1, 2, 3, 5, 8, 12];
 /** Background beds and players: each one sounds on top of the program and of the others. */
 export function Decks({ api, library }: { api: ConsoleApi; library: BroadcastTrack[] }) {
   return (
-    <Panel title="Fondos y reproductores" description="Cada uno suena encima de la programación. Los fondos se repiten en bucle hasta que los detengas.">
-      <div className="grid gap-3 md:grid-cols-2">
+    <Panel dense title="Fondos y reproductores" description="Cada uno suena encima de la programación. Los fondos se repiten en bucle hasta que los detengas.">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,16.5rem),1fr))] gap-2">
         {[...BEDS, ...PLAYERS].map((lane) => (
           <Deck key={lane} lane={lane} api={api} library={library} />
         ))}
@@ -64,15 +64,15 @@ function Deck({ lane, api, library }: { lane: string; api: ConsoleApi; library: 
   const progress = ((playing?.loop ? elapsed % span : elapsed) / span) * 100;
 
   return (
-    <div className={cn("space-y-2 rounded-xl border p-3", playing ? "border-onair/40 bg-onair-soft" : "border-line bg-raised")}>
-      <div className="flex items-center gap-2">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface font-mono text-xs font-semibold text-ink">{lane}</span>
-        <TrackPicker library={library} value={trackId} onChange={choose} placeholder={bed ? "Fondo: elige un audio…" : "Elige un audio…"} className="h-9 min-w-0 flex-1" label={`Audio de ${lane}`} />
+    <div className={cn("min-w-0 space-y-1.5 rounded-lg border p-2", playing ? "border-onair/40 bg-onair-soft" : "border-line bg-raised")}>
+      <div className="flex items-center gap-1.5">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-surface font-mono text-xs font-semibold text-ink">{lane}</span>
+        <TrackPicker library={library} value={trackId} onChange={choose} placeholder={bed ? "Fondo: elige un audio…" : "Elige un audio…"} className="h-8 min-w-0 flex-1" label={`Audio de ${lane}`} />
       </div>
 
       <div className="relative h-6 overflow-hidden rounded-md bg-surface">
         <span className="absolute inset-y-0 left-0 bg-onair/25" style={{ width: `${Math.min(100, progress)}%` }} />
-        <span className="relative flex h-full items-center px-2 text-xs text-muted">
+        <span className="relative block h-full truncate px-2 text-xs leading-6 text-muted">
           {playing
             ? `${playing.loop ? "⟲ " : ""}${shortTitle(playing.title, 34)} · ${playing.loop ? duration((now - playing.start) / 1000) : `-${duration((playing.end - now) / 1000)}`}`
             : fading

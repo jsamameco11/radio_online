@@ -34,8 +34,8 @@ export function LaunchNow({ api, library }: { api: ConsoleApi; library: Broadcas
   }
 
   return (
-    <Panel title="Al aire ahora" description="Corta la pista principal y corre la programación. Para sonar encima usa fondos, reproductores o la botonera.">
-      <div className="space-y-3">
+    <Panel dense title="Al aire ahora" description="Corta la pista principal y corre la programación. Para sonar encima usa fondos, reproductores o la botonera.">
+      <div className="space-y-2.5">
         <Tabs
           value={type}
           onChange={setType}
@@ -49,8 +49,8 @@ export function LaunchNow({ api, library }: { api: ConsoleApi; library: Broadcas
         ) : (
           <div className="space-y-2">
             <Input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={160} placeholder="Nombre del bloque" aria-label="Nombre del bloque en vivo" />
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="inline-flex items-center gap-2 text-sm">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <label className="inline-flex items-center gap-2 text-xs">
                 <Input type="number" min={1} max={360} value={minutes} onChange={(event) => setMinutes(Number(event.target.value))} className="w-20" aria-label="Minutos" />
                 minutos
               </label>
@@ -58,7 +58,7 @@ export function LaunchNow({ api, library }: { api: ConsoleApi; library: Broadcas
             </div>
           </div>
         )}
-        <Button variant="danger" icon={<Send className="size-4" />} disabled={type === "tracks" ? !track : title.trim().length < 2} loading={busy} onClick={() => void go()}>
+        <Button size="sm" variant="danger" icon={<Send className="size-3.5" />} disabled={type === "tracks" ? !track : title.trim().length < 2} loading={busy} onClick={() => void go()}>
           Lanzar al aire
         </Button>
       </div>
@@ -70,6 +70,7 @@ export function LaunchNow({ api, library }: { api: ConsoleApi; library: Broadcas
 export function TodayList({ day, now, timezone, autofill, upcoming, scheduleUrl }: { day: ScheduleBlock[]; now: number; timezone: string; autofill: boolean; upcoming: UpcomingBlock[]; scheduleUrl: string | null }) {
   return (
     <Panel
+      dense
       title="Programación de hoy"
       actions={
         scheduleUrl ? (
@@ -81,26 +82,31 @@ export function TodayList({ day, now, timezone, autofill, upcoming, scheduleUrl 
       padded={false}
     >
       {day.length ? (
-        <ul className="max-h-80 divide-y divide-line overflow-y-auto">
+        <ul className="desk-scroll max-h-80 divide-y divide-line overflow-y-auto">
           {day.map((block) => {
             const alert = upcoming.find((item) => item.id === block.id);
             const isNow = !alert?.held && block.start <= now && now < block.end;
             return (
-              <li key={block.id} className={cn("flex items-center gap-2 px-4 py-2 text-sm", alert ? "bg-danger-soft" : isNow ? "bg-onair-soft" : block.end < now && "opacity-50")}>
-                <span className="w-28 shrink-0 font-mono text-xs text-muted tabular">
-                  {clock(block.start, timezone)} – {clock(block.end, timezone)}
+              <li key={block.id} className={cn("flex items-start gap-2 px-3 py-1.5", alert ? "bg-danger-soft" : isNow ? "bg-onair-soft" : block.end < now && "opacity-50")}>
+                <span className="shrink-0 pt-px font-mono text-[11px] text-muted tabular">
+                  {clock(block.start, timezone)}–{clock(block.end, timezone)}
                 </span>
-                <span className="w-20 shrink-0 text-xs text-faint">{block.layer ? `Capa ${block.layer}` : "Principal"}</span>
-                <span className="min-w-0 flex-1 truncate">{block.title}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs text-ink" title={block.title}>
+                    {block.title}
+                  </span>
+                  <span className="block truncate text-[10px] text-faint">
+                    {block.layer ? `Capa ${block.layer}` : "Principal"} · {kindLabel(block.kind)}
+                  </span>
+                </span>
                 {isNow ? <Badge tone="onair">Ahora</Badge> : null}
-                {alert ? <span className="shrink-0 font-mono text-xs text-danger tabular">{alert.held ? "tras el vivo" : `en ${duration(Math.max(0, alert.start - now) / 1000)}`}</span> : null}
-                <Badge>{kindLabel(block.kind)}</Badge>
+                {alert ? <span className="shrink-0 font-mono text-[11px] text-danger tabular">{alert.held ? "tras el vivo" : `en ${duration(Math.max(0, alert.start - now) / 1000)}`}</span> : null}
               </li>
             );
           })}
         </ul>
       ) : (
-        <p className="px-5 py-4 text-sm text-muted">No hay bloques para hoy. {autofill ? "Suena la música automática." : "Música automática detenida: la radio está en silencio."}</p>
+        <p className="px-3 py-3 text-xs text-muted">No hay bloques para hoy. {autofill ? "Suena la música automática." : "Música automática detenida: la radio está en silencio."}</p>
       )}
     </Panel>
   );
@@ -119,8 +125,8 @@ export function UpcomingAlerts({ api, timezone }: { api: ConsoleApi; timezone: s
   const live = Boolean(api.snapshot.live.session || api.snapshot.radio.live.cut);
 
   return (
-    <Panel title="Próximo en la programación" actions={<AlarmClock className="size-4 text-danger" />}>
-      <ul className="space-y-3">
+    <Panel dense title="Próximo en la programación" actions={<AlarmClock className="size-4 text-danger" />}>
+      <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))] gap-2">
         {visible.map((block) => (
           <UpcomingItem key={block.id} api={api} block={block} now={now} live={live} timezone={timezone} onHide={() => setHidden((list) => [...list, block.id])} />
         ))}
@@ -148,15 +154,15 @@ function UpcomingItem({ api, block, now, live, timezone, onHide }: { api: Consol
   }
 
   return (
-    <li className="space-y-2 rounded-xl border border-danger/30 bg-danger-soft p-3">
+    <li className="min-w-0 space-y-2 rounded-lg border border-danger/30 bg-danger-soft p-2.5">
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone="danger">{kindLabel(block.kind)}</Badge>
         <span className="font-mono text-xs text-muted tabular">{block.held ? "pendiente" : `${clock(block.start, timezone)} – ${clock(block.end, timezone)}`}</span>
         <span className="text-xs text-faint">{longDuration(block.duration)}</span>
       </div>
-      <p className="text-sm font-semibold">{block.title}</p>
-      {block.note ? <p className="rounded-md bg-surface px-2 py-1 text-xs text-muted">{block.note}</p> : null}
-      <p className="text-xs text-danger">
+      <p className="text-sm font-semibold break-words">{block.title}</p>
+      {block.note ? <p className="rounded-md bg-surface px-2 py-1 text-xs break-words text-muted">{block.note}</p> : null}
+      <p className="text-xs break-words text-danger">
         {!block.held && block.start > now ? <strong>Empieza en {duration((block.start - now) / 1000)}. </strong> : null}
         {status}
       </p>

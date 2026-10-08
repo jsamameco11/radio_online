@@ -7,25 +7,27 @@ interface PanelProps {
   actions?: ReactNode;
   footer?: ReactNode;
   padded?: boolean;
+  /** Tighter spacing and type, for the modules of the live console desk. */
+  dense?: boolean;
   className?: string;
   children: ReactNode;
 }
 
 /** A bordered surface with an optional header and footer: the basic block of every screen. */
-export function Panel({ title, description, actions, footer, padded = true, className, children }: PanelProps) {
+export function Panel({ title, description, actions, footer, padded = true, dense = false, className, children }: PanelProps) {
   return (
-    <section className={cn("rounded-2xl border border-line bg-surface", className)}>
+    <section className={cn("border border-line bg-surface", dense ? "@container min-w-0 rounded-xl" : "rounded-2xl", className)}>
       {(title || actions) && (
-        <header className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
+        <header className={cn("flex flex-wrap items-start justify-between border-b border-line", dense ? "gap-2 px-3 py-2" : "gap-3 px-5 py-4")}>
           <div className="min-w-0">
-            {title && <h2 className="text-sm font-semibold text-ink">{title}</h2>}
-            {description && <p className="mt-0.5 text-xs text-muted">{description}</p>}
+            {title && <h2 className={cn("font-semibold break-words text-ink", dense ? "text-[13px]" : "text-sm")}>{title}</h2>}
+            {description && <p className={cn("mt-0.5 break-words text-muted", dense ? "text-[11px] leading-snug" : "text-xs")}>{description}</p>}
           </div>
-          {actions && <div className="flex items-center gap-2">{actions}</div>}
+          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
         </header>
       )}
-      <div className={cn(padded && "p-5")}>{children}</div>
-      {footer && <footer className="flex items-center justify-end gap-2 border-t border-line px-5 py-3">{footer}</footer>}
+      <div className={cn(padded && (dense ? "p-3" : "p-5"))}>{children}</div>
+      {footer && <footer className={cn("flex items-center justify-end gap-2 border-t border-line", dense ? "px-3 py-2" : "px-5 py-3")}>{footer}</footer>}
     </section>
   );
 }

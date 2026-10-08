@@ -71,6 +71,7 @@ export function PadBank({ api, initial, library, max }: { api: ConsoleApi; initi
 
   return (
     <Panel
+      dense
       title="Botonera"
       description={editing ? "Ordena, quita o agrega botones." : "Toca un botón o usa las teclas 1 a 0."}
       actions={
@@ -88,9 +89,9 @@ export function PadBank({ api, initial, library, max }: { api: ConsoleApi; initi
       }
     >
       {pads.length === 0 ? (
-        <p className="text-sm text-muted">La botonera está vacía. Agrega efectos de fábrica o audios de tu biblioteca con «Editar».</p>
+        <p className="text-xs text-muted">La botonera está vacía. Agrega efectos de fábrica o audios de tu biblioteca con «Editar».</p>
       ) : (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(4.75rem,1fr))] gap-1.5">
           {pads.map((pad, index) => (
             <div key={pad.id} className="relative">
               <button
@@ -99,13 +100,13 @@ export function PadBank({ api, initial, library, max }: { api: ConsoleApi; initi
                 onClick={() => void firePad(pad)}
                 title={`${pad.title} · ${duration(pad.duration)}`}
                 className={cn(
-                  "flex h-24 w-full flex-col items-start justify-between rounded-xl border p-2.5 text-left transition active:scale-[0.98] disabled:cursor-default",
+                  "flex h-20 w-full min-w-0 flex-col items-start justify-between rounded-lg border p-2 text-left transition active:scale-[0.98] disabled:cursor-default",
                   sounding.has(pad.id) ? "border-royal bg-royal text-white shadow-[0_8px_24px_-12px_var(--color-royal)]" : "border-royal/35 bg-royal-soft text-ink hover:border-royal/70",
                 )}
               >
                 <span className={cn("font-mono text-[10px]", sounding.has(pad.id) ? "text-white/70" : "text-faint")}>{KEYS[index] ?? ""}</span>
-                <span className="line-clamp-2 text-xs font-semibold">{shortTitle(pad.title, 28)}</span>
-                <span className={cn("font-mono text-[10px] tracking-wide uppercase", sounding.has(pad.id) ? "text-white/75" : "text-muted")}>
+                <span className="line-clamp-2 w-full text-[11px] leading-tight font-semibold break-words">{shortTitle(pad.title, 28)}</span>
+                <span className={cn("w-full truncate font-mono text-[9px] tracking-wide uppercase", sounding.has(pad.id) ? "text-white/75" : "text-muted")}>
                   {pad.kind_label} · {duration(pad.duration)}
                 </span>
               </button>
@@ -128,7 +129,7 @@ export function PadBank({ api, initial, library, max }: { api: ConsoleApi; initi
       )}
 
       {editing ? (
-        <div className="mt-4 flex gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           <TrackPicker library={library} value={adding} onChange={setAdding} kinds={["effect", "jingle", "commercial", "song", "program"]} placeholder="Agregar un audio de la biblioteca…" className="h-9 min-w-0 flex-1" label="Audio para la botonera" />
           <Button size="sm" icon={<Plus className="size-3.5" />} disabled={!adding || pads.length >= max} onClick={add}>
             Agregar

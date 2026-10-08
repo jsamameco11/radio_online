@@ -39,9 +39,9 @@ export function Mixer({ api }: { api: ConsoleApi }) {
   const canTalk = Boolean(api.snapshot.live.session) && api.mic.input !== "none";
 
   return (
-    <Panel title="Mezclador" description="Lo que oyen todos, tu micrófono y el monitor de cabina.">
-      <div className="space-y-4">
-        <div className="flex items-end justify-between gap-1">
+    <Panel dense title="Mezclador" description="Lo que oyen todos, tu micrófono y el monitor de cabina.">
+      <div className="space-y-3">
+        <div className="flex items-end justify-between gap-1 rounded-lg bg-canvas/60 px-1.5 py-2">
           <label className="flex flex-col items-center gap-1.5 text-center" title="Nivel de tu micrófono o de la línea">
             <Mic className="size-3.5 text-muted" />
             <input
