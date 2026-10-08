@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Public;
 use App\Domain\Access\Support\SessionHandoff;
 use App\Domain\Applications\Actions\PurgeApplicationDocuments;
 use App\Domain\Applications\Actions\SubmitStationApplication;
+use App\Domain\Applications\Enums\AudienceAge;
+use App\Domain\Applications\Enums\AudienceTag;
 use App\Domain\Applications\Enums\ContentType;
 use App\Domain\Applications\Enums\DocumentType;
 use App\Domain\Applications\Enums\EducationLevel;
@@ -63,6 +65,8 @@ class StationApplicationController extends Controller
                 ], DocumentType::cases()),
                 'educationLevels' => $options(EducationLevel::cases()),
                 'contentTypes' => $options(ContentType::cases()),
+                'audienceAges' => $options(AudienceAge::cases()),
+                'audienceTags' => AudienceTag::grouped(),
                 'weekdays' => $options(Weekday::cases()),
                 'countries' => Locales::options(Locales::COUNTRIES),
                 'languages' => Locales::options(Locales::LANGUAGES),

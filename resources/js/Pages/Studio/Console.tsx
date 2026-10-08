@@ -5,7 +5,6 @@ import { AutopilotPanel } from "@/Components/studio/console/autopilot-panel";
 import { CaptureDialog } from "@/Components/studio/console/capture-dialog";
 import { ConsoleBar } from "@/Components/studio/console/console-bar";
 import { Decks } from "@/Components/studio/console/decks";
-import { fallbackMessages } from "@/Components/studio/console/labels";
 import { LibraryRail } from "@/Components/studio/console/library-rail";
 import { LivePanel } from "@/Components/studio/console/live-panel";
 import { LiveTimeline } from "@/Components/studio/console/live-timeline";
@@ -48,7 +47,6 @@ export default function Console({ snapshot, pads, library, playlists, kinds, day
   const can = useStudioCan();
   const { notice } = api;
   const [bankOpen, setBankOpen] = useState(padsOpen);
-  const warnings = fallbackMessages(api.snapshot.autopilot);
 
   function toggleBank(open: boolean) {
     window.localStorage.setItem("turadio.console.pads", open ? "1" : "0");
@@ -69,12 +67,6 @@ export default function Console({ snapshot, pads, library, playlists, kinds, day
 
         <ConsoleBar api={api} timezone={timezone} />
         <SwitchPanel api={api} day={day} playlists={playlists} timezone={timezone} />
-
-        {warnings.map((text) => (
-          <p key={text} className="rounded-xl border border-gold/30 bg-gold-soft px-4 py-2 text-sm text-gold">
-            {text}
-          </p>
-        ))}
 
         <div className="grid items-start gap-3 xl:grid-cols-[16.5rem_minmax(0,1fr)_auto]">
           <LibraryRail api={api} library={library} />

@@ -4,6 +4,7 @@ namespace Tests\Feature\Applications;
 
 use App\Domain\Access\Enums\PlatformRole;
 use App\Domain\Applications\Enums\AudienceAge;
+use App\Domain\Applications\Enums\AudienceGroup;
 use App\Domain\Applications\Enums\AudienceTag;
 use App\Domain\Applications\Enums\ContentType;
 use App\Domain\Applications\Enums\DocumentType;
@@ -358,5 +359,18 @@ class SubmitStationApplicationTest extends TestCase
                 ->has('requests', 0)
                 ->has('options.documentTypes', 4)
                 ->where('limits.maxCertificates', 3));
+    }
+
+    #[Test]
+    public function the_form_gets_every_option_it_offers(): void
+    {
+        $this->actingAs($this->applicant)
+            ->get($this->publicUrl('/obten-tu-frecuencia'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('options', fn (Assert $options) => $options
+                    ->hasAll(['documentTypes', 'educationLevels', 'contentTypes', 'weekdays', 'countries', 'languages', 'socialNetworks'])
+                    ->has('audienceAges', count(AudienceAge::cases()))
+                    ->has('audienceTags', count(AudienceGroup::cases()))
+                    ->has('audienceTags.0', fn (Assert $group) => $group->hasAll(['value', 'label'])->has('options.0', fn (Assert $tag) => $tag->hasAll(['value', 'label'])))));
     }
 }

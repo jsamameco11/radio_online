@@ -72,6 +72,8 @@ class StationImagesTest extends TestCase
     {
         $page = $this->publicUrl('/radio/'.$this->station->frequency->slug);
 
+        $this->get($page)->assertInertia(fn (Assert $page) => $page->where('coverEditUrl', null));
+
         $this->actingAs($this->station->owner)
             ->get($page)
             ->assertInertia(fn (Assert $page) => $page->where('coverEditUrl', '/ir/consola?'.http_build_query(['a' => '/'.$this->station->frequency->slug.'/perfil#portada'])));

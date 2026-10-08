@@ -23,7 +23,7 @@ class StationSetupTest extends TestCase
     #[Test]
     public function every_studio_page_tells_the_owner_what_is_left_to_set_up(): void
     {
-        $station = Station::factory()->create(['logo_path' => null, 'cover_path' => null]);
+        $station = Station::factory()->create(['logo_path' => null, 'cover_path' => null, 'description' => str_repeat('Música y noticias para el barrio. ', 3)]);
 
         foreach (['', '/perfil', '/estadisticas', '/configuracion'] as $path) {
             $this->actingAs($station->owner)
