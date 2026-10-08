@@ -34,10 +34,12 @@ export interface ApplicationForm {
   organization_website: string;
   content_types: string[];
   purpose: string;
-  target_audience: string;
+  audience_ages: string[];
+  audience_tags: string[];
   hours_per_week: string;
   broadcast_days: string[];
-  schedule_notes: string;
+  schedule_start_hour: string;
+  schedule_end_hour: string;
   social_links: Record<string, string>;
   demo_url: string;
   accept_terms: boolean;
@@ -46,6 +48,18 @@ export interface ApplicationForm {
 }
 
 export type Errors = Partial<Record<string, string>>;
+
+/** App\Domain\Applications\Enums\AudienceAge::AllAges: it excludes every other range. */
+export const ALL_AGES = "all_ages";
+
+/** The new age selection: picking "all ages" clears the ranges, picking a range clears "all ages". */
+export function pickAges(previous: string[], next: string[]): string[] {
+  if (next.includes(ALL_AGES) && !previous.includes(ALL_AGES)) return [ALL_AGES];
+  return next.length > 1 ? next.filter((age) => age !== ALL_AGES) : next;
+}
+
+/** "00:00" to "23:00", for the schedule dropdowns. */
+export const scheduleHours = Array.from({ length: 24 }, (_, hour) => ({ value: String(hour), label: `${String(hour).padStart(2, "0")}:00` }));
 
 export interface ValidationContext {
   limits: ApplicationLimits;
@@ -66,7 +80,7 @@ const stepFields: string[][] = [
   ["first_names", "last_names", "document_type", "document_number", "nationality", "birth_date", "phone", "country", "region", "city", "address", "occupation", "education_level", "institution", "field_of_study", "experience_years", "bio"],
   ["photo", "document_front", "document_back", "resume", "certificates"],
   ["station_name", "frequency_id", "category_ids", "languages", "represents_organization", "organization_name", "organization_tax_id", "organization_website"],
-  ["content_types", "purpose", "target_audience", "hours_per_week", "broadcast_days", "schedule_notes", "social_links", "demo_url"],
+  ["content_types", "purpose", "audience_ages", "audience_tags", "hours_per_week", "broadcast_days", "schedule_start_hour", "schedule_end_hour", "social_links", "demo_url"],
   ["accept_terms", "declare_truthful", "consent_data_processing"],
 ];
 
@@ -104,10 +118,12 @@ const draftFields = [
   "organization_website",
   "content_types",
   "purpose",
-  "target_audience",
+  "audience_ages",
+  "audience_tags",
   "hours_per_week",
   "broadcast_days",
-  "schedule_notes",
+  "schedule_start_hour",
+  "schedule_end_hour",
   "social_links",
   "demo_url",
 ] as const satisfies readonly (keyof ApplicationForm)[];
@@ -146,10 +162,12 @@ export function emptyForm(frequencyId: number | null, socialNetworks: string[]):
     organization_website: "",
     content_types: [],
     purpose: "",
-    target_audience: "",
+    audience_ages: [],
+    audience_tags: [],
     hours_per_week: "",
     broadcast_days: [],
-    schedule_notes: "",
+    schedule_start_hour: "",
+    schedule_end_hour: "",
     social_links: Object.fromEntries(socialNetworks.map((network) => [network, ""])),
     demo_url: "",
     accept_terms: false,
@@ -289,10 +307,16 @@ export function validateStep(step: number, data: ApplicationForm, { limits, opti
   if (step === 3) {
     if (data.content_types.length === 0) errors.content_types = "Elige al menos un tipo de contenido.";
     if (data.purpose.trim().length < limits.purposeMin) errors.purpose = `Cuéntanos con más detalle para qué quieres tu radio: al menos ${limits.purposeMin} caracteres.`;
-    if (data.target_audience.trim().length < limits.audienceMin) errors.target_audience = `Describe a tu público con al menos ${limits.audienceMin} caracteres.`;
+    if (data.audience_ages.length === 0) errors.audience_ages = "Elige al menos un rango de edad.";
+    else if (data.audience_ages.length > 1 && data.audience_ages.includes(ALL_AGES)) errors.audience_ages = "Si eliges «Todas las edades», no marques otros rangos.";
+    if (data.audience_tags.length === 0) errors.audience_tags = "Elige al menos un tipo de público.";
+    else if (data.audience_tags.length > limits.maxAudienceTags) errors.audience_tags = `Puedes elegir hasta ${limits.maxAudienceTags} tipos de público.`;
     const hours = Number(data.hours_per_week);
     if (data.hours_per_week.trim() === "" || !Number.isInteger(hours) || hours < 1 || hours > 168) errors.hours_per_week = "Indica cuántas horas por semana transmitirás (entre 1 y 168).";
     if (data.broadcast_days.length === 0) errors.broadcast_days = "Elige al menos un día de transmisión.";
+    if (data.schedule_start_hour !== "" && data.schedule_end_hour === "") errors.schedule_end_hour = "Elige también la hora de fin.";
+    else if (data.schedule_end_hour !== "" && data.schedule_start_hour === "") errors.schedule_start_hour = "Elige también la hora de inicio.";
+    else if (data.schedule_start_hour !== "" && data.schedule_start_hour === data.schedule_end_hour) errors.schedule_end_hour = "La hora de fin debe ser distinta de la de inicio.";
     for (const [network, link] of Object.entries(data.social_links)) {
       if (link.trim() !== "" && !isUrl(link.trim())) errors[`social_links.${network}`] = "Escribe un enlace completo que empiece con https://";
     }

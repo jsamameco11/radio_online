@@ -12,6 +12,7 @@ use App\Domain\Applications\Enums\Weekday;
 use App\Domain\Applications\Support\ApplicationLimits;
 use App\Domain\Discovery\Queries\CategoryCatalog;
 use App\Domain\Frequencies\Actions\CancelFrequencyRequest;
+use App\Domain\Frequencies\Actions\SubmitFrequencyRequest;
 use App\Domain\Frequencies\Enums\FrequencyRequestKind;
 use App\Domain\Platform\PlatformHost;
 use App\Domain\Platform\PlatformSettings;
@@ -32,7 +33,7 @@ use Inertia\Response;
 /** "Obtén tu frecuencia": the dossier of whoever will run the station, its documents and the project, for the platform to review. */
 class StationApplicationController extends Controller
 {
-    public function create(Request $request, CategoryCatalog $categories, PlatformSettings $settings): Response
+    public function create(Request $request, CategoryCatalog $categories, PlatformSettings $settings, SubmitFrequencyRequest $submitRequest): Response
     {
         $user = $request->user();
         $options = fn (array $cases) => array_map(fn ($case) => ['value' => $case->value, 'label' => $case->label()], $cases);
@@ -77,7 +78,8 @@ class StationApplicationController extends Controller
                     ->limit(10)
                     ->get(),
             )->resolve($request),
-            'hasPending' => Gate::denies('create', FrequencyRequest::class),
+            // The platform's limit itself, not the policy: the super admin passes every Gate.
+            'atLimit' => $submitRequest->atLimit($user),
             'myStations' => $user->stations()
                 ->with('frequency')
                 ->orderBy('name')

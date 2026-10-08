@@ -5,10 +5,17 @@ export interface ApplicationOptions {
   documentTypes: (Option & { pattern: string; hint: string })[];
   educationLevels: Option[];
   contentTypes: Option[];
+  audienceAges: Option[];
+  audienceTags: AudienceTagGroup[];
   weekdays: Option[];
   countries: Option[];
   languages: Option[];
   socialNetworks: string[];
+}
+
+/** App\Domain\Applications\Enums\AudienceTag::grouped() */
+export interface AudienceTagGroup extends Option {
+  options: Option[];
 }
 
 /** App\Domain\Applications\Support\ApplicationLimits::forForm() plus the document retention; sizes in kilobytes. */
@@ -25,8 +32,7 @@ export interface ApplicationLimits {
   bioMax: number;
   purposeMin: number;
   purposeMax: number;
-  audienceMin: number;
-  audienceMax: number;
+  maxAudienceTags: number;
   maxLanguages: number;
 }
 
@@ -52,10 +58,11 @@ export interface ApplicationDossier {
   experience_years: number;
   bio: string;
   content_types: Option[];
-  target_audience: string;
+  audience_ages: Option[];
+  audience_tags: Option[];
   hours_per_week: number;
   broadcast_days: Option[];
-  schedule_notes: string | null;
+  schedule: string | null;
   languages: Option[];
   organization: { name: string | null; tax_id: string | null; website: string | null } | null;
   social_links: Record<string, string>;

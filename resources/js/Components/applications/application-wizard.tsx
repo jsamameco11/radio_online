@@ -3,7 +3,8 @@ import { ArrowLeft, ArrowRight, Building2, Lock, Pencil, Save, Send, Trash2 } fr
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ApplicationForm, Errors } from "@/Components/applications/application-form";
-import { adultCutoff, clearDraft, emptyForm, loadDraft, saveDraft, stepOf, steps, validateStep } from "@/Components/applications/application-form";
+import { adultCutoff, clearDraft, emptyForm, loadDraft, pickAges, saveDraft, scheduleHours, stepOf, steps, validateStep } from "@/Components/applications/application-form";
+import { AudiencePicker } from "@/Components/applications/audience-picker";
 import { ChoiceChips } from "@/Components/applications/choice-chips";
 import { FileDrop } from "@/Components/applications/file-drop";
 import { WizardProgress } from "@/Components/applications/wizard-progress";
@@ -175,6 +176,8 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
   const frequency = frequencies.find((item) => item.id === data.frequency_id);
   const categoryNames = categories.flatMap((group) => group.categories).filter((category) => data.category_ids.includes(category.id));
   const uploads = [data.photo, data.document_front, data.document_back, data.resume, ...data.certificates].filter((file): file is File => file !== null);
+  const audienceTags = options.audienceTags.flatMap((group) => group.options);
+  const schedule = data.schedule_start_hour !== "" && data.schedule_end_hour !== "" ? `de ${label(scheduleHours, data.schedule_start_hour)} a ${label(scheduleHours, data.schedule_end_hour)}` : "";
 
   return (
     <form onSubmit={submit} noValidate className="space-y-8">
@@ -442,18 +445,16 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
           >
             {(id, invalid) => <Textarea id={id} invalid={invalid} rows={6} maxLength={limits.purposeMax} value={data.purpose} onChange={text("purpose")} />}
           </Field>
-          <Field
-            label="¿A quién te diriges?"
-            error={error("target_audience")}
-            hint={
-              <span className="flex justify-between gap-3">
-                <span>Edad, intereses, lugar, comunidad…</span>
-                <Counter value={data.target_audience} min={limits.audienceMin} max={limits.audienceMax} />
-              </span>
-            }
-          >
-            {(id, invalid) => <Textarea id={id} invalid={invalid} rows={3} maxLength={limits.audienceMax} value={data.target_audience} onChange={text("target_audience")} />}
-          </Field>
+          <Section title="¿A quién te diriges?" description="Define a tu audiencia: nos ayuda a evaluar tu propuesta y a recomendar tu radio a quien le interesa.">
+            <Field label="Edades" hint="Elige todos los rangos que apliquen." error={error("audience_ages")} className="sm:col-span-2">
+              {(_, invalid) => (
+                <ChoiceChips label="Rangos de edad" options={options.audienceAges} value={data.audience_ages} onChange={(value) => patch({ audience_ages: pickAges(data.audience_ages, value) })} invalid={invalid} />
+              )}
+            </Field>
+            <Field label="Tipo de público" hint={`Hasta ${limits.maxAudienceTags}: quiénes son, dónde viven, qué escuchan y qué les interesa.`} error={error("audience_tags")} className="sm:col-span-2">
+              {(_, invalid) => <AudiencePicker groups={options.audienceTags} value={data.audience_tags} onChange={(value) => patch({ audience_tags: value })} max={limits.maxAudienceTags} invalid={invalid} />}
+            </Field>
+          </Section>
           <div className="grid gap-6 sm:grid-cols-[12rem_minmax(0,1fr)]">
             <Field label="Horas por semana" error={error("hours_per_week")}>
               {(id, invalid) => <Input id={id} invalid={invalid} type="number" min={1} max={168} value={data.hours_per_week} onChange={text("hours_per_week")} className="tabular" />}
@@ -462,9 +463,31 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
               {(_, invalid) => <ChoiceChips label="Días de transmisión" options={options.weekdays} value={data.broadcast_days} onChange={(value) => patch({ broadcast_days: value })} invalid={invalid} />}
             </Field>
           </div>
-          <Field label="Horario previsto" hint="Opcional. Por ejemplo: lunes a viernes de 6 a 9 a. m." error={error("schedule_notes")}>
-            {(id, invalid) => <Input id={id} invalid={invalid} value={data.schedule_notes} onChange={text("schedule_notes")} maxLength={300} />}
-          </Field>
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">Horario previsto</legend>
+            <p className="text-sm text-muted">Opcional. Si emitirás de madrugada, elige una hora de fin menor que la de inicio (por ejemplo, de 22:00 a 02:00).</p>
+            <div className="grid gap-4 sm:max-w-md sm:grid-cols-2">
+              {(
+                [
+                  ["schedule_start_hour", "Desde"],
+                  ["schedule_end_hour", "Hasta"],
+                ] as const
+              ).map(([field, title]) => (
+                <Field key={field} label={title} error={error(field)}>
+                  {(id, invalid) => (
+                    <Select id={id} invalid={invalid} value={data[field]} onChange={text(field)} className="tabular">
+                      <option value="">Sin definir</option>
+                      {scheduleHours.map((hour) => (
+                        <option key={hour.value} value={hour.value}>
+                          {hour.label}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                </Field>
+              ))}
+            </div>
+          </fieldset>
           <Section title="Redes y muestras" description="Opcional. Nos ayuda a conocer tu trabajo.">
             {options.socialNetworks.map((network) => (
               <Field key={network} label={networkLabels[network] ?? network} error={error(`social_links.${network}`)}>
@@ -537,9 +560,22 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
           </Summary>
           <Summary title="Contenido y propósito" onEdit={() => go(3)}>
             <Item label="Contenido" value={data.content_types.map((type) => label(options.contentTypes, type)).join(", ")} />
-            <Item label="Emisión" value={[data.hours_per_week && `${data.hours_per_week} h por semana`, data.broadcast_days.map((day) => label(options.weekdays, day)).join(", "), data.schedule_notes].filter(Boolean).join(" · ")} />
+            <Item label="Emisión" value={[data.hours_per_week && `${data.hours_per_week} h por semana`, data.broadcast_days.map((day) => label(options.weekdays, day)).join(", "), schedule].filter(Boolean).join(" · ")} />
             <Item label="Para qué quieres tu radio" value={data.purpose} wide />
-            <Item label="Público" value={data.target_audience} wide />
+            <Item label="Edades" value={data.audience_ages.map((age) => label(options.audienceAges, age)).join(", ")} wide />
+            <Item
+              label="Público"
+              value={
+                data.audience_tags.length > 0 && (
+                  <span className="flex flex-wrap gap-1.5">
+                    {data.audience_tags.map((tag) => (
+                      <Badge key={tag}>{label(audienceTags, tag)}</Badge>
+                    ))}
+                  </span>
+                )
+              }
+              wide
+            />
             <Item
               label="Enlaces"
               value={[...Object.values(data.social_links), data.demo_url].filter((link) => link.trim() !== "").join("\n")}

@@ -27,9 +27,7 @@ final class ApplicationLimits
 
     public const PURPOSE_MAX = 1000;
 
-    public const AUDIENCE_MIN = 20;
-
-    public const AUDIENCE_MAX = 500;
+    public const MAX_AUDIENCE_TAGS = 15;
 
     public const MAX_LANGUAGES = 5;
 
@@ -52,8 +50,7 @@ final class ApplicationLimits
             'bioMax' => self::BIO_MAX,
             'purposeMin' => self::PURPOSE_MIN,
             'purposeMax' => self::PURPOSE_MAX,
-            'audienceMin' => self::AUDIENCE_MIN,
-            'audienceMax' => self::AUDIENCE_MAX,
+            'maxAudienceTags' => self::MAX_AUDIENCE_TAGS,
             'maxLanguages' => self::MAX_LANGUAGES,
         ];
     }

@@ -1,5 +1,7 @@
 import { router, usePage } from "@inertiajs/react";
-import { ArrowUpRight, ClipboardCheck, FileCheck2, Gift, Hourglass, Mic2, RadioTower, ShieldCheck, Sparkles, X } from "lucide-react";
+import { ArrowUpRight, ClipboardCheck, FileCheck2, Gift, Mic2, RadioTower, ShieldCheck, Sparkles, X } from "lucide-react";
+import { useState } from "react";
+import { ApplicationInReview } from "@/Components/applications/application-in-review";
 import { ApplicationWizard } from "@/Components/applications/application-wizard";
 import type { FreeFrequency } from "@/Components/site/frequency-picker";
 import { Badge } from "@/Components/ui/badge";
@@ -21,7 +23,8 @@ interface CreateStationProps {
   options: ApplicationOptions;
   limits: ApplicationLimits;
   requests: FrequencyRequestItem[];
-  hasPending: boolean;
+  /** The account has as many applications under review as the platform allows. */
+  atLimit: boolean;
   myStations: { id: number; display_name: string; role: string; studio_url: string; public_url: string }[];
   preselected: string | null;
 }
@@ -40,8 +43,13 @@ const process = [
   { icon: FileCheck2, title: "Sales al aire", text: "Si la aprobamos, tu estudio queda listo en tu frecuencia." },
 ];
 
-export default function CreateStation({ requests, hasPending, myStations, open, ...wizard }: CreateStationProps) {
+export default function CreateStation({ requests, atLimit, myStations, open, ...wizard }: CreateStationProps) {
   const { auth } = usePage<SharedProps>().props;
+  const pending = requests.filter((request) => request.status === "pending");
+  const inReview = pending[0];
+  // The form reopens for one more application; sending it adds a pending request and shows the review again.
+  const [againWith, setAgainWith] = useState<number | null>(null);
+  const applyingAgain = againWith === pending.length;
 
   return (
     <SiteLayout title="Obtén tu frecuencia">
@@ -69,15 +77,8 @@ export default function CreateStation({ requests, hasPending, myStations, open, 
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="min-w-0">
-            {hasPending ? (
-              <Panel title="Tus solicitudes están en revisión">
-                <div className="flex items-start gap-4">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-warning-soft text-warning">
-                    <Hourglass className="size-5" aria-hidden />
-                  </span>
-                  <p className="text-sm text-muted">Llegaste al número de solicitudes que puedes tener en revisión a la vez. Te avisaremos por correo cuando tengamos una respuesta; mientras tanto puedes seguir su estado aquí.</p>
-                </div>
-              </Panel>
+            {inReview && !applyingAgain ? (
+              <ApplicationInReview request={inReview} email={auth.user?.email ?? ""} onApplyAgain={atLimit || !open ? undefined : () => setAgainWith(pending.length)} />
             ) : !open ? (
               <Panel title="Las solicitudes están cerradas por ahora">
                 <p className="text-sm text-muted">Estamos preparando nuevas frecuencias. Vuelve pronto para enviar tu solicitud.</p>

@@ -3,6 +3,8 @@
 namespace Tests\Feature\Applications;
 
 use App\Domain\Access\Enums\PlatformRole;
+use App\Domain\Applications\Enums\AudienceAge;
+use App\Domain\Applications\Enums\AudienceTag;
 use App\Domain\Applications\Enums\ContentType;
 use App\Domain\Applications\Enums\DocumentType;
 use App\Domain\Applications\Notifications\StationApplicationSubmitted;
@@ -67,6 +69,9 @@ class SubmitStationApplicationTest extends TestCase
         $this->assertSame(StationApplication::fingerprint(DocumentType::Dni, '45678912'), $application->document_hash);
         $this->assertSame('+51987654321', $application->phone);
         $this->assertSame(['mon', 'wed', 'sat'], $application->broadcast_days);
+        $this->assertSame([AudienceAge::YoungAdults, AudienceAge::Adults], $application->audience_ages->all());
+        $this->assertSame([AudienceTag::Families, AudienceTag::QuechuaSpeakers, AudienceTag::Migrants, AudienceTag::AndeanFolk], $application->audience_tags->all());
+        $this->assertSame('22:00 a 02:00', $application->scheduleLabel());
         $this->assertSame(['es', 'qu'], $application->languages);
         $this->assertTrue($application->content_types->contains(ContentType::Cultural));
         $this->assertTrue($application->represents_organization);
@@ -103,8 +108,10 @@ class SubmitStationApplicationTest extends TestCase
             ->get($this->publicUrl('/obten-tu-frecuencia'))
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Public/CreateStation')
-                ->where('hasPending', true)
+                ->where('atLimit', true)
                 ->has('requests', 1)
+                ->where('requests.0.status', 'pending')
+                ->where('requests.0.status_label', 'En revisión')
                 ->missing('requests.0.application')
                 ->missing('requests.0.document_number'));
     }
@@ -142,6 +149,15 @@ class SubmitStationApplicationTest extends TestCase
             'short purpose' => [['purpose' => 'Una radio de música.'], 'purpose'],
             'no content types' => [['content_types' => []], 'content_types'],
             'unknown content type' => [['content_types' => ['gossip']], 'content_types.0'],
+            'no ages' => [['audience_ages' => []], 'audience_ages'],
+            'all ages with a range' => [['audience_ages' => ['all_ages', 'teens']], 'audience_ages'],
+            'unknown age' => [['audience_ages' => ['babies']], 'audience_ages.0'],
+            'no audience' => [['audience_tags' => []], 'audience_tags'],
+            'unknown audience' => [['audience_tags' => ['aliens']], 'audience_tags.0'],
+            'too many audiences' => [['audience_tags' => array_slice(array_column(AudienceTag::cases(), 'value'), 0, 16)], 'audience_tags'],
+            'schedule without an end' => [['schedule_end_hour' => ''], 'schedule_end_hour'],
+            'schedule ending when it starts' => [['schedule_start_hour' => '8', 'schedule_end_hour' => '8'], 'schedule_end_hour'],
+            'hour off the clock' => [['schedule_start_hour' => '24'], 'schedule_start_hour'],
             'organization without a name' => [['organization_name' => ''], 'organization_name'],
             'bad social link' => [['social_links' => ['facebook' => 'facebook radio']], 'social_links.facebook'],
             'terms not accepted' => [['accept_terms' => '0'], 'accept_terms'],
@@ -240,6 +256,19 @@ class SubmitStationApplicationTest extends TestCase
     }
 
     #[Test]
+    public function a_super_admin_applying_also_sees_the_application_under_review(): void
+    {
+        $admin = $this->staff();
+        $this->actingAs($admin)->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload(Frequency::factory()->create()));
+
+        $this->actingAs($admin)
+            ->get($this->publicUrl('/obten-tu-frecuencia'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('atLimit', true)
+                ->where('requests.0.status', 'pending'));
+    }
+
+    #[Test]
     public function only_one_application_per_document_is_under_review(): void
     {
         $this->actingAs($this->applicant)->post($this->publicUrl('/obten-tu-frecuencia'), $this->applicationPayload(Frequency::factory()->create()));
@@ -324,7 +353,7 @@ class SubmitStationApplicationTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Public/CreateStation')
-                ->where('hasPending', false)
+                ->where('atLimit', false)
                 ->where('open', true)
                 ->has('requests', 0)
                 ->has('options.documentTypes', 4)

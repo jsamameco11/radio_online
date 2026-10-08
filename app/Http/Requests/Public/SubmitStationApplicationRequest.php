@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Public;
 
+use App\Domain\Applications\Enums\AudienceAge;
+use App\Domain\Applications\Enums\AudienceTag;
 use App\Domain\Applications\Enums\ContentType;
 use App\Domain\Applications\Enums\DocumentType;
 use App\Domain\Applications\Enums\EducationLevel;
@@ -12,6 +14,7 @@ use App\Domain\Frequencies\Enums\FrequencyStatus;
 use App\Domain\Stations\Support\Locales;
 use App\Models\Frequency;
 use App\Models\FrequencyRequest;
+use BackedEnum;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
@@ -93,11 +96,19 @@ class SubmitStationApplicationRequest extends FormRequest
             'content_types' => ['required', 'array', 'min:1'],
             'content_types.*' => ['distinct', Rule::enum(ContentType::class)],
             'purpose' => ['required', 'string', 'min:'.Limits::PURPOSE_MIN, 'max:'.Limits::PURPOSE_MAX],
-            'target_audience' => ['required', 'string', 'min:'.Limits::AUDIENCE_MIN, 'max:'.Limits::AUDIENCE_MAX],
+            'audience_ages' => ['required', 'array', 'min:1', function (string $attribute, mixed $value, Closure $fail) {
+                if (is_array($value) && count($value) > 1 && in_array(AudienceAge::AllAges->value, $value, true)) {
+                    $fail('Si eliges «'.AudienceAge::AllAges->label().'», no marques otros rangos.');
+                }
+            }],
+            'audience_ages.*' => ['distinct', Rule::enum(AudienceAge::class)],
+            'audience_tags' => ['required', 'array', 'min:1', 'max:'.Limits::MAX_AUDIENCE_TAGS],
+            'audience_tags.*' => ['distinct', Rule::enum(AudienceTag::class)],
             'hours_per_week' => ['required', 'integer', 'between:1,168'],
             'broadcast_days' => ['required', 'array', 'min:1', 'max:7'],
             'broadcast_days.*' => ['distinct', Rule::enum(Weekday::class)],
-            'schedule_notes' => ['nullable', 'string', 'max:300'],
+            'schedule_start_hour' => ['nullable', 'required_with:schedule_end_hour', 'integer', 'between:0,23'],
+            'schedule_end_hour' => ['nullable', 'required_with:schedule_start_hour', 'integer', 'between:0,23', 'different:schedule_start_hour'],
             'social_links' => ['nullable', 'array:'.implode(',', Limits::SOCIAL_NETWORKS)],
             ...collect(Limits::SOCIAL_NETWORKS)->mapWithKeys(fn (string $network) => ["social_links.{$network}" => $optionalUrl])->all(),
             'demo_url' => $optionalUrl,
@@ -171,10 +182,21 @@ class SubmitStationApplicationRequest extends FormRequest
             'content_types.required' => 'Elige al menos un tipo de contenido.',
             'content_types.*.*' => 'Elige tipos de contenido de la lista.',
             'purpose.min' => 'Cuéntanos con más detalle para qué quieres tu radio: al menos '.Limits::PURPOSE_MIN.' caracteres.',
-            'target_audience.min' => 'Describe a tu público con al menos '.Limits::AUDIENCE_MIN.' caracteres.',
+            'audience_ages.required' => 'Elige al menos un rango de edad.',
+            'audience_ages.min' => 'Elige al menos un rango de edad.',
+            'audience_ages.*.*' => 'Elige rangos de edad de la lista.',
+            'audience_tags.required' => 'Elige al menos un tipo de público.',
+            'audience_tags.min' => 'Elige al menos un tipo de público.',
+            'audience_tags.max' => 'Puedes elegir hasta '.Limits::MAX_AUDIENCE_TAGS.' tipos de público.',
+            'audience_tags.*.*' => 'Elige tipos de público de la lista.',
             'hours_per_week.*' => 'Indica cuántas horas por semana transmitirás (entre 1 y 168).',
             'broadcast_days.required' => 'Elige al menos un día de transmisión.',
             'broadcast_days.*.*' => 'Elige días de la semana de la lista.',
+            'schedule_start_hour.required_with' => 'Elige también la hora de inicio.',
+            'schedule_start_hour.*' => 'Elige la hora de inicio de la lista.',
+            'schedule_end_hour.required_with' => 'Elige también la hora de fin.',
+            'schedule_end_hour.different' => 'La hora de fin debe ser distinta de la de inicio.',
+            'schedule_end_hour.*' => 'Elige la hora de fin de la lista.',
             'url' => 'Escribe un enlace completo que empiece con https://',
 
             'accept_terms.accepted' => 'Debes aceptar los términos y condiciones.',
@@ -214,9 +236,7 @@ class SubmitStationApplicationRequest extends FormRequest
             'organization_name' => 'el nombre de la organización',
             'organization_website' => 'la web de la organización',
             'purpose' => 'para qué quieres tu radio',
-            'target_audience' => 'tu público objetivo',
             'hours_per_week' => 'las horas por semana',
-            'schedule_notes' => 'el horario previsto',
             'demo_url' => 'el enlace de muestra',
         ];
     }
@@ -226,6 +246,10 @@ class SubmitStationApplicationRequest extends FormRequest
         $data = $this->validated();
         $organization = (bool) $data['represents_organization'];
         $optional = fn (string $key) => filled($data[$key] ?? null) ? trim((string) $data[$key]) : null;
+        $inListOrder = fn (array $cases, mixed $chosen) => array_values(array_filter(
+            array_map(fn (BackedEnum $case) => $case->value, $cases),
+            fn (string $value) => in_array($value, (array) $chosen, true),
+        ));
 
         return new ApplicationSubmission(
             frequency: Frequency::query()->findOrFail((int) $data['frequency_id']),
@@ -251,13 +275,12 @@ class SubmitStationApplicationRequest extends FormRequest
                 'experience_years' => (int) $data['experience_years'],
                 'bio' => trim((string) $data['bio']),
                 'content_types' => array_values(array_unique((array) $data['content_types'])),
-                'target_audience' => trim((string) $data['target_audience']),
+                'audience_ages' => $inListOrder(AudienceAge::cases(), $data['audience_ages']),
+                'audience_tags' => $inListOrder(AudienceTag::cases(), $data['audience_tags']),
                 'hours_per_week' => (int) $data['hours_per_week'],
-                'broadcast_days' => array_values(array_filter(
-                    array_map(fn (Weekday $day) => $day->value, Weekday::cases()),
-                    fn (string $day) => in_array($day, (array) $data['broadcast_days'], true),
-                )),
-                'schedule_notes' => $optional('schedule_notes'),
+                'broadcast_days' => $inListOrder(Weekday::cases(), $data['broadcast_days']),
+                'schedule_start_hour' => isset($data['schedule_start_hour']) ? (int) $data['schedule_start_hour'] : null,
+                'schedule_end_hour' => isset($data['schedule_end_hour']) ? (int) $data['schedule_end_hour'] : null,
                 'languages' => array_values(array_unique((array) $data['languages'])),
                 'represents_organization' => $organization,
                 'organization_name' => $organization ? $optional('organization_name') : null,

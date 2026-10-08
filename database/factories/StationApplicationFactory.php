@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Domain\Applications\Enums\AudienceAge;
+use App\Domain\Applications\Enums\AudienceTag;
 use App\Domain\Applications\Enums\ContentType;
 use App\Domain\Applications\Enums\DocumentType;
 use App\Domain\Applications\Enums\EducationLevel;
@@ -58,10 +60,12 @@ class StationApplicationFactory extends Factory
             'resume_path' => 'resumes/platform/'.now()->format('Y/m').'/'.Str::uuid().'.pdf',
             'certificate_paths' => [],
             'content_types' => [ContentType::Music, ContentType::Interviews],
-            'target_audience' => 'Jóvenes y adultos de Lima que disfrutan la salsa clásica.',
+            'audience_ages' => [AudienceAge::Young, AudienceAge::YoungAdults],
+            'audience_tags' => [AudienceTag::City, AudienceTag::Salsa, AudienceTag::Professionals],
             'hours_per_week' => 20,
             'broadcast_days' => ['mon', 'wed', 'fri'],
-            'schedule_notes' => 'De 6 a 10 de la mañana.',
+            'schedule_start_hour' => 6,
+            'schedule_end_hour' => 10,
             'languages' => ['es'],
             'represents_organization' => false,
             'social_links' => [],

@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Domain\Applications\Enums\AudienceAge;
+use App\Domain\Applications\Enums\AudienceTag;
 use App\Domain\Applications\Enums\ContentType;
 use App\Domain\Applications\Enums\Weekday;
 use App\Domain\Stations\Support\Locales;
@@ -46,13 +48,14 @@ class StationApplicationResource extends JsonResource
             'experience_years' => $this->experience_years,
             'bio' => $this->bio,
             'content_types' => $this->content_types->map(fn (ContentType $type) => ['value' => $type->value, 'label' => $type->label()])->values()->all(),
-            'target_audience' => $this->target_audience,
+            'audience_ages' => $this->audience_ages->map(fn (AudienceAge $age) => ['value' => $age->value, 'label' => $age->label()])->values()->all(),
+            'audience_tags' => $this->audience_tags->map(fn (AudienceTag $tag) => ['value' => $tag->value, 'label' => $tag->label()])->values()->all(),
             'hours_per_week' => $this->hours_per_week,
             'broadcast_days' => array_values(array_map(
                 fn (string $day) => ['value' => $day, 'label' => Weekday::tryFrom($day)?->label() ?? $day],
                 $this->broadcast_days ?? [],
             )),
-            'schedule_notes' => $this->schedule_notes,
+            'schedule' => $this->scheduleLabel(),
             'languages' => array_values(array_map(fn (string $code) => ['value' => $code, 'label' => Locales::LANGUAGES[$code] ?? $code], $this->languages ?? [])),
             'organization' => $this->represents_organization ? [
                 'name' => $this->organization_name,

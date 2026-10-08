@@ -222,10 +222,21 @@ export default function ApplicationShow({ request, application, account, duplica
                 />
                 <Detail
                   label="Emisión prevista"
-                  value={[`${application.hours_per_week} h por semana`, application.broadcast_days.map((day) => day.label).join(", "), application.schedule_notes].filter(Boolean).join(" · ")}
+                  value={[`${application.hours_per_week} h por semana`, application.broadcast_days.map((day) => day.label).join(", "), application.schedule && `de ${application.schedule}`].filter(Boolean).join(" · ")}
                 />
                 <Detail label="¿Para qué quiere su radio?" value={request.pitch} wide />
-                <Detail label="Público objetivo" value={application.target_audience} wide />
+                <Detail label="Edades" value={application.audience_ages.map((age) => age.label).join(", ")} wide />
+                <Detail
+                  label="Público objetivo"
+                  wide
+                  value={
+                    <span className="flex flex-wrap gap-1.5">
+                      {application.audience_tags.map((tag) => (
+                        <Badge key={tag.value}>{tag.label}</Badge>
+                      ))}
+                    </span>
+                  }
+                />
                 <Detail
                   label="Organización"
                   wide

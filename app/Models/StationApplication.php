@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Domain\Applications\Enums\AudienceAge;
+use App\Domain\Applications\Enums\AudienceTag;
 use App\Domain\Applications\Enums\ContentType;
 use App\Domain\Applications\Enums\DocumentType;
 use App\Domain\Applications\Enums\EducationLevel;
@@ -23,7 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'nationality', 'birth_date', 'phone', 'country', 'region', 'city', 'address',
     'occupation', 'education_level', 'institution', 'field_of_study', 'experience_years', 'bio',
     'photo_path', 'document_front_path', 'document_back_path', 'resume_path', 'certificate_paths', 'documents_purged_at',
-    'content_types', 'target_audience', 'hours_per_week', 'broadcast_days', 'schedule_notes', 'languages',
+    'content_types', 'audience_ages', 'audience_tags', 'hours_per_week', 'broadcast_days', 'schedule_start_hour', 'schedule_end_hour', 'languages',
     'represents_organization', 'organization_name', 'organization_tax_id', 'organization_website', 'social_links', 'demo_url',
     'terms_accepted_at', 'truthfulness_declared_at', 'data_processing_consented_at', 'consent_ip', 'consent_user_agent',
 ])]
@@ -44,8 +46,12 @@ class StationApplication extends Model
             'certificate_paths' => 'array',
             'documents_purged_at' => 'datetime',
             'content_types' => AsEnumCollection::of(ContentType::class),
+            'audience_ages' => AsEnumCollection::of(AudienceAge::class),
+            'audience_tags' => AsEnumCollection::of(AudienceTag::class),
             'hours_per_week' => 'integer',
             'broadcast_days' => 'array',
+            'schedule_start_hour' => 'integer',
+            'schedule_end_hour' => 'integer',
             'languages' => 'array',
             'represents_organization' => 'boolean',
             'social_links' => 'array',
@@ -77,6 +83,16 @@ class StationApplication extends Model
     public function age(): int
     {
         return (int) $this->birth_date->age;
+    }
+
+    /** "14:00 a 21:00", or null when the applicant left it open. */
+    public function scheduleLabel(): ?string
+    {
+        if ($this->schedule_start_hour === null || $this->schedule_end_hour === null) {
+            return null;
+        }
+
+        return sprintf('%02d:00 a %02d:00', $this->schedule_start_hour, $this->schedule_end_hour);
     }
 
     /**
