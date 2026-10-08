@@ -1,19 +1,27 @@
 import { router } from "@inertiajs/react";
-import { AudioLines, Headphones, Pause, Play, Redo2, RotateCcw, Save, Scissors, SquareDashed, Undo2, ZoomIn, ZoomOut } from "lucide-react";
+import { Headphones, Loader2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
-import { Switch } from "@/Components/ui/field";
 import { Panel } from "@/Components/ui/panel";
-import { Tabs } from "@/Components/ui/tabs";
 import { useStudioUrl } from "@/Layouts/StudioLayout";
-import { duration as formatDuration } from "@/lib/format";
 import { http, HttpError } from "@/lib/http";
+import { describeSound } from "@/lib/media/editor/describe";
 import { PreviewEngine } from "@/lib/media/editor/engine";
-import { type Cut, type Recipe, editedLength, fromSaved, mergeCuts, preciseTime, restoreRange, sameRecipe, serverOnly, toEdited } from "@/lib/media/editor/recipe";
+import { cutAt, editedLength, fromSaved, isPlain, joins, keeps, mergeCuts, restoreRange, sameRecipe, serverOnly, toEdited, toSource, type Cut } from "@/lib/media/editor/recipe";
 import type { EditorAnalysis, EditorLimits, EditorTrack } from "@/types/media";
+import { AudioHeader } from "./audio-header";
+import { LeaveDialog, RestoreDialog, SaveDialog } from "./confirm-dialogs";
+import { EditActions } from "./edit-actions";
+import { GuideDialog } from "./guide-dialog";
+import { PartsList } from "./parts-list";
+import { SamplePanel } from "./sample-panel";
+import { SaveBar } from "./save-bar";
 import { SoundPanel } from "./sound-panel";
-import { Waveform } from "./waveform";
+import { Transport } from "./transport";
+import { useEditorKeys } from "./use-editor-keys";
+import { useRecipeHistory } from "./use-recipe-history";
+import { useUnsavedGuard } from "./use-unsaved-guard";
+import { MAX_PIXELS_PER_SECOND, Waveform } from "./waveform";
 
 interface Props {
   track: EditorTrack;
@@ -21,101 +29,79 @@ interface Props {
   limits: EditorLimits;
 }
 
-const ZOOMS = [1, 2, 4, 8, 16, 32, 64];
-const POLL_MS = 3000;
+const POLL_MS = 2500;
+const SILENT: [number, number] = [-60, -60];
+
+type Analysis = { perSecond: number; peaks: Int8Array; loudness: number | null };
 
 function csrfToken(): string {
   return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? "";
 }
 
-/** Undo/redo history of the recipe. */
-type History = { past: Recipe[]; present: Recipe; future: Recipe[] };
-type HistoryAction = { type: "set"; recipe: Recipe } | { type: "undo" } | { type: "redo" } | { type: "reset"; recipe: Recipe };
-
-function history(state: History, action: HistoryAction): History {
-  switch (action.type) {
-    case "set":
-      return sameRecipe(state.present, action.recipe) && state.present.preset === action.recipe.preset ? state : { past: [...state.past.slice(-99), state.present], present: action.recipe, future: [] };
-    case "undo":
-      return state.past.length ? { past: state.past.slice(0, -1), present: state.past[state.past.length - 1], future: [state.present, ...state.future] } : state;
-    case "redo":
-      return state.future.length ? { past: [...state.past, state.present], present: state.future[0], future: state.future.slice(1) } : state;
-    case "reset":
-      return { past: [], present: action.recipe, future: [] };
-  }
+function decode(analysis: EditorAnalysis): Analysis {
+  const raw = atob(analysis.peaks);
+  const peaks = new Int8Array(raw.length);
+  for (let index = 0; index < raw.length; index++) peaks[index] = (raw.charCodeAt(index) << 24) >> 24;
+  return { perSecond: analysis.perSecond, peaks, loudness: analysis.loudness };
 }
 
-/** Editing one audio: waveform with cuts and selection, fades, sound treatment, live preview, final sample and save. */
+/** Editing one audio: timeline with cuts and fades, sound treatment heard live, final sample and save. */
 export function EditorWorkspace({ track, available, limits }: Props) {
   const url = useStudioUrl();
-  const duration = track.source_duration;
-  const saved = useMemo(() => fromSaved(track.edit, duration), [track.edit, duration]);
-  const [{ present: recipe, past, future }, dispatch] = useReducer(history, { past: [], present: saved, future: [] });
-  const setRecipe = useCallback((next: Recipe) => dispatch({ type: "set", recipe: next }), []);
-
-  const [analysis, setAnalysis] = useState<EditorAnalysis | null>(null);
-  const [analysisState, setAnalysisState] = useState<"loading" | "ready" | "missing">("loading");
+  const total = track.source_duration;
+  const baseline = useMemo(() => fromSaved(track.edit, total), [track.edit, total]);
+  const { recipe, change, undo, redo, canUndo, canRedo } = useRecipeHistory(baseline);
+  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [selection, setSelection] = useState<Cut | null>(null);
   const [zoom, setZoom] = useState(1);
-  const [viewStart, setViewStart] = useState(0);
+  const [bypass, setBypass] = useState(false);
+  const [loop, setLoop] = useState(false);
   const [time, setTime] = useState(0);
   const [, rerender] = useReducer((value: number) => value + 1, 0);
-  const [bypass, setBypass] = useState(false);
-  const [tab, setTab] = useState<"cortes" | "sonido">("cortes");
-  const [status, setStatus] = useState<{ value: EditorTrack["edit_status"]; error: string | null }>({ value: track.edit_status, error: track.edit_error });
-  const [busy, setBusy] = useState<"save" | "restore" | "sample" | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [status, setStatus] = useState({ value: track.edit_status, error: track.edit_error });
+  const [confirming, setConfirming] = useState<"save" | "restore" | null>(null);
+  const [guide, setGuide] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [sample, setSample] = useState<{ url: string; at: number } | null>(null);
+  const [sampling, setSampling] = useState(false);
   const engine = useRef<PreviewEngine | null>(null);
-  const sample = useRef<HTMLAudioElement | null>(null);
+  const recipeRef = useRef(recipe);
+  useEffect(() => {
+    recipeRef.current = recipe;
+  }, [recipe]);
+
+  const length = editedLength(recipe, total);
+  const dirty = !sameRecipe(recipe, baseline);
+  const processing = status.value === "processing";
+  const playing = engine.current?.playing ?? false;
+  const broken = track.source_url === null || (engine.current?.broken ?? false);
+  const overlapsCut = selection ? recipe.cuts.some(([from, to]) => from < selection[1] && to > selection[0]) : false;
+  const { blocked, stay, proceed, allow } = useUnsavedGuard(dirty && !processing);
+  const fades = useMemo(() => {
+    const kept = keeps(recipe.cuts, total);
+    const edited = editedLength(recipe, total);
+    return {
+      in: recipe.fadeIn > 0 && kept.length ? ([kept[0][0], toSource(recipe.fadeIn, recipe, total)] as Cut) : null,
+      out: recipe.fadeOut > 0 && kept.length ? ([toSource(edited - recipe.fadeOut, recipe, total), kept[kept.length - 1][1]] as Cut) : null,
+    };
+  }, [recipe, total]);
 
   useEffect(() => {
-    const preview = track.source_url ? new PreviewEngine(track.source_url, duration, saved, rerender) : null;
+    const preview = track.source_url ? new PreviewEngine(track.source_url, total, recipeRef.current, rerender) : null;
     engine.current = preview;
     return () => {
       preview?.destroy();
       engine.current = null;
     };
-  }, [track.source_url, duration, saved]);
+  }, [track.source_url, total]);
 
-  useEffect(() => {
-    engine.current?.setRecipe(recipe);
-  }, [recipe]);
+  useEffect(() => engine.current?.setRecipe(recipe), [recipe]);
+  useEffect(() => engine.current?.setLoudness(analysis?.loudness ?? null), [analysis]);
+  useEffect(() => engine.current?.setBypass(bypass), [bypass]);
+  useEffect(() => engine.current?.setLoop(loop ? selection : null), [loop, selection]);
 
-  useEffect(() => {
-    engine.current?.setBypass(bypass);
-  }, [bypass]);
-
-  useEffect(() => dispatch({ type: "reset", recipe: saved }), [saved]);
-
-  const analysisUrl = url(`/editor/${track.id}/analisis`);
-  const statusUrl = url(`/editor/${track.id}/estado`);
-
-  useEffect(() => {
-    let cancelled = false;
-    setAnalysisState("loading");
-    http
-      .get<{ analysis: EditorAnalysis | null }>(analysisUrl)
-      .then(({ analysis: found }) => {
-        if (cancelled) return;
-        setAnalysis(found);
-        setAnalysisState(found ? "ready" : "missing");
-        engine.current?.setLoudness(found?.loudness ?? null);
-      })
-      .catch(() => !cancelled && setAnalysisState("missing"));
-    return () => {
-      cancelled = true;
-    };
-  }, [analysisUrl]);
-
-  const peaks = useMemo(() => {
-    if (!analysis?.peaks) return null;
-    const raw = atob(analysis.peaks);
-    const bytes = new Int8Array(raw.length);
-    for (let index = 0; index < raw.length; index++) bytes[index] = (raw.charCodeAt(index) << 24) >> 24;
-    return bytes;
-  }, [analysis]);
-
-  const playing = engine.current?.playing ?? false;
   useEffect(() => {
     if (!playing) return;
     let frame = 0;
@@ -128,308 +114,350 @@ export function EditorWorkspace({ track, available, limits }: Props) {
   }, [playing]);
 
   useEffect(() => {
-    if (status.value !== "processing") return;
+    let cancelled = false;
+    http
+      .get<{ analysis: EditorAnalysis | null }>(url(`/editor/${track.id}/analisis`))
+      .then(({ analysis: found }) => {
+        if (cancelled) return;
+        if (found?.peaks) setAnalysis(decode(found));
+        else setAnalysisError("No pudimos dibujar la onda de este audio. Igual puedes escuchar, seleccionar y cortar.");
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setAnalysisError(error instanceof HttpError && error.status === 429 ? "Abriste muchos audios seguidos. Espera un minuto y recarga la página." : "Se cortó la conexión mientras leíamos el audio. Recarga la página.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [url, track.id]);
+
+  /** While the server renders, follow it; when it ends the page reloads with the edited audio. */
+  useEffect(() => {
+    if (!processing) return;
     const timer = window.setInterval(async () => {
-      const response = await http.get<{ track: EditorTrack }>(statusUrl).catch(() => null);
+      const response = await http.get<{ track: EditorTrack }>(url(`/editor/${track.id}/estado`)).catch(() => null);
       if (!response || response.track.edit_status === "processing") return;
-      setStatus({ value: response.track.edit_status, error: response.track.edit_error });
-      if (response.track.edit_status === null) {
-        setMessage("Listo: el audio editado ya suena en la radio.");
-        router.reload({ only: ["track", "tracks"] });
+      if (response.track.edit_status === "failed") {
+        setStatus({ value: "failed", error: response.track.edit_error ?? "El procesamiento falló. Inténtalo de nuevo." });
+        return;
       }
+      allow();
+      router.reload();
     }, POLL_MS);
     return () => window.clearInterval(timer);
-  }, [status.value, statusUrl]);
+  }, [processing, url, track.id, allow]);
 
-  useEffect(() => () => sample.current?.pause(), []);
+  useEffect(
+    () => () => {
+      if (sample) URL.revokeObjectURL(sample.url);
+    },
+    [sample],
+  );
 
-  const span = duration / zoom;
-  const start = Math.max(0, Math.min(viewStart, duration - span));
-  const view: Cut = [start, start + span];
-  const length = editedLength(recipe, duration);
-  const dirty = !sameRecipe(recipe, saved);
-  const tooShort = length < limits.min_length;
-  const tooManyCuts = recipe.cuts.length > limits.max_cuts;
-  const processing = status.value === "processing";
+  const seek = useCallback((at: number) => {
+    const next = Math.max(0, Math.min(total, at));
+    engine.current?.seek(next);
+    setTime(next);
+  }, [total]);
 
-  const changeZoom = (next: number) => {
-    const center = time >= view[0] && time <= view[1] ? time : view[0] + span / 2;
-    setZoom(next);
-    setViewStart(Math.max(0, center - duration / next / 2));
-  };
+  const play = useCallback((from?: number) => {
+    setSample(null);
+    void engine.current?.play(from);
+  }, []);
 
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     const preview = engine.current;
     if (!preview) return;
-    sample.current?.pause();
     if (preview.playing) preview.pause();
-    else {
-      preview.setLoop(null);
-      void preview.play(time);
-    }
-  };
+    else play(selection && loop ? selection[0] : undefined);
+  }, [loop, selection, play]);
 
-  const seek = (at: number) => {
-    setTime(at);
-    engine.current?.seek(at);
-  };
+  /** Applies new cuts only when they stay within the limits, saying why otherwise. */
+  const applyCuts = useCallback(
+    (cuts: Cut[], after?: () => void) => {
+      const next = mergeCuts(cuts, total);
+      if (next.length > limits.max_cuts) {
+        setNotice(`Puedes tener hasta ${limits.max_cuts} cortes en un audio.`);
+        return;
+      }
+      if (editedLength({ ...recipeRef.current, cuts: next }, total) < limits.min_length) {
+        setNotice(`Así no quedaría audio: deja al menos ${limits.min_length} s sin cortar.`);
+        return;
+      }
+      setNotice(null);
+      change((current) => ({ ...current, cuts: next }));
+      after?.();
+    },
+    [change, limits.max_cuts, limits.min_length, total],
+  );
 
-  const cutSelection = () => {
+  const cutSelection = useCallback(() => {
     if (!selection) return;
-    setRecipe({ ...recipe, cuts: mergeCuts([...recipe.cuts, selection], duration) });
-    setSelection(null);
-  };
+    applyCuts([...recipeRef.current.cuts, selection], () => {
+      setSelection(null);
+      seek(Math.min(selection[1], total));
+    });
+  }, [applyCuts, selection, seek, total]);
 
   const keepSelection = () => {
     if (!selection) return;
-    setRecipe({ ...recipe, cuts: mergeCuts([...recipe.cuts, [0, selection[0]], [selection[1], duration]], duration) });
-    setSelection(null);
+    applyCuts([...recipe.cuts, [0, selection[0]], [selection[1], total]], () => {
+      setSelection(null);
+      seek(selection[0]);
+    });
   };
 
   const restoreSelection = () => {
     if (!selection) return;
-    setRecipe({ ...recipe, cuts: restoreRange(recipe.cuts, selection, duration) });
+    change((current) => ({ ...current, cuts: restoreRange(current.cuts, selection, total) }));
     setSelection(null);
   };
 
-  const listenSelection = () => {
-    const preview = engine.current;
-    if (!selection || !preview) return;
-    sample.current?.pause();
-    preview.setLoop(selection);
-    void preview.play(selection[0]);
-  };
+  const mark = useCallback(
+    (edge: 0 | 1) => {
+      const at = engine.current?.time ?? time;
+      setSelection((range) => {
+        const next: Cut = range ? [...range] : edge === 0 ? [at, total] : [0, at];
+        next[edge] = at;
+        return next[1] - next[0] >= 0.05 ? [Math.min(...next), Math.max(...next)] : null;
+      });
+    },
+    [time, total],
+  );
 
-  const playSample = async () => {
+  const zoomBy = useCallback((factor: number) => setZoom((value) => Math.max(1, Math.min(Math.max(1, (total * MAX_PIXELS_PER_SECOND) / 900), value * factor))), [total]);
+  const levels = useCallback(() => engine.current?.levels() ?? SILENT, []);
+
+  useEditorKeys(
+    {
+      togglePlay,
+      cutSelection,
+      mark,
+      toggleLoop: () => setLoop((value) => !value),
+      toggleBypass: () => setBypass((value) => !value),
+      zoomBy,
+      seek,
+      seekBy: (seconds) => seek((engine.current?.time ?? time) + seconds),
+      clearSelection: () => setSelection(null),
+      undo,
+      redo,
+      openGuide: () => setGuide(true),
+    },
+    { enabled: true, duration: total },
+  );
+
+  const listenFinal = async () => {
     engine.current?.pause();
-    sample.current?.pause();
-    setBusy("sample");
-    setMessage(null);
+    setSampling(true);
+    setNotice(null);
+    const at = Math.max(0, Math.min(toEdited(engine.current?.time ?? time, recipe, total), length - limits.preview_seconds));
     try {
       const response = await fetch(url(`/editor/${track.id}/muestra`), {
         method: "POST",
         credentials: "same-origin",
         headers: { Accept: "audio/mpeg, application/json", "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest", "X-CSRF-TOKEN": csrfToken() },
-        body: JSON.stringify({ recipe, at: Math.max(0, Math.min(length - 1, toEdited(time, recipe, duration))) }),
+        body: JSON.stringify({ recipe, at }),
       });
-      if (!response.ok) {
+      if (response.ok && (response.headers.get("content-type") ?? "").includes("audio")) {
+        setSample({ url: URL.createObjectURL(await response.blob()), at });
+      } else {
         const body = (await response.json().catch(() => ({}))) as { message?: string };
-        throw new HttpError(response.status, body);
+        setNotice(body.message ?? (response.status === 429 ? "Pediste muchas muestras seguidas. Espera un minuto." : "No se pudo preparar la muestra."));
       }
-      const audio = new Audio(URL.createObjectURL(await response.blob()));
-      audio.onended = () => URL.revokeObjectURL(audio.src);
-      sample.current = audio;
-      await audio.play();
-    } catch (error) {
-      setMessage(error instanceof HttpError ? error.firstError() : "No se pudo preparar la muestra.");
-    } finally {
-      setBusy(null);
+    } catch {
+      setNotice("Se cortó la conexión mientras preparábamos la muestra.");
     }
+    setSampling(false);
   };
 
   const save = async () => {
-    setBusy("save");
-    setMessage(null);
+    setBusy(true);
     try {
       const { track: updated } = await http.post<{ track: EditorTrack }>(url(`/editor/${track.id}`), { recipe });
+      engine.current?.pause();
+      setNotice(null);
       setStatus({ value: updated.edit_status, error: updated.edit_error });
-      if (updated.edit_status === "processing") setMessage("Estamos procesando el audio. Puedes seguir trabajando; te avisaremos al terminar.");
-      else router.reload({ only: ["track", "tracks"] });
+      if (updated.edit_status !== "processing") {
+        allow();
+        router.reload();
+      }
     } catch (error) {
-      setMessage(error instanceof HttpError ? error.firstError() : "No se pudo guardar la edición.");
+      setNotice(error instanceof HttpError ? error.firstError() : "No se pudo guardar la edición.");
     } finally {
-      setBusy(null);
+      setBusy(false);
+      setConfirming(null);
     }
   };
 
   const restore = async () => {
-    if (!window.confirm("¿Volver al audio original? Se pierden los cortes y el tratamiento guardados.")) return;
-    setBusy("restore");
-    setMessage(null);
+    setBusy(true);
+    allow();
     try {
       await http.post(url(`/editor/${track.id}/restaurar`));
-      router.reload({ only: ["track", "tracks"] });
+      router.reload();
     } catch (error) {
-      setMessage(error instanceof HttpError ? error.firstError() : "No se pudo restaurar el original.");
-    } finally {
-      setBusy(null);
+      allow(false);
+      setNotice(error instanceof HttpError ? error.firstError() : "No se pudo restaurar el original.");
+      setBusy(false);
+      setConfirming(null);
     }
   };
 
-  const onServer = serverOnly(recipe);
+  const playheadEdited = toEdited(time, recipe, total);
+  const treatments = describeSound(recipe);
+  const finalOnly = serverOnly(recipe);
+  const eta = total * 0.15 < 45 ? "unos segundos" : `cerca de ${Math.max(1, Math.round((total * 0.15) / 60))} min`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      <AudioHeader track={track} total={total} length={length} loudness={analysis?.loudness ?? null} />
+
       {!available && (
         <p className="rounded-xl bg-warning-soft px-4 py-3 text-sm text-warning">
-          El procesador de audio no está disponible en este momento. Puedes preparar y escuchar la edición, pero no guardarla.
+          El procesador de audio no está disponible en este momento. Puedes preparar y escuchar la edición, pero no guardarla ni pedir la muestra final.
         </p>
       )}
-      {processing && <p className="rounded-xl bg-info-soft px-4 py-3 text-sm text-info">Procesando el audio editado… esto puede tardar unos minutos en audios largos.</p>}
-      {status.value === "failed" && status.error && <p className="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">{status.error}</p>}
-      {message && <p className="rounded-xl bg-raised px-4 py-3 text-sm">{message}</p>}
+      {processing && (
+        <div className="flex items-center gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning">
+          <Loader2 className="size-4 shrink-0 animate-spin" />
+          <p>
+            <b>Procesando el audio con calidad de estudio…</b> Suele tardar {eta}. Puedes quedarte aquí: la página se actualiza sola cuando termine.
+          </p>
+        </div>
+      )}
+      {status.value === "failed" && status.error && (
+        <Notice text={`No se pudo guardar la edición: ${status.error}`} onClose={() => setStatus({ value: null, error: null })} />
+      )}
+      {notice && <Notice text={notice} onClose={() => setNotice(null)} />}
 
-      <Panel
-        title={track.title}
-        description={[track.credit, track.kind, `Original ${formatDuration(duration)}`, `Editado ${formatDuration(length)}`].filter(Boolean).join(" · ")}
-        actions={
-          <>
-            {track.edited && <Badge tone="signal">Editado</Badge>}
-            <Button size="icon" variant="ghost" aria-label="Deshacer" disabled={past.length === 0} onClick={() => dispatch({ type: "undo" })}>
-              <Undo2 className="size-4" />
-            </Button>
-            <Button size="icon" variant="ghost" aria-label="Rehacer" disabled={future.length === 0} onClick={() => dispatch({ type: "redo" })}>
-              <Redo2 className="size-4" />
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          {analysisState === "missing" && <p className="text-xs text-muted">No pudimos dibujar la forma de onda; igual puedes escuchar, seleccionar y cortar.</p>}
-          <Waveform
-            peaks={peaks}
-            perSecond={analysis?.perSecond ?? 1}
-            duration={duration}
-            view={view}
-            cuts={recipe.cuts}
-            selection={selection}
-            playhead={time}
-            fadeIn={recipe.fadeIn}
-            fadeOut={recipe.fadeOut}
+      <Panel>
+        <div className="space-y-4">
+          <Transport
+            playing={playing}
+            broken={broken}
+            time={time}
+            editedTime={playheadEdited}
+            length={length}
+            duration={total}
+            loop={loop}
+            bypass={bypass}
+            zoom={zoom}
+            levels={levels}
             onSeek={seek}
-            onSelect={setSelection}
+            onTogglePlay={togglePlay}
+            onLoop={setLoop}
+            onBypass={setBypass}
+            onZoom={(factor) => (factor === null ? setZoom(1) : zoomBy(factor))}
+            onGuide={() => setGuide(true)}
           />
-          {zoom > 1 && (
-            <input
-              type="range"
-              min={0}
-              max={Math.max(0, duration - span)}
-              step={span / 100}
-              value={start}
-              onChange={(event) => setViewStart(Number(event.target.value))}
-              className="w-full accent-[var(--signal)]"
-              aria-label="Desplazar la vista"
+          <div>
+            <Waveform
+              peaks={analysis?.peaks ?? null}
+              perSecond={analysis?.perSecond ?? 100}
+              duration={total}
+              cuts={recipe.cuts}
+              selection={selection}
+              time={time}
+              fades={fades}
+              zoom={zoom}
+              follow={playing}
+              onZoom={setZoom}
+              onSeek={seek}
+              onSelect={setSelection}
+              onCuts={(cuts) => applyCuts(cuts)}
             />
-          )}
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="signal" size="icon" aria-label={playing ? "Pausar" : "Reproducir"} onClick={togglePlay} disabled={!engine.current || engine.current.broken}>
-              {playing ? <Pause className="size-4" /> : <Play className="size-4" />}
-            </Button>
-            <span className="w-32 font-mono text-sm tabular">
-              {preciseTime(time)} / {preciseTime(duration)}
-            </span>
-            <Button size="icon" variant="ghost" aria-label="Alejar" disabled={zoom === ZOOMS[0]} onClick={() => changeZoom(ZOOMS[ZOOMS.indexOf(zoom) - 1])}>
-              <ZoomOut className="size-4" />
-            </Button>
-            <Button size="icon" variant="ghost" aria-label="Acercar" disabled={zoom === ZOOMS[ZOOMS.length - 1]} onClick={() => changeZoom(ZOOMS[ZOOMS.indexOf(zoom) + 1])}>
-              <ZoomIn className="size-4" />
-            </Button>
-            <div className="ml-auto flex items-center gap-3">
-              <Switch checked={bypass} onChange={setBypass} label="Escuchar sin tratamiento" />
-            </div>
+            {analysisError && <p className="mt-2 text-xs text-muted">{analysisError}</p>}
+            {broken && <p className="mt-2 text-xs text-danger">El navegador no pudo reproducir este audio. Puedes cortar y ajustar igual, y escuchar el resultado con «Escuchar el resultado final».</p>}
           </div>
-
-          {selection && (
-            <div className="flex flex-wrap items-center gap-2 rounded-xl bg-raised px-3 py-2 text-sm">
-              <span className="text-muted">
-                Selección {preciseTime(selection[0])} – {preciseTime(selection[1])}
-              </span>
-              <Button size="sm" variant="ghost" icon={<Headphones className="size-3.5" />} onClick={listenSelection}>
-                Escuchar
-              </Button>
-              <Button size="sm" variant="danger" icon={<Scissors className="size-3.5" />} onClick={cutSelection}>
-                Cortar
-              </Button>
-              <Button size="sm" variant="secondary" icon={<SquareDashed className="size-3.5" />} onClick={keepSelection}>
-                Conservar solo esto
-              </Button>
-              <Button size="sm" variant="ghost" icon={<RotateCcw className="size-3.5" />} onClick={restoreSelection}>
-                Devolver lo cortado
-              </Button>
-            </div>
-          )}
+          <EditActions
+            selection={selection}
+            overlapsCut={overlapsCut}
+            canCutStart={time >= 0.1 && cutAt(recipe.cuts, time) < 0}
+            canCutEnd={time <= total - 0.1 && cutAt(recipe.cuts, time) < 0}
+            onCut={cutSelection}
+            onKeep={keepSelection}
+            onRestore={restoreSelection}
+            onClear={() => setSelection(null)}
+            onCutStart={() => applyCuts([...recipe.cuts, [0, time]])}
+            onCutEnd={() => applyCuts([...recipe.cuts, [time, total]])}
+          />
         </div>
       </Panel>
 
-      <Tabs
-        value={tab}
-        onChange={setTab}
-        items={[
-          { value: "cortes", label: "Cortes y fundidos", count: recipe.cuts.length },
-          { value: "sonido", label: "Sonido" },
-        ]}
+      {sample && <SamplePanel url={sample.url} at={sample.at} seconds={limits.preview_seconds} serverOnly={finalOnly} onClose={() => setSample(null)} />}
+
+      <Panel title="Cortes y transiciones" description="Así queda el audio, en orden. Puedes escuchar cada empalme o recuperar una parte cortada.">
+        <PartsList
+          recipe={recipe}
+          duration={total}
+          length={length}
+          maxFade={limits.max_fade}
+          maxJoin={limits.max_join}
+          hasJoins={joins(recipe, total).length > 0}
+          onChange={(patch, group) => change((current) => ({ ...current, ...patch }), group)}
+          onListen={play}
+          onSelect={setSelection}
+          onRestore={(range) => change((current) => ({ ...current, cuts: restoreRange(current.cuts, range, total) }))}
+          onRemove={(index) => change((current) => ({ ...current, cuts: current.cuts.filter((_, other) => other !== index) }))}
+        />
+      </Panel>
+
+      <Panel
+        title="Sonido"
+        description="Mejora la calidad del audio. Todo se escucha al instante mientras reproduces; escribe el valor exacto en cualquier control si lo necesitas."
+        actions={
+          <Button
+            variant="secondary"
+            icon={sampling ? <Loader2 className="size-4 animate-spin" /> : <Headphones className="size-4" />}
+            onClick={listenFinal}
+            disabled={!available || sampling || processing || length < limits.min_length}
+            title="Procesa unos segundos en el servidor con todos los filtros, incluidos los que el navegador no puede reproducir"
+            className="border-info/40 text-info hover:bg-info-soft"
+          >
+            Escuchar el resultado final
+          </Button>
+        }
+      >
+        <SoundPanel
+          recipe={recipe}
+          maxGain={limits.max_gain}
+          targetLufs={limits.target_lufs}
+          onChange={(patch, group) => change((current) => ({ ...current, ...patch }), group)}
+          onReplace={(next) => change(next)}
+        />
+      </Panel>
+
+      <SaveBar
+        processing={processing}
+        dirty={dirty}
+        edited={track.edited}
+        length={length}
+        treatments={treatments}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        canSave={available && dirty && !processing && !busy && !(isPlain(recipe) && !track.edited)}
+        busy={busy}
+        onUndo={undo}
+        onRedo={redo}
+        onDiscard={() => change(baseline)}
+        onRestore={() => setConfirming("restore")}
+        onSave={() => setConfirming("save")}
       />
 
-      {tab === "cortes" ? (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Panel title="Fundidos" description="Entrada y salida suaves, y cruce entre las partes que quedan.">
-            <div className="space-y-4">
-              {(
-                [
-                  ["fadeIn", "Entrada", limits.max_fade],
-                  ["fadeOut", "Salida", limits.max_fade],
-                  ["join", "Cruce en los cortes", limits.max_join],
-                ] as const
-              ).map(([key, label, max]) => (
-                <label key={key} className="block space-y-1">
-                  <span className="flex justify-between text-sm">
-                    <span className="font-medium">{label}</span>
-                    <span className="text-xs text-muted tabular">{recipe[key].toFixed(1)} s</span>
-                  </span>
-                  <input type="range" min={0} max={max} step={0.1} value={recipe[key]} onChange={(event) => setRecipe({ ...recipe, [key]: Number(event.target.value) })} className="w-full accent-[var(--signal)]" />
-                </label>
-              ))}
-            </div>
-          </Panel>
-          <Panel title="Cortes" description="Arrastra sobre la onda para seleccionar y pulsa «Cortar»." padded={false}>
-            {recipe.cuts.length === 0 ? (
-              <p className="px-5 py-8 text-center text-sm text-muted">Todavía no hay cortes.</p>
-            ) : (
-              <ul className="max-h-72 divide-y divide-line overflow-y-auto">
-                {recipe.cuts.map((cut, index) => (
-                  <li key={`${cut[0]}-${cut[1]}`} className="flex items-center gap-3 px-5 py-2 text-sm">
-                    <span className="w-6 text-xs text-faint">{index + 1}</span>
-                    <button type="button" className="flex-1 text-left font-mono tabular hover:text-signal" onClick={() => setSelection(cut)}>
-                      {preciseTime(cut[0])} – {preciseTime(cut[1])}
-                    </button>
-                    <span className="text-xs text-muted">{(cut[1] - cut[0]).toFixed(1)} s</span>
-                    <Button size="sm" variant="ghost" onClick={() => setRecipe({ ...recipe, cuts: recipe.cuts.filter((_, other) => other !== index) })}>
-                      Quitar
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {tooManyCuts && <p className="px-5 pb-4 text-xs text-danger">Hay más de {limits.max_cuts} cortes; une algunos para poder guardar.</p>}
-          </Panel>
-        </div>
-      ) : (
-        <Panel>
-          <SoundPanel recipe={recipe} maxGain={limits.max_gain} onChange={setRecipe} />
-        </Panel>
-      )}
+      <SaveDialog open={confirming === "save"} track={track} recipe={recipe} total={total} length={length} treatments={treatments} busy={busy} onClose={() => setConfirming(null)} onConfirm={save} />
+      <RestoreDialog open={confirming === "restore"} title={track.title} total={total} busy={busy} onClose={() => setConfirming(null)} onConfirm={restore} />
+      <GuideDialog open={guide} onClose={() => setGuide(false)} />
+      <LeaveDialog open={blocked} onStay={stay} onLeave={proceed} />
+    </div>
+  );
+}
 
-      <div className="flex flex-wrap items-center justify-end gap-2 rounded-2xl border border-line bg-surface px-5 py-4">
-        {onServer.length > 0 && <p className="mr-auto text-xs text-muted">La {onServer.join(" y la ")} se escucha en la muestra final.</p>}
-        {tooShort && <p className="mr-auto text-xs text-danger">La edición deja el audio demasiado corto.</p>}
-        {track.edited && (
-          <Button variant="ghost" icon={<RotateCcw className="size-4" />} loading={busy === "restore"} disabled={processing || busy !== null} onClick={restore}>
-            Volver al original
-          </Button>
-        )}
-        <Button variant="secondary" icon={<AudioLines className="size-4" />} loading={busy === "sample"} disabled={!available || tooShort || busy !== null} onClick={playSample}>
-          Muestra final ({limits.preview_seconds} s)
-        </Button>
-        <Button
-          icon={<Save className="size-4" />}
-          loading={busy === "save"}
-          disabled={!available || processing || tooShort || tooManyCuts || busy !== null || !dirty}
-          onClick={save}
-        >
-          Guardar edición
-        </Button>
-      </div>
+function Notice({ text, onClose }: { text: string; onClose: () => void }) {
+  return (
+    <div role="alert" className="flex items-start gap-3 rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">
+      <p className="flex-1">{text}</p>
+      <button type="button" onClick={onClose} aria-label="Cerrar aviso" className="opacity-70 transition hover:opacity-100">
+        <X className="size-4" />
+      </button>
     </div>
   );
 }

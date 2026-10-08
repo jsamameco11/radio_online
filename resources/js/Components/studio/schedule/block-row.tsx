@@ -10,6 +10,8 @@ import { duration } from "@/lib/format";
 import { clock } from "@/lib/radio/format";
 import type { BroadcastPlaylist, Option, ProgramItem, ScheduleBlock } from "@/types/studio";
 import { ActionNotice } from "./action-notice";
+import { DuckIcon } from "./duck-icon";
+import { KIND_DOT } from "./kind-tone";
 import { UpcomingSongs } from "./upcoming-songs";
 import { useScheduleAction } from "./use-schedule-action";
 
@@ -79,12 +81,13 @@ export function BlockRow({
   }
 
   return (
-    <li id={`bloque-${block.id}`} className={cn("scroll-mt-24 rounded-2xl border p-3.5 transition", onAir ? "border-onair/40 bg-onair-soft" : "border-line bg-surface", past && "opacity-60", overlay && "ml-6")}>
+    <li id={`bloque-${block.id}`} className={cn("scroll-mt-24 rounded-2xl border p-3.5 transition target:ring-2 target:ring-signal", onAir ? "border-onair/40 bg-onair-soft" : "border-line bg-surface", past && "opacity-60", overlay && "ml-6")}>
       <div className="flex flex-wrap items-start gap-3">
         <p className={cn("w-16 shrink-0 font-mono text-sm font-semibold tabular", past ? "text-muted" : "text-ink")}>
           {clock(block.start, timezone, true)}
           <span className="block text-xs font-normal text-muted">{clock(block.end, timezone, true)}</span>
         </p>
+        <span className={cn("mt-1.5 size-2.5 shrink-0 rounded-full", KIND_DOT[block.kind], onAir && "ring-4 ring-onair/25")} aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             {overlay ? <Badge tone="info">{layers.find((item) => item.value === block.layer)?.label ?? `capa ${block.layer}`} · encima</Badge> : null}
@@ -92,7 +95,11 @@ export function BlockRow({
             {onAir ? <Badge tone="onair">Al aire</Badge> : null}
             {live && block.bed ? <span className="text-xs text-muted">con música de fondo</span> : null}
             {live ? <span className="text-xs text-muted">si nadie se conecta, sigue la música automática</span> : null}
-            {overlay && block.duck ? <span className="text-xs font-medium text-warning">baja la música</span> : null}
+            {overlay && block.duck ? (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-warning">
+                <DuckIcon className="size-3.5" /> baja la música
+              </span>
+            ) : null}
             {overlay && block.volume !== 100 ? <span className="text-xs text-muted">volumen {block.volume}%</span> : null}
             {block.inactive ? <Badge tone="warning">Audio no disponible: no sonará</Badge> : null}
           </div>

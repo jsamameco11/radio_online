@@ -120,6 +120,20 @@ export function toEdited(time: number, recipe: Recipe, duration: number) {
   return elapsed;
 }
 
+/** The moment of the original heard at a point of the edited audio. */
+export function toSource(time: number, recipe: Recipe, duration: number) {
+  const parts = keeps(recipe.cuts, duration);
+  const overlaps = joins(recipe, duration);
+  let elapsed = 0;
+  for (let index = 0; index < parts.length; index++) {
+    const [start, end] = parts[index];
+    const length = end - start - (overlaps[index] ?? 0);
+    if (time <= elapsed + length || index === parts.length - 1) return Math.min(end, start + Math.max(0, time - elapsed));
+    elapsed += length;
+  }
+  return duration;
+}
+
 /** Index of the cut holding this moment, or -1. */
 export function cutAt(cuts: Cut[], time: number) {
   return cuts.findIndex(([start, end]) => time >= start && time < end);
@@ -165,6 +179,10 @@ export function sameRecipe(a: Recipe, b: Recipe) {
 
 export function isPlain(recipe: Recipe) {
   return sameRecipe(recipe, defaults());
+}
+
+export function soundChanged(recipe: Recipe) {
+  return JSON.stringify({ ...recipe, cuts: [], fadeIn: 0, fadeOut: 0, join: 0, preset: null }) !== JSON.stringify(defaults());
 }
 
 /** The treatments the browser cannot play live: they are heard in the final-result sample and in the saved file. */

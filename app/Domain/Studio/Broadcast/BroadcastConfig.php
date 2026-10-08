@@ -45,6 +45,8 @@ final class BroadcastConfig
             'duck_level' => 25,
             // Track ids of the pad bank in order; null until the bank is first saved.
             'pads' => null,
+            // The basic bank of factory effects was already loaded once: it never comes back by itself.
+            'pads_offered' => false,
         ],
         self::AUTOMATION => [
             'autofill' => true,

@@ -12,6 +12,9 @@ class BroadcastSettingsRequest extends FormRequest
 {
     public const BITRATES = [32, 48, 64, 96, 128];
 
+    /** Listeners that may receive the live microphone at once; each one takes the host's upload bandwidth. */
+    public const MAX_VOICE = 500;
+
     public function authorize(): bool
     {
         return true;
@@ -27,9 +30,9 @@ class BroadcastSettingsRequest extends FormRequest
             'show_titles' => ['required', 'boolean'],
             'live_mode' => ['required', Rule::enum(LiveMode::class)],
             'live_source' => ['required', Rule::enum(LiveSource::class)],
-            'live_url' => ['nullable', 'required_if:live_source,'.LiveSource::External->value, 'url:http,https', 'max:500'],
-            'max_voice' => ['required', 'integer', 'between:1,500'],
-            'stream_url' => ['nullable', 'url:http,https', 'max:500'],
+            'live_url' => ['nullable', 'required_if:live_source,'.LiveSource::External->value, 'url:https', 'max:500'],
+            'max_voice' => ['required', 'integer', 'between:1,'.self::MAX_VOICE],
+            'stream_url' => ['nullable', 'url:https', 'max:500'],
             'bitrate_kbps' => ['required', 'integer', Rule::in(self::BITRATES)],
         ];
     }
@@ -40,7 +43,10 @@ class BroadcastSettingsRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'live_url.required_if' => 'Escribe el enlace de la señal externa (OBS, Icecast) para usarla en vivo.',
+            'live_url.required_if' => 'Escribe el enlace de la señal externa (OBS, Icecast) o elige la consola como fuente del vivo.',
+            'live_url.url' => 'El enlace de la señal en vivo debe empezar con https:// (los navegadores bloquean http en una web segura).',
+            'stream_url.url' => 'El enlace de transmisión externa debe empezar con https:// (los navegadores bloquean http en una web segura).',
+            'max_voice.between' => 'Los oyentes del micrófono en vivo van de 1 a '.self::MAX_VOICE.'.',
             'bitrate_kbps.in' => 'Elige una calidad de la lista.',
         ];
     }

@@ -64,7 +64,7 @@ export function AutopilotPanel({ musicUrl, autopilot, playlists, now, timezone }
           </Button>
         </div>
 
-        <p className="text-xs text-muted">Llena los espacios libres y los bloques en vivo sin nadie conectado. Los periodos de «Música automática» usan su propia lista.</p>
+        <p className="text-xs text-muted">Llena los espacios libres y los bloques en vivo sin nadie conectado. Los periodos de «Música automática» usan su propia lista. Si la lista elegida se queda sin canciones, la radio queda en silencio: solo suena lo que configures.</p>
         <PendingSwitch autopilot={autopilot} now={now} timezone={timezone} busy={pending} onCancel={() => void run("delete", `${musicUrl}/cambio`)} />
         <FallbackNotice autopilot={autopilot} />
         <SourcePicker

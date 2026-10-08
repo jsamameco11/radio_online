@@ -1,5 +1,5 @@
 import { Link } from "@inertiajs/react";
-import { AlarmClock, Send } from "lucide-react";
+import { Send, Volume1 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
@@ -8,7 +8,7 @@ import { Panel } from "@/Components/ui/panel";
 import { Tabs } from "@/Components/ui/tabs";
 import { cn } from "@/lib/cn";
 import { duration } from "@/lib/format";
-import { clock, localDate, longDuration } from "@/lib/radio/format";
+import { clock } from "@/lib/radio/format";
 import type { BroadcastTrack, ScheduleBlock, UpcomingBlock } from "@/types/studio";
 import { kindLabel } from "./labels";
 import { TrackPicker } from "./track-picker";
@@ -66,8 +66,8 @@ export function LaunchNow({ api, library }: { api: ConsoleApi; library: Broadcas
   );
 }
 
-/** Today's program on every layer, with the block on air highlighted and the coming ones warned. */
-export function TodayList({ day, now, timezone, autofill, upcoming, scheduleUrl }: { day: ScheduleBlock[]; now: number; timezone: string; autofill: boolean; upcoming: UpcomingBlock[]; scheduleUrl: string | null }) {
+/** Today's program on every layer, with the block on air highlighted and the coming ones warned (a click opens the warning). */
+export function TodayList({ day, now, timezone, autofill, upcoming, scheduleUrl, onAlert }: { day: ScheduleBlock[]; now: number; timezone: string; autofill: boolean; upcoming: UpcomingBlock[]; scheduleUrl: string | null; onAlert: (id: string) => void }) {
   return (
     <Panel
       dense
@@ -86,8 +86,8 @@ export function TodayList({ day, now, timezone, autofill, upcoming, scheduleUrl 
           {day.map((block) => {
             const alert = upcoming.find((item) => item.id === block.id);
             const isNow = !alert?.held && block.start <= now && now < block.end;
-            return (
-              <li key={block.id} className={cn("flex items-start gap-2 px-3 py-1.5", alert ? "bg-danger-soft" : isNow ? "bg-onair-soft" : block.end < now && "opacity-50")}>
+            const body = (
+              <>
                 <span className="shrink-0 pt-px font-mono text-[11px] text-muted tabular">
                   {clock(block.start, timezone)}–{clock(block.end, timezone)}
                 </span>
@@ -95,12 +95,27 @@ export function TodayList({ day, now, timezone, autofill, upcoming, scheduleUrl 
                   <span className="block truncate text-xs text-ink" title={block.title}>
                     {block.title}
                   </span>
-                  <span className="block truncate text-[10px] text-faint">
-                    {block.layer ? `Capa ${block.layer}` : "Principal"} · {kindLabel(block.kind)}
+                  <span className="flex min-w-0 items-center gap-1 text-[10px] text-faint">
+                    <span className={cn("size-1.5 shrink-0 rounded-full", block.layer ? "bg-gold" : "bg-onair")} aria-hidden />
+                    <span className="truncate">
+                      {block.layer ? `Capa ${block.layer}` : "Principal"} · {kindLabel(block.kind)}
+                    </span>
+                    {block.layer && block.duck ? <Volume1 className="size-3 shrink-0" aria-label="Baja la música mientras suena" /> : null}
                   </span>
                 </span>
                 {isNow ? <Badge tone="onair">Ahora</Badge> : null}
                 {alert ? <span className="shrink-0 font-mono text-[11px] text-danger tabular">{alert.held ? "tras el vivo" : `en ${duration(Math.max(0, alert.start - now) / 1000)}`}</span> : null}
+              </>
+            );
+            return (
+              <li key={block.id} className={cn(alert ? "bg-danger-soft" : isNow ? "bg-onair-soft" : block.end < now && "opacity-50")}>
+                {alert ? (
+                  <button type="button" onClick={() => onAlert(block.id)} className="flex w-full items-start gap-2 px-3 py-1.5 text-left hover:bg-danger/10" title="Ver el aviso y reprogramarlo">
+                    {body}
+                  </button>
+                ) : (
+                  <div className="flex items-start gap-2 px-3 py-1.5">{body}</div>
+                )}
               </li>
             );
           })}
@@ -109,85 +124,5 @@ export function TodayList({ day, now, timezone, autofill, upcoming, scheduleUrl 
         <p className="px-3 py-3 text-xs text-muted">No hay bloques para hoy. {autofill ? "Suena la música automática." : "Música automática detenida: la radio está en silencio."}</p>
       )}
     </Panel>
-  );
-}
-
-/**
- * What the main program has scheduled within the next minutes and what waits for the live
- * transmission to end, with the way to move it (some minutes later or to another time).
- */
-export function UpcomingAlerts({ api, timezone }: { api: ConsoleApi; timezone: string }) {
-  const { now } = api;
-  const { upcoming } = api.snapshot;
-  const [hidden, setHidden] = useState<string[]>([]);
-  const visible = upcoming.filter((block) => !hidden.includes(block.id));
-  if (!visible.length) return null;
-  const live = Boolean(api.snapshot.live.session || api.snapshot.radio.live.cut);
-
-  return (
-    <Panel dense title="Próximo en la programación" actions={<AlarmClock className="size-4 text-danger" />}>
-      <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))] gap-2">
-        {visible.map((block) => (
-          <UpcomingItem key={block.id} api={api} block={block} now={now} live={live} timezone={timezone} onHide={() => setHidden((list) => [...list, block.id])} />
-        ))}
-      </ul>
-    </Panel>
-  );
-}
-
-function UpcomingItem({ api, block, now, live, timezone, onHide }: { api: ConsoleApi; block: UpcomingBlock; now: number; live: boolean; timezone: string; onHide: () => void }) {
-  const [time, setTime] = useState(() => clock(Math.max(block.start, now) + 15 * 60000, timezone));
-  const [busy, setBusy] = useState(false);
-  const audio = block.kind !== "live" && block.kind !== "auto";
-  const status = block.held
-    ? "La transmisión en vivo está al aire: sonará apenas termines, y lo que sigue se corre."
-    : block.kind === "live"
-      ? "Bloque en vivo: en modo automático la música se corta sola cuando te conectes."
-      : live && audio
-        ? "Estás en vivo: si a esa hora sigues al aire, esperará a que termines."
-        : `Sonará solo a las ${clock(block.start, timezone)}.`;
-
-  async function move(change: Parameters<ConsoleApi["reschedule"]>[1]) {
-    setBusy(true);
-    await api.reschedule(block.id, change);
-    setBusy(false);
-  }
-
-  return (
-    <li className="min-w-0 space-y-2 rounded-lg border border-danger/30 bg-danger-soft p-2.5">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge tone="danger">{kindLabel(block.kind)}</Badge>
-        <span className="font-mono text-xs text-muted tabular">{block.held ? "pendiente" : `${clock(block.start, timezone)} – ${clock(block.end, timezone)}`}</span>
-        <span className="text-xs text-faint">{longDuration(block.duration)}</span>
-      </div>
-      <p className="text-sm font-semibold break-words">{block.title}</p>
-      {block.note ? <p className="rounded-md bg-surface px-2 py-1 text-xs break-words text-muted">{block.note}</p> : null}
-      <p className="text-xs break-words text-danger">
-        {!block.held && block.start > now ? <strong>Empieza en {duration((block.start - now) / 1000)}. </strong> : null}
-        {status}
-      </p>
-      <div className="flex flex-wrap items-center gap-1.5">
-        {[5, 15, 30].map((minutes) => (
-          <Button key={minutes} size="sm" variant="secondary" disabled={busy} onClick={() => void move({ minutes })}>
-            +{minutes} min
-          </Button>
-        ))}
-        <form
-          className="flex items-center gap-1.5"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void move({ time, date: localDate(Math.max(block.start, now), timezone) });
-          }}
-        >
-          <Input type="time" value={time} onChange={(event) => setTime(event.target.value)} className="h-8 w-28" aria-label="Nueva hora" required />
-          <Button size="sm" type="submit" disabled={busy || !time}>
-            Mover
-          </Button>
-        </form>
-        <Button size="sm" variant="ghost" onClick={onHide} className="ml-auto" title="Oculta este aviso; la programación no cambia">
-          Ocultar
-        </Button>
-      </div>
-    </li>
   );
 }

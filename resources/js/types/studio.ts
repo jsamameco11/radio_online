@@ -225,6 +225,8 @@ export interface BroadcastTrack {
   artist: string | null;
   duration: number;
   duck: boolean;
+  /** A song that repeats in the automatic music («Música continua»). */
+  rotation: boolean;
   src: string | null;
   cover_url: string | null;
   playable: boolean;
@@ -267,6 +269,9 @@ export interface ConsoleLimits {
   operator_timeout: number;
   chunk_mb: number;
   recording_mb: number;
+  /** Characters of the episode description when the console keeps its recording. */
+  description: number;
+  cover_mb: number;
 }
 
 export interface ConsoleResponse {

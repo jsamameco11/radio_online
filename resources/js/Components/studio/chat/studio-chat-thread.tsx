@@ -139,7 +139,7 @@ export function StudioChatThread({ chat, station, className, superchat }: { chat
                           className="inline-flex items-center gap-1 rounded-full bg-royal px-2 py-0.5 text-[0.68rem] font-semibold text-white hover:opacity-90"
                         >
                           {speaking ? <Square className="size-3" /> : <AudioLines className="size-3" />}
-                          {speaking ? "Detener superchat" : "Decir superchat"}
+                          {speaking ? "Detener superchat" : "Escuchar superchat"}
                         </button>
                       ) : null}
                     </div>
@@ -148,7 +148,7 @@ export function StudioChatThread({ chat, station, className, superchat }: { chat
                 actions={
                   <>
                     {canSpeak ? (
-                      <MessageAction label={speaking ? "Detener superchat" : "Decir superchat"} onClick={() => (speaking ? superchat?.stop() : superchat?.speak(message))}>
+                      <MessageAction label={speaking ? "Detener superchat" : "Escuchar superchat"} onClick={() => (speaking ? superchat?.stop() : superchat?.speak(message))}>
                         {speaking ? <Square className="size-3.5" /> : <AudioLines className="size-3.5" />}
                       </MessageAction>
                     ) : null}

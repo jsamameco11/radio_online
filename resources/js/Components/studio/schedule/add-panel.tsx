@@ -1,3 +1,4 @@
+import { Link } from "@inertiajs/react";
 import { Plus, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { KIND_LABEL } from "@/Components/studio/console/labels";
@@ -7,10 +8,12 @@ import { Button } from "@/Components/ui/button";
 import { Checkbox, Field, Input, Select } from "@/Components/ui/field";
 import { Panel } from "@/Components/ui/panel";
 import { Tabs } from "@/Components/ui/tabs";
+import { useStudioCan, useStudioUrl } from "@/Layouts/StudioLayout";
 import { duration } from "@/lib/format";
 import { clock } from "@/lib/radio/format";
 import type { BroadcastPlaylist, BroadcastTrack, Option, TrackKind } from "@/types/studio";
 import { ActionNotice } from "./action-notice";
+import { DuckIcon } from "./duck-icon";
 import { useScheduleAction } from "./use-schedule-action";
 
 type Type = "tracks" | "auto" | "live";
@@ -44,6 +47,8 @@ export function AddPanel({
   maxTracks: number;
   timezone: string;
 }) {
+  const url = useStudioUrl();
+  const can = useStudioCan();
   const [type, setType] = useState<Type>("tracks");
   const [layer, setLayer] = useState(0);
   const [mode, setMode] = useState<Mode>("end");
@@ -117,7 +122,17 @@ export function AddPanel({
             </Field>
 
             {tracks.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-line px-4 py-5 text-center text-sm text-muted">La biblioteca está vacía: sube tus audios primero.</p>
+              <p className="rounded-xl border border-dashed border-line px-4 py-5 text-center text-sm text-muted">
+                La biblioteca está vacía.{" "}
+                {can("library.manage") ? (
+                  <Link href={url("/biblioteca")} className="font-semibold text-ink underline hover:text-signal">
+                    Sube tus audios
+                  </Link>
+                ) : (
+                  "Sube tus audios"
+                )}{" "}
+                primero.
+              </p>
             ) : (
               <>
                 <div className="flex gap-2">
@@ -140,6 +155,11 @@ export function AddPanel({
                           {track.title}
                           {track.artist ? <span className="text-muted"> · {track.artist}</span> : null}
                         </span>
+                        {track.duck ? (
+                          <span title="Baja la música de la pista principal mientras suena" className="shrink-0 text-warning">
+                            <DuckIcon className="size-3.5" />
+                          </span>
+                        ) : null}
                         <span className="shrink-0 font-mono text-xs text-muted">{duration(track.duration)}</span>
                       </button>
                     </li>
@@ -222,7 +242,7 @@ export function AddPanel({
           <legend className="text-sm font-medium">¿Cuándo suena?</legend>
           <label className="flex items-center gap-2 text-sm">
             <input type="radio" className="accent-signal" checked={mode === "end"} onChange={() => setMode("end")} />
-            {dayEnd ? `Después del último bloque (${clock(dayEnd, timezone, true)})` : "Al inicio del día, a esta hora:"}
+            {dayEnd ? `Después del último bloque de la ${overlay ? (layers.find((item) => item.value === layer)?.label ?? `capa ${layer}`) : "pista principal"} (${clock(dayEnd, timezone, true)})` : "Al inicio del día, a esta hora:"}
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input type="radio" className="accent-signal" checked={mode === "at"} onChange={() => setMode("at")} /> A una hora exacta

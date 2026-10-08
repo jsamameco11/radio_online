@@ -2,9 +2,13 @@
 
 namespace App\Http\Requests\Studio;
 
+use App\Domain\Studio\Actions\AddFactoryEffect;
 use Illuminate\Foundation\Http\FormRequest;
 
-/** A factory effect rendered by the browser, to keep in the library and the pad bank. */
+/**
+ * A factory effect of the console to keep in the library (and the pad bank with «pad»). The
+ * rendered audio only comes when the server asked for it: nobody stored that effect yet.
+ */
 class ConsoleEffectRequest extends FormRequest
 {
     public const MAX_SECONDS = 30;
@@ -22,9 +26,12 @@ class ConsoleEffectRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'id' => ['required', 'string', 'max:60', 'regex:/^[a-z0-9]+(-[a-z0-9]+)*$/'],
+            'version' => ['required', 'string', 'regex:/^[a-f0-9]{'.AddFactoryEffect::VERSION_LENGTH.'}$/'],
             'title' => ['required', 'string', 'max:160'],
             'category' => ['required', 'string', 'max:60'],
             'duration' => ['required', 'numeric', 'between:0.1,'.self::MAX_SECONDS],
+            'pad' => ['sometimes', 'boolean'],
             'audio' => ['sometimes', 'file', 'max:'.self::MAX_KILOBYTES],
         ];
     }
@@ -35,6 +42,8 @@ class ConsoleEffectRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'id.*' => 'Ese efecto no es válido. Recarga la página.',
+            'version.*' => 'Ese efecto no es válido. Recarga la página.',
             'title.*' => 'Ese efecto no es válido. Recarga la página.',
             'category.*' => 'Ese efecto no es válido. Recarga la página.',
             'duration.*' => 'Ese efecto no es válido. Recarga la página.',

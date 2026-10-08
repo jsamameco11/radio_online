@@ -204,4 +204,48 @@ class ScheduleTest extends TestCase
             ->putJson($this->schedule('/musica/repetir'), ['on' => true])
             ->assertForbidden();
     }
+
+    #[Test]
+    public function the_continuous_music_repeats_exactly_the_chosen_songs(): void
+    {
+        $kept = $this->storedTrack($this->station, ['title' => 'Pedro Navaja', 'rotation' => true]);
+        $added = $this->storedTrack($this->station, ['title' => 'Plástico']);
+        $dropped = $this->storedTrack($this->station, ['title' => 'Decisiones', 'rotation' => true]);
+        $inactive = $this->storedTrack($this->station, ['title' => 'Archivada', 'rotation' => true, 'active' => false]);
+        $jingle = $this->storedTrack($this->station, ['kind' => TrackKind::Jingle, 'title' => 'Identificación']);
+        $foreign = $this->storedTrack(Station::factory()->create(), ['title' => 'Ajena', 'rotation' => true]);
+
+        $this->actingAs($this->editor)->putJson($this->schedule('/rotacion'), ['tracks' => [$kept->id, $added->id, $jingle->id, $foreign->id]])
+            ->assertOk()
+            ->assertJsonPath('message', 'Música continua: 2 canciones en rotación.');
+
+        $this->assertTrue($kept->fresh()->rotation);
+        $this->assertTrue($added->fresh()->rotation);
+        $this->assertFalse($dropped->fresh()->rotation);
+        $this->assertTrue($inactive->fresh()->rotation);
+        $this->assertFalse($jingle->fresh()->rotation);
+        $this->assertTrue($foreign->fresh()->rotation);
+
+        $this->actingAs($this->editor)->putJson($this->schedule('/rotacion'), ['tracks' => []])
+            ->assertOk()
+            ->assertJsonPath('message', 'Música continua vacía: ninguna canción se repite por su cuenta.');
+        $this->assertFalse($kept->fresh()->rotation);
+
+        $this->actingAs($this->editor)->get($this->schedule())
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('crossfade', fn ($seconds) => (float) $seconds === 4.0)
+                ->where('tracks.0.rotation', false));
+    }
+
+    #[Test]
+    public function the_continuous_music_needs_the_schedule_permission_and_valid_songs(): void
+    {
+        $this->actingAs($this->teamMember($this->station, StationRole::Host))
+            ->putJson($this->schedule('/rotacion'), ['tracks' => []])
+            ->assertForbidden();
+        $this->actingAs($this->editor)->putJson($this->schedule('/rotacion'), [])
+            ->assertJsonValidationErrors('tracks');
+        $this->actingAs($this->editor)->putJson($this->schedule('/rotacion'), ['tracks' => ['no-es-un-id']])
+            ->assertJsonValidationErrors('tracks.0');
+    }
 }

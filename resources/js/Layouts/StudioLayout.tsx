@@ -28,6 +28,7 @@ import { SidebarShell } from "@/Components/shell/sidebar-shell";
 import { UserMenu } from "@/Components/shell/user-menu";
 import { FrequencyTitle, StationLogo, StreamStatusBadge } from "@/Components/station/station-identity";
 import { LiveChatDock } from "@/Components/studio/chat/live-chat-dock";
+import { UploadDock } from "@/Components/studio/library/upload-dock";
 import { SetupBanner } from "@/Components/studio/setup-banner";
 import { useAppUrl } from "@/lib/app-url";
 import type { SharedProps, StationPermission } from "@/types";
@@ -173,6 +174,7 @@ export default function StudioLayout({ title, setup = true, wide = false, childr
       {setup && <SetupBanner />}
       {children}
       <LiveChatDock />
+      <UploadDock />
     </SidebarShell>
   );
 }

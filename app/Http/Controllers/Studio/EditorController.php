@@ -8,6 +8,7 @@ use App\Domain\Storage\MediaStorage;
 use App\Domain\Studio\Editor\AudioEditor;
 use App\Domain\Studio\Editor\EditRecipe;
 use App\Domain\Studio\Editor\EditStatus;
+use App\Domain\Studio\Editor\FilterGraph;
 use App\Domain\Studio\Enums\TrackKind;
 use App\Domain\Studio\Library\StudioAccess;
 use App\Http\Controllers\Controller;
@@ -39,29 +40,41 @@ class EditorController extends Controller
 
     public function index(Request $request): Response
     {
+        $user = $request->user();
         $search = trim((string) $request->query('buscar'));
+        $kind = TrackKind::tryFrom((string) $request->query('tipo'));
         $selected = $request->query('audio');
-        $track = is_string($selected) && Str::isUuid($selected) ? $this->editable($request->user())->find($selected) : null;
+        $track = is_string($selected) && Str::isUuid($selected) ? $this->editable($user)->find($selected) : null;
+        $counts = $this->editable($user)->toBase()->selectRaw('kind, count(*) as total')->groupBy('kind')->pluck('total', 'kind');
 
         return Inertia::render('Studio/Editor', [
             'available' => $this->editor->available(),
-            'tracks' => $this->editable($request->user())
+            'tracks' => $this->editable($user)
+                ->when($kind, fn (Builder $query) => $query->where('kind', $kind->value))
                 ->when($search !== '', fn (Builder $query) => $query->where(fn (Builder $match) => $match
                     ->where('title', 'like', "%{$search}%")->orWhere('artist', 'like', "%{$search}%")))
                 ->latest('updated_at')
-                ->limit(60)
+                ->limit(100)
                 ->get()
                 ->map(fn (Track $item) => [
                     'id' => $item->id,
                     'title' => $item->title,
                     'credit' => $item->credit(),
-                    'kind' => $item->kind->label(),
+                    'kind' => $item->kind->value,
+                    'kind_label' => $item->kind->label(),
+                    'cover_url' => $this->storage->url($item->cover_path),
                     'duration' => (float) $item->duration,
                     'edited' => $item->original_path !== null,
                     'edit_status' => $item->edit_status,
                 ]),
-            'track' => $track ? $this->detail($track) : null,
+            'kinds' => collect(TrackKind::cases())
+                ->filter(fn (TrackKind $case) => isset($counts[$case->value]))
+                ->map(fn (TrackKind $case) => ['value' => $case->value, 'label' => $case->label(), 'count' => (int) $counts[$case->value]])
+                ->values(),
+            'total' => (int) $counts->sum(),
+            'track' => $track ? $this->detail($this->settle($track)) : null,
             'search' => $search,
+            'kind' => $kind?->value,
             'limits' => [
                 'max_cuts' => EditRecipe::MAX_CUTS,
                 'min_length' => EditRecipe::MIN_LENGTH,
@@ -69,6 +82,7 @@ class EditorController extends Controller
                 'max_join' => EditRecipe::MAX_JOIN,
                 'max_gain' => EditRecipe::MAX_GAIN,
                 'preview_seconds' => AudioEditor::PREVIEW_SECONDS,
+                'target_lufs' => FilterGraph::TARGET_LUFS,
             ],
         ]);
     }
@@ -89,12 +103,12 @@ class EditorController extends Controller
         }
         $recipe = EditRecipe::from($request->validated('recipe'), $found->sourceDuration());
         if ($recipe === null) {
-            return response()->json(['message' => 'La edición dejaría el audio vacío o con demasiados cortes.', 'errors' => ['recipe' => ['La edición dejaría el audio vacío o con demasiados cortes.']]], 422);
+            return $this->invalid('La edición dejaría el audio vacío o con demasiados cortes.');
         }
         if (EditRecipe::isPlain($recipe)) {
-            $this->editor->restore($found);
-
-            return response()->json(['track' => $this->detail($found->refresh())]);
+            return $this->invalid($found->original_path !== null
+                ? 'Así quedaría igual al original. Para volver al original usa «Restaurar original».'
+                : 'Todavía no hiciste ningún cambio en este audio.');
         }
 
         $found->forceFill(['edit_status' => EditStatus::Processing->value, 'edit_error' => null])->save();
@@ -105,12 +119,7 @@ class EditorController extends Controller
 
     public function status(Request $request, string $track): JsonResponse
     {
-        $found = $this->find($request->user(), $track);
-        if ($this->editor->isStale($found)) {
-            $found->forceFill(['edit_status' => EditStatus::Failed->value, 'edit_error' => 'El procesamiento se interrumpió. Inténtalo de nuevo.'])->save();
-        }
-
-        return response()->json(['track' => $this->detail($found)]);
+        return response()->json(['track' => $this->detail($this->settle($this->find($request->user(), $track)))]);
     }
 
     public function preview(EditorRecipeRequest $request, string $track): BinaryFileResponse|JsonResponse
@@ -138,19 +147,40 @@ class EditorController extends Controller
         if ($found->edit_status === EditStatus::Processing->value && ! $this->editor->isStale($found)) {
             return response()->json(['message' => 'Espera a que termine el procesamiento antes de restaurar el original.'], 409);
         }
+        if ($found->original_path === null) {
+            return response()->json(['message' => 'Este audio no tiene ediciones: ya es el original.'], 422);
+        }
         $this->editor->restore($found);
 
         return response()->json(['track' => $this->detail($found->refresh())]);
     }
 
+    private function invalid(string $message): JsonResponse
+    {
+        return response()->json(['message' => $message, 'errors' => ['recipe' => [$message]]], 422);
+    }
+
+    /** An edit cut off midway is reported as failed instead of processing forever. */
+    private function settle(Track $track): Track
+    {
+        if ($this->editor->isStale($track)) {
+            $track->forceFill(['edit_status' => EditStatus::Failed->value, 'edit_error' => 'El procesamiento se interrumpió. Inténtalo de nuevo.'])->save();
+        }
+
+        return $track;
+    }
+
     /** @return array<string, mixed> */
     private function detail(Track $track): array
     {
+        $track->loadCount(['episodes', 'slots as upcoming_count' => fn (Builder $query) => $query->where('starts_at', '>=', now())]);
+
         return [
             'id' => $track->id,
             'title' => $track->title,
             'credit' => $track->credit(),
-            'kind' => $track->kind->label(),
+            'kind' => $track->kind->value,
+            'kind_label' => $track->kind->label(),
             'duration' => (float) $track->duration,
             'source_duration' => $track->sourceDuration(),
             'source_url' => $this->storage->url($track->sourcePath()),
@@ -161,6 +191,8 @@ class EditorController extends Controller
             'edit_status' => $track->edit_status,
             'edit_error' => $track->edit_error,
             'edited_at' => $track->edited_at?->toIso8601String(),
+            'upcoming' => (int) $track->getAttribute('upcoming_count'),
+            'episodes' => (int) $track->getAttribute('episodes_count'),
         ];
     }
 

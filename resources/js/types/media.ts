@@ -27,8 +27,14 @@ export interface LibraryTrack {
   cover_url: string | null;
   rotation: boolean;
   duck: boolean;
+  active: boolean;
   genres: GenreBrief[];
   confidence: "high" | "medium" | "low" | null;
+  identity: { confidence: Identity["confidence"] | null; sources: string[]; guessed: Guess[] } | null;
+  /** Upcoming schedule blocks that play it. */
+  upcoming: number;
+  /** Published episodes made from it. */
+  episodes_count: number;
   edited: boolean;
   edit_status: "processing" | "failed" | null;
   problem: Option | null;
@@ -46,7 +52,23 @@ export interface UploadLimits {
 export interface LibraryLimits extends UploadLimits {
   max_featured: number;
   max_genres: number;
+  max_description: number;
 }
+
+export interface LibraryStats {
+  total: number;
+  songs: number;
+  /** Songs of the automatic music, and how long it plays before repeating. */
+  rotation: number;
+  rotation_seconds: number;
+  /** Commercials, jingles and effects. */
+  spots: number;
+  programs: number;
+  authors: number;
+}
+
+/** Details the identification guessed instead of reading them from a source. */
+export type Guess = "genres" | "year";
 
 export interface Identity {
   confidence: "high" | "medium" | "low";
@@ -54,6 +76,7 @@ export interface Identity {
   sources: string[];
   ids: Record<string, string>;
   artist: { kind?: string; country?: string; musicbrainz_id?: string };
+  guessed?: Guess[];
 }
 
 export interface Identification {
@@ -69,21 +92,30 @@ export interface Identification {
   cover_url: string | null;
   genres: GenreBrief[];
   identity: Identity | null;
+  guessed?: Guess[];
 }
 
 export type DuplicateVerdict = "same" | "version" | "possible";
 
-export interface DuplicateMatch {
+/** A library song an upload may repeat, with what is needed to compare them. */
+export interface DuplicateTrack {
   id: string;
   title: string;
   artist: string | null;
+  album: string | null;
+  year: number | null;
   duration: number;
-  verdict: DuplicateVerdict;
+  genres: string[];
+  cover_url: string | null;
+  audio_url: string | null;
 }
 
-export interface DuplicateResult {
-  matches: DuplicateMatch[];
-  batch: { key: string; verdict: DuplicateVerdict } | null;
+/** A song of the library (`track`) or an earlier song of the same upload (`batch`, its key) that a song repeats. */
+export interface DuplicateMatch {
+  verdict: DuplicateVerdict;
+  reasons: string[];
+  track?: DuplicateTrack;
+  batch?: string;
 }
 
 export interface PlaylistSong {
@@ -140,9 +172,13 @@ export interface EpisodeItem {
 export interface EpisodeAudio {
   id: string;
   title: string;
-  kind: string;
+  artist: string | null;
+  kind: TrackKind;
   duration: number;
 }
+
+/** Episodes of the station by status, whatever page or filter is shown. */
+export type EpisodeStats = Record<EpisodeStatus, number>;
 
 export interface ReadyRecording {
   id: string;
@@ -153,19 +189,42 @@ export interface ReadyRecording {
 export interface EpisodeLimits extends UploadLimits {
   max_hashtags: number;
   hashtag_length: number;
+  max_description: number;
 }
 
+/** GET /{frequency}/catalogo: a style of the shared catalog; `editable` when the station added it. */
 export interface CatalogGenre extends GenreBrief {
+  aliases: string[];
+  custom: boolean;
+  editable: boolean;
+  /** Songs of the station with this style. */
   songs: number;
+  /** Artists of the catalog with this style. */
+  artists: number;
 }
 
 export interface CatalogArtist {
   id: string;
   name: string;
+  aliases: string[];
   kind: string | null;
   country: string | null;
   source: string;
+  editable: boolean;
+  /** Songs of the station credited to this artist under any of its names. */
+  songs: number;
+  /** Main genre first. */
   genres: GenreBrief[];
+}
+
+export interface CatalogStats {
+  genres: number;
+  custom: number;
+  own_genres: number;
+  in_use: number;
+  artists: number;
+  learned: number;
+  own_artists: number;
 }
 
 export interface CatalogSong {
@@ -179,7 +238,8 @@ export interface EditorTrack {
   id: string;
   title: string;
   credit: string | null;
-  kind: string;
+  kind: TrackKind;
+  kind_label: string;
   duration: number;
   source_duration: number;
   source_url: string | null;
@@ -190,16 +250,26 @@ export interface EditorTrack {
   edit_status: "processing" | "failed" | null;
   edit_error: string | null;
   edited_at: string | null;
+  upcoming: number;
+  episodes: number;
 }
 
 export interface EditorListItem {
   id: string;
   title: string;
   credit: string | null;
-  kind: string;
+  kind: TrackKind;
+  kind_label: string;
+  cover_url: string | null;
   duration: number;
   edited: boolean;
   edit_status: EditorTrack["edit_status"];
+}
+
+export interface EditorKindCount {
+  value: TrackKind;
+  label: string;
+  count: number;
 }
 
 export interface EditorLimits {
@@ -209,6 +279,7 @@ export interface EditorLimits {
   max_join: number;
   max_gain: number;
   preview_seconds: number;
+  target_lufs: number;
 }
 
 export interface EditorAnalysis {

@@ -3,14 +3,16 @@ import { cn } from "@/lib/cn";
 import { meterLevel } from "@/lib/radio/voice";
 
 /** A live level bar of an analyser (the microphone or the monitor), drawn without re-rendering React. */
-export function LevelMeter({ analyser, className, label }: { analyser: AnalyserNode | null; className?: string; label: string }) {
+export function LevelMeter({ analyser, className, label, vertical = false }: { analyser: AnalyserNode | null; className?: string; label: string; vertical?: boolean }) {
   const bar = useRef<HTMLSpanElement>(null);
   const peak = useRef<HTMLSpanElement>(null);
+  const size = vertical ? "height" : "width";
+  const edge = vertical ? "bottom" : "left";
 
   useEffect(() => {
     if (!analyser) {
-      if (bar.current) bar.current.style.width = "0%";
-      if (peak.current) peak.current.style.left = "0%";
+      if (bar.current) bar.current.style[size] = "0%";
+      if (peak.current) peak.current.style[edge] = "0%";
       return;
     }
     const buffer = new Float32Array(analyser.fftSize);
@@ -19,13 +21,22 @@ export function LevelMeter({ analyser, className, label }: { analyser: AnalyserN
     const draw = () => {
       const { level } = meterLevel(analyser, buffer);
       held = Math.max(level, held - 0.008);
-      if (bar.current) bar.current.style.width = `${Math.round(level * 100)}%`;
-      if (peak.current) peak.current.style.left = `${Math.round(held * 100)}%`;
+      if (bar.current) bar.current.style[size] = `${Math.round(level * 100)}%`;
+      if (peak.current) peak.current.style[edge] = `${Math.round(held * 100)}%`;
       frame = window.requestAnimationFrame(draw);
     };
     frame = window.requestAnimationFrame(draw);
     return () => window.cancelAnimationFrame(frame);
-  }, [analyser]);
+  }, [analyser, edge, size]);
+
+  if (vertical) {
+    return (
+      <div role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} className={cn("relative w-1.5 overflow-hidden rounded-full bg-raised", className)}>
+        <span ref={bar} className="absolute inset-x-0 bottom-0 rounded-full bg-gradient-to-t from-onair via-gold to-danger transition-[height] duration-75" />
+        <span ref={peak} className="absolute inset-x-0 h-0.5 bg-ink/70" />
+      </div>
+    );
+  }
 
   return (
     <div role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} className={cn("relative h-2 overflow-hidden rounded-full bg-raised", className)}>

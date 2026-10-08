@@ -23,7 +23,10 @@ use Throwable;
 /**
  * Adds an audio to the library or changes one: its file (uploaded straight
  * to storage or with the form), its details, cover and genres. A new file
- * replaces the old one and forgets any edit made to it.
+ * replaces the old one and forgets any edit made to it. With "replace_audio"
+ * an upload takes the place of the file of a song already in the library: the
+ * song keeps its details and only takes from the upload what it was missing.
+ * Upcoming schedule blocks follow the name, kind and length of their audio.
  */
 final class SaveTrack
 {
@@ -37,56 +40,49 @@ final class SaveTrack
     ) {}
 
     /**
-     * @param  array<string, mixed>  $data  Validated by SaveLibraryTrackRequest.
+     * @param  array<string, mixed>  $data  Validated by LibraryTrackRequest.
      */
     public function handle(User $user, array $data, ?UploadedFile $audio = null, ?UploadedFile $cover = null, ?Track $track = null): Track
     {
         $track ??= new Track;
-        $kind = TrackKind::from($data['kind'] ?? $track->kind?->value);
-        $newAudio = ! $track->exists || $audio !== null || ! empty($data['upload']);
+        $existed = $track->exists;
+        $replacing = $existed && ! empty($data['replace_audio']);
+        $kind = $replacing ? $track->kind : TrackKind::from($data['kind'] ?? $track->kind?->value);
+        $newAudio = ! $existed || $replacing || $audio !== null || ! empty($data['upload']);
 
         $created = [];
         try {
             $audioKey = $newAudio ? $this->uploads->receive($user, $kind, $data['upload'] ?? null, $data['parts'] ?? null, $audio) : null;
             $created[] = $audioKey;
-            $coverKey = $this->cover($data, $cover);
+            $coverKey = $replacing && $track->cover_path ? null : $this->cover($data, $cover);
             $created[] = $coverKey;
 
-            $replaced = DB::transaction(function () use ($track, $kind, $data, $audioKey, $coverKey) {
+            $replaced = DB::transaction(function () use ($track, $kind, $data, $audioKey, $coverKey, $existed, $replacing) {
                 $replaced = [];
                 $song = $kind === TrackKind::Song;
-                $track->fill([
-                    'kind' => $kind,
-                    'title' => trim((string) $data['title']),
-                    'artist' => filled($data['artist'] ?? null) ? Names::cleanArtist((string) $data['artist']) : null,
-                    'featured' => $song ? (Names::unique($data['featured'] ?? []) ?: null) : null,
-                    'album' => $song && filled($data['album'] ?? null) ? trim((string) $data['album']) : null,
-                    'year' => $song ? ($data['year'] ?? null) : null,
-                ]);
-                if (array_key_exists('rotation', $data)) {
-                    $track->rotation = $song && (bool) $data['rotation'];
-                }
-                if (! $track->exists) {
-                    $track->duck = $kind->ducksByDefault();
-                    $track->rotation = $song && (bool) ($data['rotation'] ?? false);
-                }
+                $replacing ? $this->completeMissing($track, $data, $song) : $this->fillDetails($track, $kind, $data, $song);
                 if ($audioKey !== null) {
                     $replaced = [$track->file_path, $track->original_path];
                     $this->attachAudio($track, $audioKey, (float) $data['duration']);
                 }
-                if ($coverKey !== null || ! empty($data['remove_cover'])) {
+                if ($coverKey !== null || (! $replacing && ! empty($data['remove_cover']))) {
                     $replaced[] = $track->cover_path;
                     $track->cover_path = $coverKey;
                 }
-                if (array_key_exists('identity', $data)) {
-                    $track->identity = $song ? $data['identity'] : null;
-                    $track->identified_at = $song && $data['identity'] ? now() : null;
-                }
                 $track->save();
 
-                $this->syncGenres($track, $song ? ($data['genre_ids'] ?? []) : []);
-                if ($song) {
+                if (! $replacing || ($song && $track->genres()->doesntExist())) {
+                    $this->syncGenres($track, $song ? ($data['genre_ids'] ?? []) : []);
+                }
+                if ($song && ! $replacing) {
                     $this->catalog->learn($track, (array) Arr::get($data, 'identity.artist', []));
+                }
+                if ($existed) {
+                    $track->slots()->where('starts_at', '>=', now())->update([
+                        'title' => $track->title,
+                        'kind' => $track->kind->value,
+                        ...($audioKey !== null ? ['duration' => $track->duration] : []),
+                    ]);
                 }
 
                 return $replaced;
@@ -105,6 +101,63 @@ final class SaveTrack
         $this->caches->flush();
 
         return $track->load('genres');
+    }
+
+    /** @param  array<string, mixed>  $data */
+    private function fillDetails(Track $track, TrackKind $kind, array $data, bool $song): void
+    {
+        $track->fill([
+            'kind' => $kind,
+            'title' => trim((string) $data['title']),
+            'artist' => filled($data['artist'] ?? null) ? Names::cleanArtist((string) $data['artist']) : null,
+            'featured' => $song ? (Names::unique($data['featured'] ?? []) ?: null) : null,
+            'album' => $song && filled($data['album'] ?? null) ? trim((string) $data['album']) : null,
+            'year' => $song ? ($data['year'] ?? null) : null,
+        ]);
+        if (! $track->exists) {
+            $track->duck = $kind->ducksByDefault();
+            $track->active = true;
+            $track->rotation = false;
+        }
+        if (array_key_exists('duck', $data)) {
+            $track->duck = (bool) $data['duck'];
+        }
+        if (array_key_exists('active', $data)) {
+            $track->active = (bool) $data['active'];
+        }
+        if (array_key_exists('rotation', $data)) {
+            $track->rotation = (bool) $data['rotation'];
+        }
+        $track->rotation = $song && $track->active && $track->rotation;
+        if (array_key_exists('identity', $data)) {
+            $track->identity = $song ? $data['identity'] : null;
+            $track->identified_at = $song && $data['identity'] ? now() : null;
+        }
+    }
+
+    /**
+     * What a song kept by "replace_audio" takes from the upload: only what it did not have.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function completeMissing(Track $track, array $data, bool $song): void
+    {
+        if (! $song) {
+            return;
+        }
+        if (! $track->featured && ($featured = Names::unique($data['featured'] ?? []))) {
+            $track->featured = $featured;
+        }
+        if (! $track->album && filled($data['album'] ?? null)) {
+            $track->album = trim((string) $data['album']);
+        }
+        if (! $track->year && ! empty($data['year'])) {
+            $track->year = (int) $data['year'];
+        }
+        if (! $track->identity && ! empty($data['identity'])) {
+            $track->identity = $data['identity'];
+            $track->identified_at = now();
+        }
     }
 
     private function attachAudio(Track $track, string $key, float $duration): void

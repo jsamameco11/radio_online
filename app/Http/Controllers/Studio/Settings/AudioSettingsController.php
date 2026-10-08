@@ -23,6 +23,7 @@ class AudioSettingsController extends Controller
         return Inertia::render('Studio/Settings/Audio', [
             'settings' => array_diff_key($this->config->group('audio'), ['pads' => true]),
             'maxFade' => LiveDesk::MAX_FADE,
+            'ranges' => AudioSettingsRequest::RANGES,
         ]);
     }
 

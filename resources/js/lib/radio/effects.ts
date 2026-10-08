@@ -952,6 +952,19 @@ export function wavFile(buffer: AudioBuffer, name: string): File {
   return new File([bytes], name, { type: "audio/wav" });
 }
 
+/**
+ * Content version of an effect: a 32-bit FNV-1a hash (8 hex characters) of its recipe. The server
+ * keeps one file per effect and version for the whole platform, so a changed recipe is stored anew.
+ */
+export function effectVersion(item: FactoryEffect): string {
+  let hash = 0x811c9dc5;
+  for (const char of `${SR}|${item.id}|${item.seconds}|${item.make.toString()}`) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
+}
+
 const rendered = new Map<string, Promise<AudioBuffer>>();
 
 export function effectBuffer(item: FactoryEffect) {

@@ -3,10 +3,13 @@
 namespace Tests\Feature\Studio;
 
 use App\Domain\Stations\Enums\StationRole;
+use App\Domain\Stations\Support\CurrentStation;
 use App\Domain\Studio\Editor\AudioEditor;
 use App\Domain\Studio\Editor\EditRecipe;
 use App\Domain\Studio\Editor\EditStatus;
 use App\Domain\Studio\Editor\FilterGraph;
+use App\Domain\Studio\Enums\TrackKind;
+use App\Models\ScheduleSlot;
 use App\Models\Station;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Process\PendingProcess;
@@ -65,6 +68,60 @@ class EditorTest extends TestCase
                 ->where('track.id', $track->id)
                 ->where('track.edited', false)
                 ->has('tracks', 1));
+    }
+
+    #[Test]
+    public function the_chooser_shows_kinds_with_counts_and_the_workspace_where_the_audio_is_used(): void
+    {
+        $this->fakeFfmpeg();
+        $track = $this->storedTrack($this->station, ['cover_path' => 'covers/pedro.jpg']);
+        $this->storedTrack($this->station, ['kind' => TrackKind::Jingle, 'title' => 'Identificación']);
+        $this->storedTrack($this->station, ['kind' => TrackKind::Jingle, 'title' => 'Cortina']);
+        app(CurrentStation::class)->within($this->station, function () use ($track) {
+            foreach ([now()->addDay(), now()->addDays(2), now()->subDay()] as $startsAt) {
+                ScheduleSlot::query()->create(['starts_at' => $startsAt, 'duration' => $track->duration, 'kind' => $track->kind->value, 'layer' => ScheduleSlot::MAIN, 'track_id' => $track->id, 'title' => $track->title]);
+            }
+        });
+
+        $this->actingAs($this->station->owner)
+            ->get($this->studioUrl($this->station, '/editor?tipo=jingle'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('total', 3)
+                ->where('kind', 'jingle')
+                ->where('kinds', [
+                    ['value' => 'song', 'label' => TrackKind::Song->label(), 'count' => 1],
+                    ['value' => 'jingle', 'label' => TrackKind::Jingle->label(), 'count' => 2],
+                ])
+                ->has('tracks', 2)
+                ->where('tracks.0.kind', 'jingle')
+                ->where('limits.target_lufs', (int) FilterGraph::TARGET_LUFS)
+                ->where('track', null));
+
+        $this->actingAs($this->station->owner)
+            ->get($this->studioUrl($this->station, "/editor?audio={$track->id}"))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('track.upcoming', 2)
+                ->where('track.episodes', 0)
+                ->where('track.kind_label', TrackKind::Song->label())
+                ->where('track.cover_url', fn (?string $url) => $url !== null && str_contains($url, 'covers/pedro.jpg'))
+                ->where('tracks', fn ($tracks) => collect($tracks)->firstWhere('id', $track->id)['cover_url'] !== null));
+    }
+
+    #[Test]
+    public function saving_without_changes_or_restoring_an_unedited_audio_is_refused(): void
+    {
+        $this->fakeFfmpeg();
+        $track = $this->storedTrack($this->station);
+
+        $this->actingAs($this->station->owner)
+            ->postJson($this->studioUrl($this->station, "/editor/{$track->id}"), ['recipe' => $this->recipe()])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('recipe');
+        $this->actingAs($this->station->owner)
+            ->postJson($this->studioUrl($this->station, "/editor/{$track->id}/restaurar"))
+            ->assertUnprocessable();
+        $this->assertNull($track->fresh()->edit_status);
     }
 
     #[Test]

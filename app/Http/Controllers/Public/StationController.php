@@ -29,6 +29,7 @@ class StationController extends Controller
     public function show(Request $request, Frequency $frequency, StationDirectory $stations, EpisodeCatalog $episodes, ChatFeed $chat): Response
     {
         $station = $stations->onFrequencyOrFail($frequency);
+        $program = trim((string) $request->query('programa'));
 
         $related = $stations->query()
             ->whereKeyNot($station->id)
@@ -49,9 +50,12 @@ class StationController extends Controller
                 'created_at' => $station->created_at->toIso8601String(),
             ],
             'episodes' => $episodes->ofStation($station)
+                ->when($program !== '', fn ($query) => $query->where('program', $program))
                 ->paginate(10)
                 ->withQueryString()
                 ->through(fn (Episode $episode) => EpisodeResource::make($episode)->resolve($request)),
+            'programs' => $station->episodes()->published()->whereNotNull('program')->distinct()->orderBy('program')->pluck('program'),
+            'program' => $program !== '' ? $program : null,
             'related' => StationResource::collection($related)->resolve($request),
             'chat' => $chat->forListeners($station, $request->user()),
         ]);

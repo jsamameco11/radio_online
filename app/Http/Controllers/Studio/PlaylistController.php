@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Studio;
 
+use App\Domain\Studio\Broadcast\StationBroadcast;
 use App\Domain\Studio\Enums\TrackKind;
 use App\Domain\Studio\Library\Actions\ArrangePlaylists;
 use App\Domain\Studio\Library\Actions\SavePlaylist;
@@ -17,7 +18,7 @@ use Inertia\Response;
 /** Studio › Listas: songs in the order the programmer chose, for the automatic music and the schedule. */
 class PlaylistController extends Controller
 {
-    public function index(): Response
+    public function index(StationBroadcast $broadcast): Response
     {
         $song = fn (Track $track) => [
             'id' => $track->id,
@@ -45,6 +46,7 @@ class PlaylistController extends Controller
                 ->get(['id', 'title', 'artist', 'featured', 'duration', 'active', 'file_problem'])
                 ->map($song),
             'maxTracks' => SavePlaylist::MAX_TRACKS,
+            'autopilot' => $broadcast->autopilot(),
         ]);
     }
 
@@ -65,9 +67,11 @@ class PlaylistController extends Controller
     public function destroy(string $playlist, ArrangePlaylists $arrange): RedirectResponse
     {
         $found = $this->find($playlist);
-        $arrange->delete($found);
+        $switched = $arrange->delete($found);
 
-        return back()->with('success', "Eliminamos la lista «{$found->name}».");
+        return back()->with('success', "Eliminamos la lista «{$found->name}».".($switched
+            ? ' La música automática la estaba usando: ahora suenan canciones aleatorias.'
+            : ''));
     }
 
     public function order(PlaylistOrderRequest $request, ArrangePlaylists $arrange): RedirectResponse

@@ -2,7 +2,7 @@ import { Link, usePage } from "@inertiajs/react";
 import { AudioLines, Bell, BellOff, Maximize2, MessagesSquare, Minus, Sparkles, Square } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { tierLook } from "@/Components/chat/highlight-tiers";
-import { StreamStatusBadge } from "@/Components/station/station-identity";
+import { Equalizer, StreamStatusBadge } from "@/Components/station/station-identity";
 import { credited, StudioChatThread } from "@/Components/studio/chat/studio-chat-thread";
 import { useStudioChat } from "@/Components/studio/chat/use-studio-chat";
 import { useSuperchat } from "@/Components/studio/chat/use-superchat";
@@ -13,6 +13,12 @@ import type { SharedProps } from "@/types";
 import type { StudioChatMessage } from "@/types/chat";
 
 const PREVIEW_MS = 6_000;
+const OPEN_EVENT = "turadio:chat-dock";
+
+/** Opens the floating live chat from anywhere in the studio, such as the console bar. */
+export function openLiveChat(): void {
+  window.dispatchEvent(new CustomEvent(OPEN_EVENT));
+}
 
 /** A short, quiet two-note chime for highlighted messages (no audio file needed). */
 function chime(): void {
@@ -89,29 +95,24 @@ function Dock() {
     }
   };
 
-  if (!studio || !chat.open) return null;
+  useEffect(() => {
+    const show = () => open(true);
+    window.addEventListener(OPEN_EVENT, show);
+    return () => window.removeEventListener(OPEN_EVENT, show);
+  }, []);
+
+  if (!studio) return null;
   const station = studio.station;
   const previewLook = preview?.highlight ? tierLook(preview.highlight.level) : null;
 
   return (
     <div className="fixed right-4 bottom-4 z-40 flex flex-col items-end gap-3 text-ink">
       {expanded ? (
-        <section className="flex h-[34rem] max-h-[calc(100vh-6rem)] w-[24rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl" aria-label="Chat en vivo">
-          <header className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2.5">
+        <section className="flex h-[36rem] max-h-[calc(100vh-6rem)] w-[26rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_24px_60px_-28px_rgba(0,0,0,0.7)]" aria-label="Chat en vivo">
+          <header className="flex flex-wrap items-center gap-2 border-b border-line bg-canvas/70 px-3 py-2.5">
             <MessagesSquare className="size-4 text-signal" />
             <h2 className="text-sm font-semibold">Chat en vivo</h2>
-            <StreamStatusBadge status="live" className="ml-1" />
-            {superchat.supported ? (
-              <button
-                type="button"
-                aria-pressed={superchat.auto}
-                onClick={() => superchat.setAuto(!superchat.auto)}
-                title={superchat.auto ? "Cada superchat se lee en voz alta al llegar. Clic para leerlos solo cuando tú lo pidas." : "Leer en voz alta cada mensaje que un oyente pague."}
-                className={cn("inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold", superchat.auto ? "bg-royal text-white" : "text-muted hover:bg-raised hover:text-ink")}
-              >
-                <AudioLines className="size-3.5" /> Superchat
-              </button>
-            ) : null}
+            <StreamStatusBadge status={chat.open ? "live" : station.stream_status.value} className="ml-1" />
             <div className="ml-auto flex items-center gap-0.5">
               {superchat.current ? (
                 <button type="button" onClick={superchat.stop} className="rounded-lg p-1.5 text-royal hover:bg-royal-soft" aria-label="Detener la lectura del superchat" title="Detener la lectura">
@@ -135,10 +136,32 @@ function Dock() {
               </button>
             </div>
           </header>
-          {superchat.current ? (
-            <p className="flex items-center gap-2 border-b border-royal/30 bg-royal-soft px-3 py-1.5 text-xs font-medium text-royal">
-              <AudioLines className="size-3.5" /> Leyendo un superchat en voz alta
-            </p>
+          {superchat.supported ? (
+            <div className="flex items-center gap-2 border-b border-royal/25 bg-royal-soft px-3 py-2">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-royal text-white">
+                {superchat.current ? <Equalizer className="text-white" /> : <AudioLines className="size-4" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-xs font-semibold text-ink">Superchat</span>
+                <span className="block text-[11px] leading-snug text-muted">
+                  {superchat.current ? "Leyendo en voz alta el texto que pagó un oyente." : "Escucha aquí el texto de quien pague para que su mensaje hable."}
+                </span>
+              </span>
+              <button
+                type="button"
+                aria-pressed={superchat.auto}
+                onClick={() => superchat.setAuto(!superchat.auto)}
+                title={superchat.auto ? "Cada superchat se lee en voz alta al llegar. Clic para leerlos solo cuando tú lo pidas." : "Leer en voz alta cada mensaje que un oyente pague."}
+                className={cn("shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold", superchat.auto ? "bg-royal text-white" : "bg-surface text-muted ring-1 ring-line hover:text-ink")}
+              >
+                {superchat.auto ? "Automático" : "Manual"}
+              </button>
+            </div>
+          ) : (
+            <p className="border-b border-line px-3 py-2 text-[11px] text-muted">Este navegador no puede leer los superchats en voz alta. Ábrelo en Chrome, Edge o Firefox.</p>
+          )}
+          {!chat.open ? (
+            <p className="border-b border-line bg-raised px-3 py-2 text-[11px] leading-snug text-muted">El chat de los oyentes se enciende cuando la radio está en vivo. Abre la transmisión y aquí verás cada mensaje, incluido el superchat.</p>
           ) : null}
           <StudioChatThread chat={chat} station={station} className="flex-1" superchat={superchat} />
         </section>

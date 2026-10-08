@@ -15,13 +15,13 @@ export function useScheduleAction() {
   const [result, setResult] = useState<ActionResult>(null);
   const [pending, setPending] = useState(false);
 
-  const run = useCallback(async (method: "post" | "put" | "delete", url: string, body?: unknown): Promise<boolean> => {
+  const run = useCallback(async (method: "post" | "put" | "delete", url: string, body?: unknown, only: string[] = RELOAD): Promise<boolean> => {
     setPending(true);
     setResult(null);
     try {
       const data = await http[method]<{ message?: string }>(url, body);
       setResult(data.message ? { tone: "info", text: data.message } : null);
-      router.reload({ only: RELOAD });
+      router.reload({ only });
       return true;
     } catch (error) {
       if (error instanceof HttpError) {

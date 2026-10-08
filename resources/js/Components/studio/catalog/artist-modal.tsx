@@ -5,9 +5,11 @@ import { Button } from "@/Components/ui/button";
 import { Field, Input, Select } from "@/Components/ui/field";
 import { Modal } from "@/Components/ui/modal";
 import { useStudioUrl } from "@/Layouts/StudioLayout";
-import type { GenreBrief, Option } from "@/types/media";
+import type { CatalogArtist, GenreBrief, Option } from "@/types/media";
 
 interface Props {
+  /** The artist to edit; a new one when absent. */
+  artist?: CatalogArtist;
   genres: GenreBrief[];
   families: Option[];
   kinds: Option[];
@@ -15,21 +17,30 @@ interface Props {
   onClose: () => void;
 }
 
-/** Adds an artist to the shared catalog, so its songs get their genres automatically. */
-export function ArtistModal({ genres, families, kinds, maxGenres, onClose }: Props) {
+/** Adds an artist to the shared catalog, or changes one the station added, so its songs get their genres automatically. */
+export function ArtistModal({ artist, genres, families, kinds, maxGenres, onClose }: Props) {
   const url = useStudioUrl();
-  const form = useForm({ name: "", kind: "", country: "", genre_ids: [] as string[] });
+  const form = useForm({
+    name: artist?.name ?? "",
+    kind: artist?.kind ?? "",
+    country: artist?.country ?? "",
+    aliases: artist?.aliases.join(", ") ?? "",
+    genre_ids: artist?.genres.map((genre) => genre.id) ?? ([] as string[]),
+  });
+  const firstError = (field: string) => Object.entries(form.errors).find(([key]) => key.startsWith(`${field}.`))?.[1];
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    form.post(url("/catalogo/artistas"), { preserveScroll: true, onSuccess: onClose });
+    const options = { preserveScroll: true, onSuccess: onClose };
+    if (artist) form.put(url(`/catalogo/artistas/${artist.id}`), options);
+    else form.post(url("/catalogo/artistas"), options);
   };
 
   return (
     <Modal
       open
       onClose={onClose}
-      title="Agregar artista"
+      title={artist ? `Editar ${artist.name}` : "Agregar artista"}
       description="El catálogo es compartido por todas las radios: las canciones de este artista recibirán sus géneros."
       footer={
         <>
@@ -37,7 +48,7 @@ export function ArtistModal({ genres, families, kinds, maxGenres, onClose }: Pro
             Cancelar
           </Button>
           <Button type="submit" form="catalog-artist" loading={form.processing}>
-            Agregar
+            {artist ? "Guardar" : "Agregar"}
           </Button>
         </>
       }
@@ -63,7 +74,10 @@ export function ArtistModal({ genres, families, kinds, maxGenres, onClose }: Pro
             {(id, invalid) => <Input id={id} invalid={invalid} value={form.data.country} maxLength={2} onChange={(event) => form.setData("country", event.target.value.toUpperCase())} />}
           </Field>
         </div>
-        <Field label="Géneros" error={form.errors.genre_ids ?? Object.entries(form.errors).find(([key]) => key.startsWith("genre_ids."))?.[1]}>
+        <Field label="Otros nombres (opcional)" hint="Separados por comas: como aparece en otros discos o archivos («Juanes, Juan Esteban Aristizábal»)." error={form.errors.aliases ?? firstError("aliases")}>
+          {(id, invalid) => <Input id={id} invalid={invalid} value={form.data.aliases} onChange={(event) => form.setData("aliases", event.target.value)} />}
+        </Field>
+        <Field label="Géneros" hint="El primero es el principal; la estrella cambia cuál lo es." error={form.errors.genre_ids ?? firstError("genre_ids")}>
           {(id) => <GenrePicker id={id} genres={genres} families={families} value={form.data.genre_ids} max={maxGenres} onChange={(ids) => form.setData("genre_ids", ids)} />}
         </Field>
       </form>

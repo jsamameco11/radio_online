@@ -33,7 +33,7 @@ Route::middleware('studio.can:console.operate')->prefix('/consola')->name('conso
     Route::delete('/capas', [ConsoleLayerController::class, 'stop'])->middleware('throttle:240,1')->name('.layers.stop');
     Route::patch('/capas/{layer}', [ConsoleLayerController::class, 'update'])->where('layer', '[a-z0-9]{12}')->name('.layers.update');
     Route::put('/botonera', [ConsoleLayerController::class, 'pads'])->name('.pads');
-    Route::post('/botonera/efectos', [ConsoleLayerController::class, 'effect'])->middleware('throttle:60,1')->name('.pads.effect');
+    Route::post('/efectos', [ConsoleLayerController::class, 'effect'])->middleware('throttle:120,1')->name('.effects.store');
 
     Route::post('/lanzar', [ConsoleProgramController::class, 'launch'])->name('.launch');
     Route::patch('/bloques/{slot}', [ConsoleProgramController::class, 'reschedule'])->whereUuid('slot')->name('.reschedule');
@@ -46,6 +46,7 @@ Route::middleware('studio.can:console.operate')->prefix('/consola')->name('conso
     Route::get('/musica/puntos', [ConsoleMusicController::class, 'points'])->name('.music.points');
     Route::put('/musica/continua', [ConsoleMusicController::class, 'autofill'])->name('.music.autofill');
     Route::put('/musica/repetir', [ConsoleMusicController::class, 'repeat'])->name('.music.repeat');
+    Route::delete('/musica/no-repetir/{track}', [ConsoleMusicController::class, 'drop'])->whereUuid('track')->name('.music.drop');
 
     Route::middleware('throttle:240,1')->prefix('/grabacion')->name('.capture')->group(function () {
         Route::post('/', [ConsoleCaptureController::class, 'start'])->name('.start');
@@ -67,6 +68,7 @@ Route::middleware('studio.can:schedule.manage')->prefix('/programacion')->name('
     Route::delete('/bloques/{slot}', [ScheduleController::class, 'destroy'])->whereUuid('slot')->name('.destroy');
     Route::delete('/dias/{date}', [ScheduleController::class, 'clear'])->where('date', '\d{4}-\d{2}-\d{2}')->name('.clear');
     Route::post('/copiar', [ScheduleController::class, 'copy'])->name('.copy');
+    Route::put('/rotacion', [ScheduleController::class, 'rotation'])->name('.rotation');
 
     Route::post('/musica', [ConsoleMusicController::class, 'start'])->name('.music.start');
     Route::put('/musica/fuente', [ConsoleMusicController::class, 'source'])->name('.music.source');

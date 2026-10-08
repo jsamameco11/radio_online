@@ -11,6 +11,8 @@ use Illuminate\Validation\Rule;
 
 class EpisodeRequest extends FormRequest
 {
+    public const MAX_DESCRIPTION = 2000;
+
     public function authorize(): bool
     {
         return true;
@@ -28,7 +30,7 @@ class EpisodeRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:160'],
             'program' => ['nullable', 'string', 'max:120'],
-            'description' => ['nullable', 'string', 'max:2000'],
+            'description' => ['nullable', 'string', 'max:'.self::MAX_DESCRIPTION],
             'season' => ['nullable', 'integer', 'between:1,999'],
             'number' => ['nullable', 'integer', 'between:1,9999'],
             'aired_on' => ['nullable', 'date'],
@@ -59,7 +61,7 @@ class EpisodeRequest extends FormRequest
             'title.required' => 'Escribe el título del episodio.',
             'title.max' => 'El título puede tener como máximo 160 caracteres.',
             'program.max' => 'El programa puede tener como máximo 120 caracteres.',
-            'description.max' => 'La descripción puede tener como máximo 2000 caracteres.',
+            'description.max' => 'La descripción puede tener como máximo '.self::MAX_DESCRIPTION.' caracteres.',
             'season.*' => 'La temporada debe ser un número entre 1 y 999.',
             'number.*' => 'El número de episodio debe estar entre 1 y 9999.',
             'aired_on.*' => 'La fecha de emisión no es válida.',

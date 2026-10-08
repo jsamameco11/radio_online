@@ -1,14 +1,15 @@
 import { router } from "@inertiajs/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { RadioHeader } from "@/Components/studio/radio-header";
 import { AddPanel } from "@/Components/studio/schedule/add-panel";
 import { AutopilotPanel } from "@/Components/studio/schedule/autopilot-panel";
 import { BlockRow } from "@/Components/studio/schedule/block-row";
 import { DayTools } from "@/Components/studio/schedule/day-tools";
 import { LaneRuler } from "@/Components/studio/schedule/lane-ruler";
+import { RotationPanel } from "@/Components/studio/schedule/rotation-panel";
 import { UpcomingSongs } from "@/Components/studio/schedule/upcoming-songs";
 import { useDayProgram } from "@/Components/studio/schedule/use-day-program";
 import { Input } from "@/Components/ui/field";
-import { PageHeader } from "@/Components/ui/page-header";
 import { Panel } from "@/Components/ui/panel";
 import StudioLayout, { useStudioUrl } from "@/Layouts/StudioLayout";
 import { cn } from "@/lib/cn";
@@ -34,6 +35,7 @@ interface Props {
   tracks: BroadcastTrack[];
   playlists: BroadcastPlaylist[];
   autopilot: Autopilot;
+  crossfade: number;
   layers: Option<number>[];
   maxTracks: number;
 }
@@ -52,7 +54,7 @@ function useNow(serverNow: number): number {
   return now;
 }
 
-export default function Schedule({ date, today, timezone, now: serverNow, bounds, blocks, dayEnds, days, tracks, playlists, autopilot, layers, maxTracks }: Props) {
+export default function Schedule({ date, today, timezone, now: serverNow, bounds, blocks, dayEnds, days, tracks, playlists, autopilot, crossfade, layers, maxTracks }: Props) {
   const url = useStudioUrl();
   const now = useNow(serverNow);
   const [start, end] = bounds;
@@ -85,6 +87,11 @@ export default function Schedule({ date, today, timezone, now: serverNow, bounds
 
   useEffect(() => () => audio.current?.pause(), []);
 
+  useEffect(() => {
+    const anchor = window.location.hash.startsWith("#bloque-") ? document.getElementById(window.location.hash.slice(1)) : null;
+    anchor?.scrollIntoView({ block: "center" });
+  }, [date]);
+
   function go(next: string) {
     router.get(url("/programacion"), { dia: next }, { preserveScroll: true });
   }
@@ -106,8 +113,7 @@ export default function Schedule({ date, today, timezone, now: serverNow, bounds
   return (
     <StudioLayout title="Programación">
       <div className="space-y-4">
-        <PageHeader
-          eyebrow="Al aire"
+        <RadioHeader
           title="Programación"
           description="Arma la línea de tiempo de cada día: la pista principal lleva el programa (audios, periodos de música automática y bloques en vivo) y hasta tres capas suenan encima. Los espacios libres se llenan con la música automática."
         />
@@ -202,6 +208,7 @@ export default function Schedule({ date, today, timezone, now: serverNow, bounds
               />
             )}
             <AutopilotPanel musicUrl={url("/programacion/musica")} autopilot={autopilot} playlists={playlists} now={now} timezone={timezone} />
+            <RotationPanel rotationUrl={url("/programacion/rotacion")} tracks={tracks} autopilot={autopilot} crossfade={crossfade} />
             <DayTools key={date} copyUrl={url("/programacion/copiar")} clearUrl={url(`/programacion/dias/${date}`)} date={date} today={today} hasBlocks={blocks.length > 0} />
           </aside>
         </div>

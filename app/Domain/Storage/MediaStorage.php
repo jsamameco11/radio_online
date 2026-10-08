@@ -83,8 +83,12 @@ final class MediaStorage
 
     public function delete(?string $key): void
     {
-        if ($key !== null && $key !== '' && ! Str::startsWith($key, ['http://', 'https://'])) {
-            $this->disk($this->folderOf($key))->delete($key);
+        if ($key === null || $key === '' || Str::startsWith($key, ['http://', 'https://'])) {
+            return;
+        }
+        $folder = $this->folderOf($key);
+        if (! $folder->isShared()) {
+            $this->disk($folder)->delete($key);
         }
     }
 

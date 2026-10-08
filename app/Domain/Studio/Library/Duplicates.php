@@ -2,112 +2,72 @@
 
 namespace App\Domain\Studio\Library;
 
-use App\Domain\Studio\Catalog\Names;
+use App\Domain\Storage\MediaStorage;
 use App\Domain\Studio\Enums\TrackKind;
+use App\Models\Genre;
 use App\Models\Track;
-use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Tells whether an audio about to be uploaded is already in the library (or
- * twice in the same batch): the same song and cut by the same author is
- * «same»; another cut or a clearly different length is «version»; the same
- * name without a known author is «possible».
+ * Tells whether the songs about to be uploaded are already in the library (or
+ * twice in the same upload), with the verdict of SameSong and its reasons, and
+ * what the studio needs to compare them: covers and the audio to listen to.
  */
 final class Duplicates
 {
-    public const SAME = 'same';
+    /** Songs of one upload read at once; only the ones asked for are judged. */
+    public const MAX_SONGS = 600;
 
-    public const VERSION = 'version';
-
-    public const POSSIBLE = 'possible';
-
-    private const TITLE = 0.92;
-
-    private const ARTIST = 0.85;
-
-    /** Seconds two files of the same recording may differ by. */
-    private const SAME_LENGTH = 3.0;
-
-    private const MAX_MATCHES = 3;
+    public function __construct(
+        private readonly SameSong $judge,
+        private readonly MediaStorage $storage,
+    ) {}
 
     /**
-     * @param  list<array{key: string, kind: string, title: string, artist?: ?string, duration?: ?float}>  $items
-     * @return array<string, array{matches: list<array{id: string, title: string, artist: ?string, duration: float, verdict: string}>, batch: ?array{key: string, verdict: string}}>
+     * @param  array<string, array<string, mixed>>  $songs  By the key the browser gave them, in upload order.
+     * @param  list<string>|null  $only  Keys of the songs to judge; the others only count as songs before them.
+     * @return array<string, list<array<string, mixed>>>
      */
-    public function check(array $items, ?string $ignore = null): array
+    public function review(array $songs, ?array $only = null): array
     {
-        $library = Track::query()
-            ->whereIn('kind', collect($items)->pluck('kind')->unique()->values())
-            ->when($ignore, fn ($query) => $query->whereKeyNot($ignore))
-            ->get(['id', 'kind', 'title', 'artist', 'featured', 'duration'])
-            ->groupBy(fn (Track $track) => $track->kind->value);
-
-        $results = [];
-        $seen = [];
-        foreach ($items as $item) {
-            $matches = collect($library->get($item['kind'], []))
-                ->map(fn (Track $track) => ['track' => $track, 'verdict' => self::verdict($item, [
-                    'title' => $track->title,
-                    'artist' => $track->credit(),
-                    'duration' => $track->duration,
-                ])])
-                ->filter(fn (array $match) => $match['verdict'] !== null)
-                ->sortBy(fn (array $match) => array_search($match['verdict'], [self::SAME, self::VERSION, self::POSSIBLE], true))
-                ->take(self::MAX_MATCHES)
-                ->map(fn (array $match) => [
-                    'id' => $match['track']->id,
-                    'title' => $match['track']->title,
-                    'artist' => $match['track']->credit(),
-                    'duration' => (float) $match['track']->duration,
-                    'verdict' => $match['verdict'],
-                ])
-                ->values()->all();
-
-            $batch = null;
-            foreach ($seen as $earlier) {
-                $verdict = $earlier['kind'] === $item['kind'] ? self::verdict($item, $earlier) : null;
-                if ($verdict !== null) {
-                    $batch = ['key' => $earlier['key'], 'verdict' => $verdict];
-                    break;
-                }
-            }
-            $seen[] = $item;
-            $results[$item['key']] = ['matches' => $matches, 'batch' => $batch];
-        }
-
-        return $results;
-    }
-
-    /** Whether a song with those details is already in the library as the very same cut. */
-    public function exact(TrackKind $kind, string $title, ?string $artist, ?float $duration, ?string $ignore = null): Collection
-    {
-        $found = $this->check([['key' => 'new', 'kind' => $kind->value, 'title' => $title, 'artist' => $artist, 'duration' => $duration]], $ignore);
-
-        return collect($found['new']['matches'])->where('verdict', self::SAME)->values();
+        return array_map(
+            fn (array $matches) => array_map(fn (array $match) => isset($match['track']) ? [...$match, 'track' => $this->brief($match['track'])] : $match, $matches),
+            $this->judge->review($songs, $this->library(), $only),
+        );
     }
 
     /**
-     * @param  array{title: string, artist?: ?string, duration?: ?float}  $a
-     * @param  array{title: string, artist?: ?string, duration?: ?float}  $b
+     * The song of the library an upload would duplicate, or null.
+     *
+     * @param  array<string, mixed>  $song  title, artist, featured, album, year, duration and ids.
      */
-    private static function verdict(array $a, array $b): ?string
+    public function twin(array $song): ?Track
     {
-        if (Names::similarity(Names::baseTitle($a['title']), Names::baseTitle($b['title'])) < self::TITLE) {
-            return null;
-        }
-        $artistA = trim((string) ($a['artist'] ?? ''));
-        $artistB = trim((string) ($b['artist'] ?? ''));
-        if ($artistA === '' || $artistB === '') {
-            return self::POSSIBLE;
-        }
-        $sameAuthor = collect(Names::split($artistA))->contains(fn (string $name) => collect(Names::split($artistB))
-            ->contains(fn (string $other) => Names::similarity($name, $other) >= self::ARTIST));
-        if (! $sameAuthor) {
-            return null;
-        }
-        $gap = ($a['duration'] ?? null) && ($b['duration'] ?? null) ? abs((float) $a['duration'] - (float) $b['duration']) : null;
-        $sameCut = Names::versions($a['title']) == Names::versions($b['title']);
+        return $this->judge->twinIn($song, $this->library());
+    }
 
-        return $sameCut && ($gap === null || $gap <= self::SAME_LENGTH) ? self::SAME : self::VERSION;
+    /** @return array<string, mixed> */
+    public function brief(Track $track): array
+    {
+        return [
+            'id' => $track->id,
+            'title' => $track->title,
+            'artist' => $track->credit(),
+            'album' => $track->album,
+            'year' => $track->year,
+            'duration' => (float) $track->duration,
+            'genres' => $track->genres->map(fn (Genre $genre) => $genre->name)->values()->all(),
+            'cover_url' => $this->storage->url($track->cover_path),
+            'audio_url' => $this->storage->url($track->file_path),
+        ];
+    }
+
+    /** @return Collection<int, Track> */
+    private function library(): Collection
+    {
+        return Track::query()
+            ->with('genres')
+            ->where('kind', TrackKind::Song)
+            ->get(['id', 'station_id', 'kind', 'title', 'artist', 'featured', 'album', 'year', 'duration', 'identity', 'cover_path', 'file_path']);
     }
 }

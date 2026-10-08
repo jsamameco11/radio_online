@@ -24,6 +24,13 @@ enum MediaFolder: string
     case IdentityDocuments = 'identity-documents';
     case Resumes = 'resumes';
     case Certificates = 'certificates';
+    case FactoryEffects = 'factory-effects';
+
+    /** Files every station points to (one copy for the whole platform): no station may delete them. */
+    public function isShared(): bool
+    {
+        return $this === self::FactoryEffects;
+    }
 
     public function isPrivate(): bool
     {

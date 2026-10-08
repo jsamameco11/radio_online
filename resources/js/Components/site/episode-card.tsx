@@ -57,6 +57,7 @@ export function EpisodeRow({ episode, station, active = false }: { episode: Epis
       <span className="min-w-0 flex-1 space-y-1">
         {episode.program && <span className="block truncate text-xs font-medium tracking-wide text-signal uppercase">{episode.program}</span>}
         <span className="line-clamp-2 block text-sm font-medium text-ink">{episode.title}</span>
+        {episode.description && <span className="line-clamp-2 block text-xs text-muted">{episode.description}</span>}
         <span className="flex items-center gap-2 text-xs text-faint tabular">
           {episode.season !== null && episode.number !== null && <span>T{episode.season} · E{episode.number}</span>}
           <span>{duration(episode.duration)}</span>

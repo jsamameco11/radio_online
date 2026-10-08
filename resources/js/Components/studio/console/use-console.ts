@@ -40,6 +40,9 @@ export interface MicSettings {
   talkOnStart: boolean;
 }
 
+/** A stretch of this console's voice on air, for the timeline. */
+export type TalkSpan = { start: number; end: number | null };
+
 /** Lanes that loop and fade by default: background beds. */
 export const BEDS = ["F1", "F2"] as const;
 
@@ -95,6 +98,7 @@ export function useConsole(initial: ConsoleSnapshot, host: string, pending: Capt
   const [mic, setMic] = useState<MicSettings>(savedMic);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [talking, setTalking] = useState(false);
+  const [talks, setTalks] = useState<TalkSpan[]>([]);
   const [speaking, setSpeaking] = useState(false);
   const [title, setTitle] = useState(initial.live.title);
   const [hostName, setHostName] = useState(initial.live.host || host);
@@ -252,6 +256,20 @@ export function useConsole(initial: ConsoleSnapshot, host: string, pending: Capt
     [layerAnswer, run],
   );
 
+  /**
+   * A sound dropped or sent to a lane: beds loop and fade in; on a player that already sounds it
+   * crossfades with the console blend; the pad lane fires it like a pad.
+   */
+  const drop = useCallback(
+    (track: BroadcastTrack, lane: string) => {
+      const bed = (BEDS as readonly string[]).includes(lane);
+      const at = clock.now();
+      const sounding = snapshot.radio.layers.some((layer) => layer.source === "live" && layer.lane === lane && !layer.fading && layer.start <= at && at < layer.end);
+      return play(track, lane, { volume: bed ? 70 : 100, duck: !bed, fadeIn: bed || sounding ? blend : 0, fadeOut: bed ? blend : 0, loop: bed });
+    },
+    [blend, clock, play, snapshot.radio.layers],
+  );
+
   /** Stops a layer, a lane or every console sound: cut at once, or faded out over some seconds. */
   const stop = useCallback(
     async (target: { lane?: string; layer?: string }, seconds = 0) => {
@@ -396,6 +414,8 @@ export function useConsole(initial: ConsoleSnapshot, host: string, pending: Capt
   async function talk(next: boolean) {
     caster.current?.setTalking(next);
     setTalking(next);
+    const at = clock.now();
+    setTalks((list) => (next ? [...list.slice(-30), { start: at, end: null }] : list.map((span) => (span.end === null ? { ...span, end: at } : span))));
     const bed = next ? mic.autoBed && !mic.voiceDuck : mic.autoBed;
     await run("put", "/mezcla", bed ? { mic: next, bed: next } : { mic: next }, true);
   }
@@ -433,6 +453,8 @@ export function useConsole(initial: ConsoleSnapshot, host: string, pending: Capt
     setBusy(true);
     caster.current?.setTalking(false);
     setTalking(false);
+    const at = clock.now();
+    setTalks((list) => list.map((span) => (span.end === null ? { ...span, end: at } : span)));
     await endCapture();
     await run("delete", "/vivo");
     caster.current?.dropAll();
@@ -479,6 +501,7 @@ export function useConsole(initial: ConsoleSnapshot, host: string, pending: Capt
     changeMic,
     openMic,
     talking,
+    talks,
     speaking,
     connected,
     title,
@@ -492,6 +515,7 @@ export function useConsole(initial: ConsoleSnapshot, host: string, pending: Capt
     caster,
     player,
     play,
+    drop,
     stop,
     adjustLayer,
     firePad,
@@ -503,6 +527,14 @@ export function useConsole(initial: ConsoleSnapshot, host: string, pending: Capt
     toggleAir,
     toggleAutofill,
     setRepeat: (on: boolean) => run("put", "/musica/repetir", { on }),
+    dropFromRotation: (track: string, title: string) => {
+      if (!window.confirm(`¿Sacar «${title}» de la música automática?\n\nSale de sus listas y no se repetirá. Puedes volver a incluirla cuando quieras desde Listas o la Biblioteca.`)) return Promise.resolve(null);
+      return run("delete", `/musica/no-repetir/${track}`);
+    },
+    launch: (track: BroadcastTrack) => {
+      if (!window.confirm(`¿Poner «${track.title}» al aire ahora en la pista principal? Corta lo que suena y corre la programación.`)) return Promise.resolve(null);
+      return run("post", "/lanzar", { type: "tracks", tracks: [track.id] });
+    },
     setLiveMode: (mode: LiveMode) => run("put", "/modo-vivo", { mode }),
     cutMusic: () => run("post", "/corte"),
     resumeMusic: (source?: { playlist: string | null; shuffle: boolean }) => run("delete", "/corte", source ? { change: true, ...source } : {}),

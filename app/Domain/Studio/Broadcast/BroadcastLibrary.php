@@ -2,15 +2,19 @@
 
 namespace App\Domain\Studio\Broadcast;
 
+use App\Domain\Stations\Support\CurrentStation;
 use App\Domain\Studio\Enums\TrackKind;
 use App\Http\Resources\BroadcastTrackResource;
 use App\Models\Playlist;
 use App\Models\Track;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /** What the console and the schedule choose from: the active audios of the library and the playlists. */
 final class BroadcastLibrary
 {
+    public function __construct(private readonly CurrentStation $current) {}
+
     /** @return list<array<string, mixed>> */
     public function tracks(Request $request): array
     {
@@ -30,6 +34,21 @@ final class BroadcastLibrary
         return Playlist::query()->withCount('tracks')->orderBy('sort_order')->orderBy('created_at')->get()
             ->map(fn (Playlist $playlist) => ['id' => $playlist->id, 'name' => $playlist->name, 'songs' => (int) $playlist->tracks_count])
             ->values()->all();
+    }
+
+    /** @return array<string, list<string>> the songs of each playlist in its order, by playlist id */
+    public function playlistSongs(): array
+    {
+        return DB::table('playlist_track')
+            ->join('playlists', 'playlists.id', '=', 'playlist_track.playlist_id')
+            ->join('tracks', 'tracks.id', '=', 'playlist_track.track_id')
+            ->where('playlists.station_id', $this->current->id())
+            ->where('tracks.kind', TrackKind::Song->value)
+            ->orderBy('playlist_track.position')
+            ->get(['playlist_track.playlist_id', 'playlist_track.track_id'])
+            ->groupBy('playlist_id')
+            ->map(fn ($rows) => $rows->pluck('track_id')->values()->all())
+            ->all();
     }
 
     /** @return list<array{value: string, label: string}> */

@@ -75,21 +75,40 @@ class ConsoleLayerController extends Controller
     {
         $ids = $request->validated('tracks');
         $known = Track::query()->whereIn('id', $ids)->pluck('id')->all();
-        $this->broadcast->saveConfig(['pads' => array_values(array_filter($ids, fn (string $id) => in_array($id, $known, true)))]);
+        $this->broadcast->saveConfig([
+            'pads' => array_values(array_filter($ids, fn (string $id) => in_array($id, $known, true))),
+            'pads_offered' => true,
+        ]);
 
         return response()->json(['message' => 'Botonera guardada.', 'pads' => $this->bank($request)]);
     }
 
-    /** A factory effect rendered in the browser joins the library and the end of the pad bank. */
+    /**
+     * A factory effect joins the library (and, with «pad», the end of the pad bank). Answers 409
+     * «audio» when nobody stored it yet: the console then renders it and sends it again.
+     */
     public function effect(ConsoleEffectRequest $request, AddFactoryEffect $add): JsonResponse
     {
         $title = trim($request->validated('title'));
-        $track = $add->handle($title, trim($request->validated('category')), (float) $request->validated('duration'), $request->file('audio'));
+        $pad = $request->boolean('pad');
+        $result = $add->handle(
+            $request->validated('id'),
+            $request->validated('version'),
+            $title,
+            trim($request->validated('category')),
+            (float) $request->validated('duration'),
+            $request->file('audio'),
+            $pad,
+        );
 
         return response()->json([
-            'message' => "«{$title}» agregado a la botonera.",
-            'track' => BroadcastTrackResource::make($track)->resolve($request),
-            'pads' => $this->bank($request),
+            'message' => match (true) {
+                ! $pad => null,
+                $result['added'] => "«{$title}» agregado a la botonera.",
+                default => "«{$title}» ya está en la botonera.",
+            },
+            'track' => BroadcastTrackResource::make($result['track'])->resolve($request),
+            'pads' => $pad ? $this->bank($request) : null,
         ]);
     }
 

@@ -1,5 +1,6 @@
 import { appendField } from "@/lib/media/upload";
 import type { Identification, Identity, LibraryTrack, TrackKind } from "@/types/media";
+import { mergeNames, plain } from "./song-tools";
 
 /** What the library form edits for one audio, before it is sent. */
 export interface TrackDraft {
@@ -11,14 +12,12 @@ export interface TrackDraft {
   year: string;
   genreIds: string[];
   rotation: boolean;
+  duck: boolean;
+  active: boolean;
   cover: Blob | null;
   coverUrl: string | null;
   removeCover: boolean;
   identity: Identity | null;
-}
-
-export function emptyDraft(kind: TrackKind): TrackDraft {
-  return { kind, title: "", artist: "", featured: [], album: "", year: "", genreIds: [], rotation: false, cover: null, coverUrl: null, removeCover: false, identity: null };
 }
 
 export function draftFromTrack(track: LibraryTrack): TrackDraft {
@@ -31,6 +30,8 @@ export function draftFromTrack(track: LibraryTrack): TrackDraft {
     year: track.year ? String(track.year) : "",
     genreIds: track.genres.map((genre) => genre.id),
     rotation: track.rotation,
+    duck: track.duck,
+    active: track.active,
     cover: null,
     coverUrl: null,
     removeCover: false,
@@ -38,20 +39,32 @@ export function draftFromTrack(track: LibraryTrack): TrackDraft {
   };
 }
 
-/** Fills the draft with what the identification found, keeping what the user already chose. */
-export function applyIdentification(draft: TrackDraft, found: Identification, maxGenres: number): TrackDraft {
-  if (!found.found) return { ...draft, genreIds: draft.genreIds.length ? draft.genreIds : found.genres.map((genre) => genre.id).slice(0, maxGenres) };
-  return {
-    ...draft,
-    title: found.title ?? draft.title,
-    artist: found.artist ?? draft.artist,
-    featured: found.featured.length ? found.featured : draft.featured,
-    album: found.album ?? draft.album,
-    year: found.year ? String(found.year) : draft.year,
-    genreIds: draft.genreIds.length ? draft.genreIds : found.genres.map((genre) => genre.id).slice(0, maxGenres),
-    coverUrl: draft.cover ? null : found.cover_url,
-    identity: found.identity,
-  };
+/**
+ * Fills the draft with what a lookup asked on purpose found: a sure answer (high or medium confidence) replaces the
+ * details, a doubtful one only fills what is empty. The cover is taken when the song has none of its own.
+ */
+export function applyLookup(draft: TrackDraft, found: Identification, limits: { max_genres: number; max_featured: number }, hasCover: boolean): TrackDraft {
+  const sure = found.found && (found.confidence === "high" || found.confidence === "medium");
+  const next = { ...draft };
+  if (found.found) {
+    if (sure && found.title) next.title = found.title;
+    if (found.artist && (sure || !draft.artist.trim())) next.artist = found.artist;
+    if (found.album && (sure || !draft.album.trim())) next.album = found.album;
+    if (found.year && (sure || !draft.year)) next.year = String(found.year);
+    const main = plain(next.artist);
+    next.featured = mergeNames(
+      draft.featured.filter((name) => plain(name) !== main),
+      found.featured,
+      limits.max_featured,
+    );
+    if (found.cover_url && !draft.cover && (!hasCover || draft.removeCover || draft.coverUrl)) {
+      next.coverUrl = found.cover_url;
+      next.removeCover = false;
+    }
+    next.identity = found.identity ? { ...found.identity, guessed: found.guessed } : null;
+  }
+  if (found.genres.length && (sure || draft.genreIds.length === 0)) next.genreIds = found.genres.map((genre) => genre.id).slice(0, limits.max_genres);
+  return next;
 }
 
 /** The draft as the library endpoints read it. */
@@ -61,12 +74,14 @@ export function draftForm(draft: TrackDraft, duration: number | null): FormData 
   appendField(form, "kind", draft.kind);
   appendField(form, "title", draft.title.trim());
   appendField(form, "artist", draft.artist.trim());
+  appendField(form, "duck", draft.duck);
+  appendField(form, "active", draft.active);
   if (song) {
     appendField(form, "featured", draft.featured);
     appendField(form, "album", draft.album.trim());
     appendField(form, "year", draft.year);
     appendField(form, "genre_ids", draft.genreIds);
-    appendField(form, "rotation", draft.rotation);
+    appendField(form, "rotation", draft.rotation && draft.active);
     appendField(form, "identity", draft.identity);
   }
   appendField(form, "duration", duration);

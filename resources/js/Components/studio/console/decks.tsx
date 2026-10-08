@@ -4,27 +4,29 @@ import { Panel } from "@/Components/ui/panel";
 import { cn } from "@/lib/cn";
 import { duration } from "@/lib/format";
 import { shortTitle } from "@/lib/radio/format";
-import type { BroadcastTrack } from "@/types/studio";
+import { useSoundDrop } from "./drag";
 import { kindLabel } from "./labels";
 import { TrackPicker } from "./track-picker";
 import { BEDS, PLAYERS, type ConsoleApi } from "./use-console";
+import type { Sounds } from "./use-sounds";
 
 const FADES = [0, 1, 2, 3, 5, 8, 12];
 
 /** Background beds and players: each one sounds on top of the program and of the others. */
-export function Decks({ api, library }: { api: ConsoleApi; library: BroadcastTrack[] }) {
+export function Decks({ api, sounds }: { api: ConsoleApi; sounds: Sounds }) {
   return (
-    <Panel dense title="Fondos y reproductores" description="Cada uno suena encima de la programación. Los fondos se repiten en bucle hasta que los detengas.">
+    <Panel dense title="Fondos y reproductores" description="Cada uno suena encima de la programación. Los fondos se repiten en bucle hasta que los detengas. Suelta un sonido sobre uno para reproducirlo.">
       <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,12.75rem),1fr))] gap-1.5">
         {[...BEDS, ...PLAYERS].map((lane) => (
-          <Deck key={lane} lane={lane} api={api} library={library} />
+          <Deck key={lane} lane={lane} api={api} sounds={sounds} />
         ))}
       </div>
     </Panel>
   );
 }
 
-function Deck({ lane, api, library }: { lane: string; api: ConsoleApi; library: BroadcastTrack[] }) {
+function Deck({ lane, api, sounds }: { lane: string; api: ConsoleApi; sounds: Sounds }) {
+  const { library } = sounds;
   const { now } = api;
   const layers = api.snapshot.radio.layers;
   const bed = (BEDS as readonly string[]).includes(lane);
@@ -54,19 +56,28 @@ function Deck({ lane, api, library }: { lane: string; api: ConsoleApi; library: 
     timer.current = window.setTimeout(() => void api.adjustLayer(playing.id, nextVolume, nextDuck), 150);
   }
 
-  function start() {
-    if (track) void api.play(track, lane, { volume, duck, fadeIn: fadeIn || (playing ? api.blend : 0), fadeOut, loop });
+  function start(next = track) {
+    if (next) void api.play(next, lane, { volume, duck: bed ? duck : next.duck, fadeIn: fadeIn || (playing ? api.blend : 0), fadeOut, loop });
   }
+
+  const drop = useSoundDrop(sounds, (dropped) => {
+    if (!dropped.playable) {
+      api.setNotice({ tone: "error", text: `«${dropped.title}» no se puede reproducir. Revisa el archivo en la biblioteca.` });
+      return;
+    }
+    choose(dropped.id);
+    start(dropped);
+  });
 
   const span = playing ? Math.max(1, playing.loop ? (playing.length ?? 1) : playing.end - playing.start) : 1;
   const elapsed = playing ? now - playing.start : 0;
   const progress = ((playing?.loop ? elapsed % span : elapsed) / span) * 100;
 
   return (
-    <div className={cn("min-w-0 space-y-1 rounded-lg border p-1.5", playing ? "border-onair/40 bg-onair-soft" : "border-line bg-raised")}>
+    <div {...drop} className={cn("min-w-0 space-y-1 rounded-lg border p-1.5 data-drop:border-royal data-drop:ring-2 data-drop:ring-royal/40", playing ? "border-onair/40 bg-onair-soft" : "border-line bg-raised")}>
       <div className="flex items-center gap-1">
         <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-surface font-mono text-[11px] font-semibold text-ink">{lane}</span>
-        <TrackPicker library={library} value={trackId} onChange={choose} placeholder={bed ? "Fondo: elige…" : "Elige un audio…"} className="h-7 min-w-0 flex-1 text-xs" label={`Audio de ${lane}`} />
+        <TrackPicker library={library} value={trackId} onChange={choose} placeholder={bed ? "Fondo: elige…" : "Elige un audio…"} className="h-7 min-w-0 flex-1 rounded-lg px-2.5 pr-7 text-xs" label={`Audio de ${lane}`} />
       </div>
 
       <div className="relative h-5 overflow-hidden rounded bg-surface">
@@ -83,7 +94,7 @@ function Deck({ lane, api, library }: { lane: string; api: ConsoleApi; library: 
       </div>
 
       <div className="flex items-center gap-1">
-        <IconButton tone="signal" disabled={!track} onClick={start} label={playing ? `Cambiar ${lane} con empalme` : `Reproducir ${lane}`} title={playing ? "Cambiar con empalme" : "Reproducir"}>
+        <IconButton tone="signal" disabled={!track} onClick={() => start()} label={playing ? `Cambiar ${lane} con empalme` : `Reproducir ${lane}`} title={playing ? "Cambiar con empalme" : "Reproducir"}>
           <Play className="size-3.5" />
         </IconButton>
         <IconButton tone="secondary" disabled={!playing} onClick={() => playing && void api.stop({ layer: playing.id }, fadeOut || api.blend || 2)} label={`Fundir ${lane}`} title="Fundir y detener">

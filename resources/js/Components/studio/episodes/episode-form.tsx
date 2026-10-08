@@ -1,4 +1,4 @@
-import { FileAudio, ImagePlus } from "lucide-react";
+import { FileAudio } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { NamesInput } from "@/Components/studio/library/names-input";
@@ -12,8 +12,9 @@ import { dateTime, duration as formatDuration } from "@/lib/format";
 import { probeDuration } from "@/lib/media/duration";
 import { fieldErrors } from "@/lib/media/errors";
 import { appendField, sendAudio } from "@/lib/media/upload";
-import type { EpisodeAudio, EpisodeItem, EpisodeLimits, EpisodeStatus, Option, ReadyRecording } from "@/types/media";
+import type { EpisodeAudio, EpisodeItem, EpisodeLimits, EpisodeStatus, Option, ReadyRecording, TrackKind } from "@/types/media";
 import { BrowserRecording } from "./browser-recording";
+import { EpisodeCover } from "./episode-cover";
 
 type Source = "keep" | "upload" | "record" | "library" | "recording";
 
@@ -22,6 +23,9 @@ interface Props {
   statuses: Option<EpisodeStatus>[];
   programs: string[];
   audios: EpisodeAudio[];
+  kinds: Option<TrackKind>[];
+  /** Library audio a new episode starts from (`?audio=` in the address). */
+  initialTrack?: string | null;
   recordings: ReadyRecording[];
   limits: EpisodeLimits;
   onClose: () => void;
@@ -36,18 +40,19 @@ function localInput(iso: string | null): string {
 }
 
 /** Creates or edits an episode: its audio (uploaded, recorded here, from the library or a console recording) and its details. */
-export function EpisodeForm({ episode, statuses, programs, audios, recordings, limits, onClose, onSaved }: Props) {
+export function EpisodeForm({ episode, statuses, programs, audios, kinds, initialTrack = null, recordings, limits, onClose, onSaved }: Props) {
   const url = useStudioUrl();
-  const [source, setSource] = useState<Source>(episode ? "keep" : "upload");
+  const startTrack = episode ? undefined : audios.find((audio) => audio.id === initialTrack);
+  const [source, setSource] = useState<Source>(episode ? "keep" : startTrack ? "library" : "upload");
   const [file, setFile] = useState<{ file: File; duration: number | null } | null>(null);
-  const [trackId, setTrackId] = useState("");
+  const [trackId, setTrackId] = useState(startTrack?.id ?? "");
   const [recordingId, setRecordingId] = useState(recordings[0]?.id ?? "");
   const [audioQuery, setAudioQuery] = useState("");
   const [cover, setCover] = useState<File | null>(null);
   const [removeCover, setRemoveCover] = useState(false);
   const [data, setData] = useState({
-    title: episode?.title ?? "",
-    program: episode?.program ?? "",
+    title: episode?.title ?? startTrack?.title ?? "",
+    program: episode?.program ?? startTrack?.artist ?? "",
     description: episode?.description ?? "",
     season: episode?.season ? String(episode.season) : "",
     number: episode?.number ? String(episode.number) : "",
@@ -66,12 +71,24 @@ export function EpisodeForm({ episode, statuses, programs, audios, recordings, l
   }, [coverPreview]);
   const shownCover = coverPreview ?? (removeCover ? null : episode?.cover_url ?? null);
 
-  const foundAudios = useMemo(() => {
+  const audioGroups = useMemo(() => {
     const needle = audioQuery.trim().toLowerCase();
-    return audios.filter((audio) => !needle || audio.title.toLowerCase().includes(needle)).slice(0, 100);
-  }, [audios, audioQuery]);
+    const found = audios.filter((audio) => audio.id === trackId || !needle || `${audio.title} ${audio.artist ?? ""}`.toLowerCase().includes(needle));
+    return kinds.map((kind) => ({ ...kind, audios: found.filter((audio) => audio.kind === kind.value) })).filter((group) => group.audios.length > 0);
+  }, [audios, kinds, audioQuery, trackId]);
 
   const set = <K extends keyof typeof data>(key: K, value: (typeof data)[K]) => setData((current) => ({ ...current, [key]: value }));
+
+  const chooseTrack = (id: string) => {
+    setTrackId(id);
+    const chosen = audios.find((audio) => audio.id === id);
+    if (!chosen) return;
+    setData((current) => ({
+      ...current,
+      title: current.title.trim() ? current.title : chosen.title,
+      program: current.program.trim() || !chosen.artist ? current.program : chosen.artist,
+    }));
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -202,13 +219,23 @@ export function EpisodeForm({ episode, statuses, programs, audios, recordings, l
           {source === "library" && (
             <div className="space-y-2">
               <Input value={audioQuery} onChange={(event) => setAudioQuery(event.target.value)} placeholder="Buscar en la biblioteca" aria-label="Buscar audio" />
-              <Select value={trackId} onChange={(event) => setTrackId(event.target.value)} size={6} className="h-auto py-1" aria-label="Audio de la biblioteca">
-                {foundAudios.map((audio) => (
-                  <option key={audio.id} value={audio.id}>
-                    {audio.title} · {audio.kind} · {formatDuration(audio.duration)}
-                  </option>
-                ))}
-              </Select>
+              {audioGroups.length ? (
+                <Select value={trackId} onChange={(event) => chooseTrack(event.target.value)} size={8} className="h-auto py-1" aria-label="Audio de la biblioteca">
+                  {audioGroups.map((group) => (
+                    <optgroup key={group.value} label={group.label}>
+                      {group.audios.map((audio) => (
+                        <option key={audio.id} value={audio.id}>
+                          {audio.title}
+                          {audio.artist ? ` · ${audio.artist}` : ""} ({formatDuration(audio.duration)})
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </Select>
+              ) : (
+                <p className="rounded-xl border border-dashed border-line px-4 py-5 text-center text-sm text-muted">{audios.length ? "Sin resultados." : "La biblioteca no tiene audios activos."}</p>
+              )}
+              <p className="text-xs text-muted">Al elegir un audio se completan el título y el programa si están vacíos.</p>
             </div>
           )}
           {source === "recording" && (
@@ -226,9 +253,8 @@ export function EpisodeForm({ episode, statuses, programs, audios, recordings, l
 
         <section className="grid gap-5 sm:grid-cols-[8rem_1fr]">
           <div className="space-y-2">
-            <div className="flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-line bg-raised">
-              {shownCover ? <img src={shownCover} alt="" className="size-full object-cover" /> : <ImagePlus className="size-7 text-faint" />}
-            </div>
+            <EpisodeCover src={shownCover} title={data.title || "Episodio"} className="aspect-square w-full rounded-xl text-2xl" />
+            {!shownCover && <p className="text-center text-[11px] leading-4 text-muted">Sin imagen se muestran las iniciales del título.</p>}
             <label className="block cursor-pointer text-center text-xs font-medium text-signal hover:underline">
               {shownCover ? "Cambiar portada" : "Elegir portada"}
               <input
@@ -286,7 +312,22 @@ export function EpisodeForm({ episode, statuses, programs, audios, recordings, l
               {(id, invalid) => <Input id={id} invalid={invalid} type="number" min={1} max={9999} value={data.number} onChange={(event) => set("number", event.target.value)} />}
             </Field>
             <Field label="Descripción (opcional)" className="sm:col-span-2" error={errors.description}>
-              {(id, invalid) => <Textarea id={id} invalid={invalid} value={data.description} maxLength={2000} onChange={(event) => set("description", event.target.value)} />}
+              {(id, invalid) => (
+                <>
+                  <Textarea
+                    id={id}
+                    invalid={invalid}
+                    value={data.description}
+                    maxLength={limits.max_description}
+                    rows={3}
+                    placeholder="De qué trata este programa, en una o dos frases. Es lo que la gente lee antes de darle play."
+                    onChange={(event) => set("description", event.target.value)}
+                  />
+                  <span className="block text-right text-xs text-muted tabular">
+                    {data.description.length}/{limits.max_description}
+                  </span>
+                </>
+              )}
             </Field>
             <Field label="Hashtags" className="sm:col-span-2" hint={`Hasta ${limits.max_hashtags}. Ayudan a que te encuentren en Descubrir.`} error={errors.hashtags}>
               {(id) => <NamesInput id={id} value={data.hashtags} max={limits.max_hashtags} maxLength={limits.hashtag_length} prefix="#" placeholder="#entrevista" onChange={(hashtags) => set("hashtags", hashtags)} />}

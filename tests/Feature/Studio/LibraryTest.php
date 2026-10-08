@@ -156,16 +156,16 @@ class LibraryTest extends TestCase
         $this->storedTrack($this->station);
 
         $this->actingAs($this->station->owner)
-            ->postJson($this->studioUrl($this->station, '/biblioteca/duplicados'), ['items' => [
-                ['key' => 'a', 'kind' => 'song', 'title' => 'Pedro Navaja (En Vivo)', 'artist' => 'Rubén Blades', 'duration' => 500],
-                ['key' => 'b', 'kind' => 'song', 'title' => 'Decisiones', 'artist' => 'Rubén Blades', 'duration' => 200],
-                ['key' => 'c', 'kind' => 'song', 'title' => 'Decisiones', 'artist' => 'Rubén Blades', 'duration' => 201],
+            ->postJson($this->studioUrl($this->station, '/biblioteca/duplicados'), ['songs' => [
+                ['key' => 'a', 'title' => 'Pedro Navaja (En Vivo)', 'artist' => 'Rubén Blades', 'duration' => 500],
+                ['key' => 'b', 'title' => 'Decisiones', 'artist' => 'Rubén Blades', 'duration' => 200],
+                ['key' => 'c', 'title' => 'Decisiones', 'artist' => 'Rubén Blades', 'duration' => 201],
             ]])
             ->assertOk()
-            ->assertJsonPath('results.a.matches.0.verdict', 'version')
-            ->assertJsonPath('results.b.matches', [])
-            ->assertJsonPath('results.c.batch.key', 'b')
-            ->assertJsonPath('results.c.batch.verdict', 'same');
+            ->assertJsonPath('results.a.0.verdict', 'version')
+            ->assertJsonPath('results.b', [])
+            ->assertJsonPath('results.c.0.batch', 'b')
+            ->assertJsonPath('results.c.0.verdict', 'same');
     }
 
     #[Test]

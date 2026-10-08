@@ -28,6 +28,8 @@ interface StationProps extends StationContext {
     created_at: string;
   };
   episodes: Paginated<EpisodeCard>;
+  programs: string[];
+  program: string | null;
   related: StationData[];
   chat: ChatSnapshot;
 }
@@ -54,7 +56,7 @@ function NowOnAir({ station }: { station: StationData }) {
   );
 }
 
-export default function Station({ about, episodes, related, chat, ...context }: StationProps) {
+export default function Station({ about, episodes, programs, program, related, chat, ...context }: StationProps) {
   const { station } = context;
   const latest = episodes.current_page === 1 ? episodes.data[0] : undefined;
   const rest = latest ? episodes.data.slice(1) : episodes.data;
@@ -69,7 +71,29 @@ export default function Station({ about, episodes, related, chat, ...context }: 
             <h2 id="episodios" className="flex items-center gap-2 font-display text-xl font-semibold">
               <Podcast className="size-5 text-info" /> Episodios
             </h2>
-            {episodes.total === 0 ? (
+            {programs.length > 0 && (
+              <nav aria-label="Programas" className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+                {[null, ...programs].map((name) => (
+                  <Link
+                    key={name ?? ""}
+                    href={`/radio/${station.frequency.slug}${name ? `?programa=${encodeURIComponent(name)}` : ""}`}
+                    only={["episodes", "program"]}
+                    preserveScroll
+                    preserveState
+                    aria-current={name === program ? "true" : undefined}
+                    className={cn(
+                      "shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap ring-1 transition",
+                      name === program ? "bg-ink text-surface ring-ink" : "bg-surface text-muted ring-line hover:text-ink hover:ring-line-strong",
+                    )}
+                  >
+                    {name ?? "Todos"}
+                  </Link>
+                ))}
+              </nav>
+            )}
+            {episodes.total === 0 && program ? (
+              <EmptyState icon={<Podcast className="size-6" />} title="Sin episodios de este programa" description="Elige otro programa o mira todos los episodios de la radio." />
+            ) : episodes.total === 0 ? (
               <EmptyState icon={<Podcast className="size-6" />} title="Todavía no hay episodios" description="Cuando la radio publique sus programas grabados, podrás escucharlos aquí cuando quieras." />
             ) : (
               <>

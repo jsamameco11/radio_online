@@ -155,6 +155,57 @@ class EpisodesTest extends TestCase
     }
 
     #[Test]
+    public function the_stats_count_every_episode_whatever_the_filter_or_page(): void
+    {
+        $audio = $this->storedTrack($this->station, ['kind' => TrackKind::Program]);
+        $owner = $this->station->owner;
+        $create = fn (string $title, string $status, ?string $program) => $this->actingAs($owner)->post($this->studioUrl($this->station, '/episodios'), [
+            'title' => $title, 'status' => $status, 'program' => $program, 'source' => 'library', 'track_id' => $audio->id,
+        ], ['Accept' => 'application/json'])->assertCreated();
+        foreach (range(1, 22) as $n) {
+            $create("Episodio {$n}", 'published', $n % 2 ? 'Mañanas' : 'Noches');
+        }
+        $create('Borrador', 'draft', null);
+        $create('Archivado', 'archived', 'Especiales');
+        $other = Station::factory()->create();
+        $foreign = $this->storedTrack($other, ['kind' => TrackKind::Program]);
+        $this->actingAs($other->owner)->post($this->studioUrl($other, '/episodios'), [
+            'title' => 'Ajeno', 'status' => 'published', 'program' => 'Ajeno', 'source' => 'library', 'track_id' => $foreign->id,
+        ], ['Accept' => 'application/json'])->assertCreated();
+
+        $this->actingAs($owner)
+            ->get($this->studioUrl($this->station, '/episodios?estado=draft'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('episodes.data', 1)
+                ->where('stats.published', 22)
+                ->where('stats.draft', 1)
+                ->where('stats.scheduled', 0)
+                ->where('stats.archived', 1)
+                ->where('programs', ['Especiales', 'Mañanas', 'Noches']));
+    }
+
+    #[Test]
+    public function a_library_audio_in_the_address_opens_a_new_episode_with_it(): void
+    {
+        $program = $this->storedTrack($this->station, ['kind' => TrackKind::Program, 'title' => 'Programa 12', 'artist' => 'Mañanas al día']);
+        $jingle = $this->storedTrack($this->station, ['kind' => TrackKind::Jingle, 'title' => 'Cortina']);
+        $inactive = $this->storedTrack($this->station, ['kind' => TrackKind::Program, 'title' => 'Oculto', 'active' => false]);
+        $foreign = $this->storedTrack(Station::factory()->create(), ['kind' => TrackKind::Program]);
+        $page = fn (string $audio) => $this->actingAs($this->station->owner)->get($this->studioUrl($this->station, '/episodios?audio='.$audio))->assertOk();
+
+        $page($program->id)->assertInertia(fn (Assert $page) => $page
+            ->where('prefill', $program->id)
+            ->has('audios', 2)
+            ->where('audios.0.kind', 'program')
+            ->where('audios.0.artist', 'Mañanas al día')
+            ->where('audios.1.id', $jingle->id)
+            ->where('kinds.0.value', 'program'));
+        $page($inactive->id)->assertInertia(fn (Assert $page) => $page->where('prefill', null));
+        $page($foreign->id)->assertInertia(fn (Assert $page) => $page->where('prefill', null));
+    }
+
+    #[Test]
     public function hosts_and_other_stations_cannot_manage_episodes(): void
     {
         $other = Station::factory()->create();

@@ -52,62 +52,57 @@ export function SwitchPanel({ api, day, playlists, timezone }: { api: ConsoleApi
       : `Suena la música automática: ${autopilot.label}.`;
 
   return (
-    <Panel
-      dense
-      title="Vivo y música automática"
-      description={status}
-      actions={
-        <div role="radiogroup" aria-label="Modo del vivo" className="inline-flex rounded-lg border border-line bg-raised p-0.5">
-          {MODES.map((mode) => (
-            <button
-              key={mode.value}
-              type="button"
-              role="radio"
-              aria-checked={config.live_mode === mode.value}
-              title={mode.hint}
-              disabled={busy}
-              onClick={() => void act(() => api.setLiveMode(mode.value))}
-              className={cn("h-7 rounded-md px-2.5 text-xs font-medium transition", config.live_mode === mode.value ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink")}
-            >
-              {mode.label}
-            </button>
-          ))}
-        </div>
-      }
-    >
+    <Panel dense className="overflow-hidden" title="Vivo y música automática" description={status}>
       <div className="space-y-2.5">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <Badge tone={cut ? "danger" : block && auto ? "warning" : "neutral"}>{cut ? "En vivo" : block && auto ? `Vivo programado hasta ${clock(block.end, timezone)}` : "Música automática"}</Badge>
-          <span className="min-w-0 text-xs break-words text-muted">Fuente del vivo: {external ? "señal externa (OBS, Icecast)" : "esta consola"}</span>
-          <div className="ml-auto flex max-w-full flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-muted">{cut ? "Al volver suena" : "Sigue en automático"}</span>
-            <SourcePicker
-              playlists={playlists}
-              playlist={playlist}
-              shuffle={shuffle}
-              onChange={(nextPlaylist, nextShuffle) => {
-                setPlaylist(nextPlaylist);
-                setShuffle(nextShuffle);
-              }}
-            />
-            {cut ? (
-              <Button size="sm" variant="signal" icon={<Undo2 className="size-3.5" />} loading={busy} onClick={() => void act(() => api.resumeMusic(changed ? { playlist, shuffle } : undefined))}>
-                Volver a la música
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                variant="danger"
-                icon={<Radio className="size-3.5" />}
-                disabled={!external && !snapshot.live.session}
-                loading={busy}
-                title={!external && !snapshot.live.session ? "Abre la transmisión en vivo primero" : "Corta la música automática para todos los oyentes"}
-                onClick={() => void act(api.cutMusic)}
+        <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-line bg-canvas/80 p-1.5">
+          <Badge tone={cut ? "danger" : block && auto ? "warning" : "onair"}>{cut ? "En vivo" : block && auto ? `Hasta ${clock(block.end, timezone)}` : "En automático"}</Badge>
+          <div role="radiogroup" aria-label="Modo del vivo" className="inline-flex rounded-lg border border-line bg-raised p-0.5">
+            {MODES.map((mode) => (
+              <button
+                key={mode.value}
+                type="button"
+                role="radio"
+                aria-checked={config.live_mode === mode.value}
+                title={mode.hint}
+                disabled={busy}
+                onClick={() => void act(() => api.setLiveMode(mode.value))}
+                className={cn("h-7 rounded-md px-2.5 text-xs font-medium transition", config.live_mode === mode.value ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink")}
               >
-                Cortar música · ir al vivo
-              </Button>
-            )}
+                {mode.label}
+              </button>
+            ))}
           </div>
+          <span className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-raised px-2.5 text-xs text-muted">
+            <span className="text-[10px] font-semibold tracking-wider text-faint uppercase">Fuente</span>
+            <span className="text-ink">{external ? "Externa" : "Consola"}</span>
+          </span>
+          <span className="text-[10px] font-semibold tracking-wider text-faint uppercase">{cut ? "Al volver suena" : "Sigue en automático"}</span>
+          <SourcePicker
+            playlists={playlists}
+            playlist={playlist}
+            shuffle={shuffle}
+            onChange={(nextPlaylist, nextShuffle) => {
+              setPlaylist(nextPlaylist);
+              setShuffle(nextShuffle);
+            }}
+          />
+          {cut ? (
+            <Button size="sm" variant="signal" icon={<Undo2 className="size-3.5" />} loading={busy} onClick={() => void act(() => api.resumeMusic(changed ? { playlist, shuffle } : undefined))}>
+              Volver a la música
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="danger"
+              icon={<Radio className="size-3.5" />}
+              disabled={!external && !snapshot.live.session}
+              loading={busy}
+              title={!external && !snapshot.live.session ? "Abre la transmisión en vivo primero" : "Corta la música automática para todos los oyentes"}
+              onClick={() => void act(api.cutMusic)}
+            >
+              Cortar música · ir al vivo
+            </Button>
+          )}
         </div>
 
         {!cut && changed ? (

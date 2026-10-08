@@ -36,6 +36,7 @@ class BroadcastSettingsController extends Controller
             'liveModes' => array_map(fn (LiveMode $mode) => ['value' => $mode->value, 'label' => $mode->label()], LiveMode::cases()),
             'liveSources' => array_map(fn (LiveSource $source) => ['value' => $source->value, 'label' => $source->label()], LiveSource::cases()),
             'bitrates' => BroadcastSettingsRequest::BITRATES,
+            'maxVoice' => BroadcastSettingsRequest::MAX_VOICE,
         ]);
     }
 

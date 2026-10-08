@@ -140,6 +140,8 @@ return [
             'store_country' => env('MUSIC_LOOKUP_COUNTRY', 'US'),
             // MusicBrainz allows one request per second per client.
             'musicbrainz_gap_ms' => 1100,
+            // Genre a song gets, marked as a guess to review, when nothing tells its genre; empty for none.
+            'fallback_genre' => env('MUSIC_FALLBACK_GENRE', 'Música variada'),
         ],
     ],
 

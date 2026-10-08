@@ -5,41 +5,37 @@ import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/field";
 import { Modal } from "@/Components/ui/modal";
 import { cn } from "@/lib/cn";
-import { http, HttpError } from "@/lib/http";
-import { EFFECT_CATEGORIES, FACTORY_EFFECTS, STARTER_EFFECTS, effectBuffer, previewEffect, stopPreview, wavFile, type FactoryEffect } from "@/lib/radio/effects";
-import type { BroadcastTrack } from "@/types/studio";
-import type { ConsoleApi } from "./use-console";
+import { duration } from "@/lib/format";
+import { EFFECT_CATEGORIES, FACTORY_EFFECTS, STARTER_EFFECTS, previewEffect, stopPreview, type FactoryEffect } from "@/lib/radio/effects";
+import { inBank, starterEffects, type PadsApi } from "./use-pads";
+import { EFFECT_LABELS } from "./use-sounds";
 
-/** Artist the server gives every factory effect it stores (see App\Domain\Studio\Actions\AddFactoryEffect). */
-const ARTIST = "Efectos de fábrica";
+export const effectLength = (seconds: number) => (seconds < 10 ? `${seconds.toFixed(1).replace(".", ",")} s` : duration(seconds));
 
-const LABELS = new Map(EFFECT_CATEGORIES.map((category) => [category.id, category.label]));
-
-const fold = (text: string) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-
-const inBank = (pads: BroadcastTrack[], item: FactoryEffect) => pads.some((pad) => pad.kind === "effect" && pad.title === item.title && pad.artist === `${ARTIST} · ${LABELS.get(item.category)}`);
-
-const length = (seconds: number) => `${seconds.toFixed(seconds < 10 ? 1 : 0).replace(".", ",")} s`;
+export const fold = (text: string) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 /**
  * The factory effects: categorized, heard here (only by the operator) before adding them, and
- * added to the pad bank one by one or as the basic set. Each one becomes a library audio.
+ * added to the pad bank one by one or as the basic set. They load in the background: the window
+ * can be closed while they are added. Each one also stays in the library.
  */
-export function EffectsLibrary({ api, pads, max, onClose, onPads }: { api: ConsoleApi; pads: BroadcastTrack[]; max: number; onClose: () => void; onPads: (pads: BroadcastTrack[]) => void }) {
+export function EffectsLibrary({ bank, onClose }: { bank: PadsApi; onClose: () => void }) {
+  const { pads, loading, report, max } = bank;
   const [category, setCategory] = useState("");
   const [query, setQuery] = useState("");
   const [playing, setPlaying] = useState<string | null>(null);
-  const [adding, setAdding] = useState<string | null>(null);
-  const [report, setReport] = useState<{ tone: "error" | "info"; text: string } | null>(null);
   const counts = useMemo(() => {
     const map = new Map<string, number>();
     FACTORY_EFFECTS.forEach((item) => map.set(item.category, (map.get(item.category) ?? 0) + 1));
     return map;
   }, []);
   const search = fold(query.trim());
-  const visible = FACTORY_EFFECTS.filter((item) => (search ? fold(`${item.title} ${LABELS.get(item.category)}`).includes(search) : !category || item.category === category));
-  const starter = STARTER_EFFECTS.map((id) => FACTORY_EFFECTS.find((item) => item.id === id)).filter((item): item is FactoryEffect => item !== undefined && !inBank(pads, item));
-  const free = max - pads.length;
+  const visible = FACTORY_EFFECTS.filter((item) => (search ? fold(`${item.title} ${EFFECT_LABELS.get(item.category)}`).includes(search) : !category || item.category === category));
+  const pending = new Set([...(loading?.queued ?? []), ...(loading?.current ? [loading.current.id] : [])]);
+  const free = max - pads.length - pending.size;
+  const starter = starterEffects().filter((item) => !inBank(pads, item));
+  const missingStarter = starter.filter((item) => !pending.has(item.id)).length;
+  const hint = EFFECT_CATEGORIES.find((item) => item.id === category)?.hint;
 
   useEffect(() => () => stopPreview(), []);
 
@@ -53,33 +49,6 @@ export function EffectsLibrary({ api, pads, max, onClose, onPads }: { api: Conso
     void previewEffect(item, () => setPlaying((value) => (value === item.id ? null : value)));
   }
 
-  /** Renders each effect here, uploads it as a WAV and puts it at the end of the pad bank, one after the other. */
-  async function load(items: FactoryEffect[]) {
-    let bank = pads;
-    let added = 0;
-    setReport(null);
-    for (const item of items.slice(0, Math.max(0, max - bank.length))) {
-      setAdding(item.id);
-      try {
-        const buffer = await effectBuffer(item);
-        const body = new FormData();
-        body.set("title", item.title);
-        body.set("category", LABELS.get(item.category) ?? item.category);
-        body.set("duration", buffer.duration.toFixed(2));
-        body.set("audio", wavFile(buffer, `${item.id}.wav`));
-        const data = await http.post<{ pads: BroadcastTrack[] }>(`${api.base}/botonera/efectos`, body);
-        bank = data.pads;
-        added += 1;
-        onPads(bank);
-      } catch (error) {
-        setReport({ tone: "error", text: error instanceof HttpError ? error.firstError() : `No se pudo agregar «${item.title}». Revisa tu conexión e inténtalo de nuevo.` });
-        break;
-      }
-    }
-    setAdding(null);
-    if (added) setReport((value) => value ?? { tone: "info", text: added === 1 ? "Efecto agregado a la botonera." : `Listo: ${added} efectos nuevos en la botonera.` });
-  }
-
   function close() {
     stopPreview();
     onClose();
@@ -91,23 +60,32 @@ export function EffectsLibrary({ api, pads, max, onClose, onPads }: { api: Conso
       onClose={close}
       size="xl"
       title="Efectos de fábrica"
-      description={`${FACTORY_EFFECTS.length} sonidos en ${EFFECT_CATEGORIES.length} categorías. Escúchalos aquí (solo tú) y agrégalos a la botonera. Botonera: ${pads.length}/${max}.`}
+      description={`${FACTORY_EFFECTS.length} sonidos en ${EFFECT_CATEGORIES.length} categorías. Escúchalos aquí (solo tú) y agrégalos a la botonera con un clic. Botonera: ${pads.length}/${max}.`}
       footer={
-        <Button onClick={close} disabled={adding !== null}>
-          Listo
-        </Button>
+        <div className="flex w-full flex-wrap items-center justify-between gap-2">
+          <p className="min-w-0 text-xs break-words text-muted">
+            {loading
+              ? "Se cargan en segundo plano: puedes cerrar esta ventana y seguir trabajando en la consola."
+              : `${free > 0 ? `Quedan ${free} botones libres.` : "Botonera llena: quita botones con «Editar» para sumar otros."} Cada efecto queda también en la biblioteca.`}
+          </p>
+          <Button onClick={close} variant={loading ? "secondary" : "primary"}>
+            {loading ? "Seguir en segundo plano" : "Listo"}
+          </Button>
+        </div>
       }
     >
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-raised p-3">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold">Botonera básica</p>
-            <p className="text-xs text-muted">Aplausos, redoble, ta-dá, risas, whoosh, campana, jingle y más: {STARTER_EFFECTS.length} efectos listos para hacer radio.</p>
+            <p className="text-xs break-words text-muted">Aplausos, redoble, ta-dá, risas, boing, trombón triste, whoosh, campana, coro, jingle y más: {STARTER_EFFECTS.length} efectos listos para hacer radio.</p>
           </div>
-          <Button size="sm" variant="signal" disabled={!starter.length || free <= 0} loading={adding !== null && starter.some((item) => item.id === adding)} onClick={() => void load(starter)}>
-            {starter.length ? "Cargar botonera básica" : "Ya está cargada"}
+          <Button size="sm" variant="signal" disabled={!missingStarter} onClick={() => bank.load(starter)}>
+            {missingStarter ? "Cargar botonera básica" : starter.length ? "Cargando…" : "Ya está cargada"}
           </Button>
         </div>
+
+        {loading ? <PadLoadingBar bank={bank} /> : null}
 
         <div className="flex flex-wrap gap-1.5">
           <CategoryChip on={!category} onClick={() => setCategory("")} label="Todos" count={FACTORY_EFFECTS.length} />
@@ -115,49 +93,89 @@ export function EffectsLibrary({ api, pads, max, onClose, onPads }: { api: Conso
             <CategoryChip key={item.id} on={category === item.id} onClick={() => setCategory(item.id)} label={item.label} count={counts.get(item.id) ?? 0} title={item.hint} />
           ))}
         </div>
-        <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar un efecto: risa, campana, whoosh…" className="max-w-sm" aria-label="Buscar un efecto" />
+        <div className="flex flex-wrap items-center gap-2">
+          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar un efecto: risa, campana, whoosh…" className="max-w-sm" aria-label="Buscar un efecto" />
+          <p className="min-w-0 text-xs break-words text-muted">{search ? `${visible.length} resultados en todas las categorías` : (hint ?? "Todas las categorías")}</p>
+        </div>
 
         <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((item) => (
-            <li key={item.id} className={cn("flex items-center gap-2 rounded-xl border p-2.5", playing === item.id ? "border-signal bg-signal-soft" : "border-line bg-surface")}>
-              <Button size="icon" variant="secondary" className="size-8" onClick={() => toggle(item)} aria-label={playing === item.id ? `Detener ${item.title}` : `Escuchar ${item.title}`}>
-                {playing === item.id ? <Square className="size-3.5" /> : <Play className="size-3.5" />}
-              </Button>
-              <span className="min-w-0 flex-1">
-                <span className="line-clamp-1 text-sm font-medium" title={item.title}>
-                  {item.title}
-                </span>
-                <span className="block truncate text-xs text-muted">
-                  {!category || search ? `${LABELS.get(item.category)} · ` : ""}
-                  {length(item.seconds)}
-                </span>
-              </span>
-              {inBank(pads, item) ? (
-                <Badge tone="onair">
-                  <Check className="size-3" /> En la botonera
-                </Badge>
-              ) : (
-                <Button size="sm" variant="ghost" disabled={free <= 0 || adding !== null} loading={adding === item.id} onClick={() => void load([item])}>
-                  + Botonera
+          {visible.map((item) => {
+            const adding = loading?.current?.id === item.id;
+            return (
+              <li key={item.id} className={cn("flex min-w-0 items-center gap-2 rounded-xl border p-2.5", playing === item.id ? "border-signal bg-signal-soft" : "border-line bg-surface")}>
+                <Button size="icon" variant="secondary" className="size-8 shrink-0" onClick={() => toggle(item)} aria-label={playing === item.id ? `Detener ${item.title}` : `Escuchar ${item.title}`}>
+                  {playing === item.id ? <Square className="size-3.5" /> : <Play className="size-3.5" />}
                 </Button>
-              )}
-            </li>
-          ))}
+                <span className="min-w-0 flex-1">
+                  <span className="line-clamp-1 text-sm font-medium break-words" title={item.title}>
+                    {item.title}
+                  </span>
+                  <span className="block truncate text-xs text-muted">
+                    {!category || search ? `${EFFECT_LABELS.get(item.category)} · ` : ""}
+                    {effectLength(item.seconds)}
+                  </span>
+                </span>
+                {inBank(pads, item) ? (
+                  <Badge tone="onair" className="shrink-0">
+                    <Check className="size-3" /> En la botonera
+                  </Badge>
+                ) : pending.has(item.id) ? (
+                  <Badge tone={adding ? "signal" : "neutral"} className="shrink-0">
+                    {adding ? "Agregando…" : "En cola"}
+                  </Badge>
+                ) : (
+                  <Button size="sm" variant="ghost" className="shrink-0" disabled={free <= 0} onClick={() => bank.load([item])} title={free <= 0 ? `La botonera tiene hasta ${max} botones` : undefined}>
+                    + Botonera
+                  </Button>
+                )}
+              </li>
+            );
+          })}
           {!visible.length ? <li className="col-span-full py-8 text-center text-sm text-muted">No hay efectos con ese nombre.</li> : null}
         </ul>
 
-        {report ? <p className={cn("rounded-lg px-3 py-2 text-sm", report.tone === "error" ? "bg-danger-soft text-danger" : "bg-onair-soft text-onair")}>{report.text}</p> : null}
-        <p className="text-xs text-muted">{free > 0 ? `Quedan ${free} botones libres.` : "Botonera llena: quita botones con «Editar» para sumar otros."} Cada efecto queda también en la biblioteca.</p>
+        {report ? <p className={cn("rounded-lg px-3 py-2 text-sm break-words", report.tone === "error" ? "bg-danger-soft text-danger" : "bg-onair-soft text-onair")}>{report.text}</p> : null}
       </div>
     </Modal>
   );
 }
 
-function CategoryChip({ on, onClick, label, count, title }: { on: boolean; onClick: () => void; label: string; count: number; title?: string }) {
+/** Progress of the effects loading in the background, with the way to stop it. */
+export function PadLoadingBar({ bank, className }: { bank: PadsApi; className?: string }) {
+  const { loading } = bank;
+  if (!loading) return null;
+  const step = Math.min(loading.done + 1, loading.total);
   return (
-    <button type="button" onClick={onClick} title={title} aria-pressed={on} className={cn("inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition", on ? "border-ink bg-ink text-canvas" : "border-line text-muted hover:text-ink")}>
-      {label}
-      <span className="text-faint tabular">{count}</span>
+    <div className={cn("space-y-1.5 rounded-lg border border-onair/30 bg-onair-soft px-2.5 py-2", className)} role="status" aria-live="polite">
+      <div className="flex items-center justify-between gap-2">
+        <p className="min-w-0 truncate text-[11px] text-muted">
+          <span className="font-semibold text-onair">
+            Cargando efectos · {step} de {loading.total}
+          </span>
+          {loading.current ? ` · ${loading.current.title}` : ""}
+        </p>
+        <Button size="sm" variant="ghost" className="h-6 shrink-0 px-2 text-[11px] text-danger" disabled={loading.stopping} onClick={bank.stop}>
+          {loading.stopping ? "Deteniendo…" : "Detener"}
+        </Button>
+      </div>
+      <span className="block h-1 overflow-hidden rounded-full bg-surface" aria-hidden>
+        <span className="block h-full rounded-full bg-onair transition-[width]" style={{ width: `${(loading.done / Math.max(1, loading.total)) * 100}%` }} />
+      </span>
+    </div>
+  );
+}
+
+export function CategoryChip({ on, onClick, label, count, title, small = false }: { on: boolean; onClick: () => void; label: string; count: number; title?: string; small?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-pressed={on}
+      className={cn("inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-lg border font-medium transition", small ? "h-6 px-2 text-[10px]" : "h-8 px-3 text-xs", on ? "border-ink bg-ink text-canvas" : "border-line text-muted hover:text-ink")}
+    >
+      <span className="truncate">{label}</span>
+      <span className={cn("tabular", on ? "text-canvas/70" : "text-faint")}>{count}</span>
     </button>
   );
 }

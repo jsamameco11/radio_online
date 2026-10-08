@@ -15,6 +15,7 @@ use App\Domain\Studio\Capture\LiveCapture;
 use App\Domain\Studio\Library\StudioAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Studio\Concerns\RespondsWithSnapshot;
+use App\Http\Requests\Studio\ConsoleCaptureSaveRequest;
 use App\Http\Requests\Studio\ConsoleLiveRequest;
 use App\Http\Requests\Studio\ConsoleMixRequest;
 use App\Http\Requests\Studio\ConsoleOfferRequest;
@@ -44,12 +45,17 @@ class ConsoleController extends Controller
     public function index(Request $request, BroadcastLibrary $library, Schedule $schedule, LiveCapture $capture, StudioAccess $access): Response
     {
         $today = BroadcastClock::today();
+        $pads = $this->broadcast->pads();
+        $config = $this->broadcast->config();
 
         return Inertia::render('Studio/Console', [
             'snapshot' => $this->broadcast->snapshot(),
-            'pads' => BroadcastTrackResource::collection($this->broadcast->pads())->resolve($request),
+            'pads' => BroadcastTrackResource::collection($pads)->resolve($request),
+            // A brand-new bank: the console loads the basic factory effects into it, once.
+            'starter' => $config['pads'] === null && ! $config['pads_offered'] && $pads->isEmpty(),
             'library' => $library->tracks($request),
             'playlists' => $library->playlists(),
+            'playlistSongs' => $library->playlistSongs(),
             'kinds' => BroadcastLibrary::kinds(),
             'today' => $today,
             'day' => $schedule->day($today),
@@ -64,6 +70,8 @@ class ConsoleController extends Controller
                 'operator_timeout' => LiveDesk::OPERATOR_TIMEOUT,
                 'chunk_mb' => LiveCapture::CHUNK_MB,
                 'recording_mb' => LiveCapture::MAX_MB,
+                'description' => ConsoleCaptureSaveRequest::MAX_DESCRIPTION,
+                'cover_mb' => (int) config('platform.media.max_cover_mb'),
             ],
         ]);
     }

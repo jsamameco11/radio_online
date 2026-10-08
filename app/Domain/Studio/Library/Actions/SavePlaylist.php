@@ -2,13 +2,15 @@
 
 namespace App\Domain\Studio\Library\Actions;
 
+use App\Domain\Studio\Broadcast\Schedule;
 use App\Domain\Studio\Enums\TrackKind;
 use App\Domain\Studio\Library\PlayoutCaches;
 use App\Models\Playlist;
+use App\Models\ScheduleSlot;
 use App\Models\Track;
 use Illuminate\Support\Facades\DB;
 
-/** Creates or changes a playlist: its name, description and its songs in order. */
+/** Creates or changes a playlist: its name, description and its songs in order; the automatic periods that play it carry its name. */
 final class SavePlaylist
 {
     public const MAX_TRACKS = 2000;
@@ -32,6 +34,11 @@ final class SavePlaylist
             $songs = Track::query()->whereKey($wanted)->where('kind', TrackKind::Song->value)->pluck('id')->flip();
             $ordered = array_values(array_filter($wanted, fn (string $id) => $songs->has($id)));
             $playlist->tracks()->sync(collect($ordered)->mapWithKeys(fn (string $id, int $position) => [$id => ['position' => $position]])->all());
+
+            foreach ([true, false] as $shuffle) {
+                ScheduleSlot::query()->where('playlist_id', $playlist->id)->where('shuffle', $shuffle)
+                    ->update(['title' => Schedule::autoTitle($playlist, $shuffle)]);
+            }
         });
         $this->caches->flush();
 

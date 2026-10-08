@@ -39,7 +39,12 @@ Route::middleware('studio.can:library.manage')->group(function () {
     Route::post('/listas/{playlist}/mezclar', [PlaylistController::class, 'shuffle'])->whereUuid('playlist')->name('playlists.shuffle');
 
     Route::get('/catalogo', [CatalogController::class, 'index'])->name('catalog');
+    Route::post('/catalogo/estilos', [CatalogController::class, 'storeGenre'])->name('catalog.genres.store');
+    Route::put('/catalogo/estilos/{genre}', [CatalogController::class, 'updateGenre'])->whereUuid('genre')->name('catalog.genres.update');
+    Route::delete('/catalogo/estilos/{genre}', [CatalogController::class, 'destroyGenre'])->whereUuid('genre')->name('catalog.genres.destroy');
     Route::post('/catalogo/artistas', [CatalogController::class, 'storeArtist'])->name('catalog.artists.store');
+    Route::put('/catalogo/artistas/{artist}', [CatalogController::class, 'updateArtist'])->whereUuid('artist')->name('catalog.artists.update');
+    Route::delete('/catalogo/artistas/{artist}', [CatalogController::class, 'destroyArtist'])->whereUuid('artist')->name('catalog.artists.destroy');
     Route::post('/catalogo/asignar', [CatalogController::class, 'assign'])->name('catalog.assign');
     Route::post('/catalogo/clasificar', [CatalogController::class, 'classify'])->name('catalog.classify');
 });
@@ -49,11 +54,11 @@ Route::middleware('studio.can:library.manage,episodes.manage')->group(function (
     Route::delete('/biblioteca/subidas/{token}', [LibraryUploadController::class, 'destroy'])->where('token', '[A-Za-z0-9]{40}')->name('library.uploads.destroy');
 
     Route::get('/editor', [EditorController::class, 'index'])->name('editor');
-    Route::get('/editor/{track}/analisis', [EditorController::class, 'analysis'])->whereUuid('track')->name('editor.analysis');
-    Route::post('/editor/{track}', [EditorController::class, 'store'])->whereUuid('track')->name('editor.store');
+    Route::get('/editor/{track}/analisis', [EditorController::class, 'analysis'])->whereUuid('track')->middleware('throttle:60,1')->name('editor.analysis');
+    Route::post('/editor/{track}', [EditorController::class, 'store'])->whereUuid('track')->middleware('throttle:20,1')->name('editor.store');
     Route::get('/editor/{track}/estado', [EditorController::class, 'status'])->whereUuid('track')->name('editor.status');
-    Route::post('/editor/{track}/muestra', [EditorController::class, 'preview'])->whereUuid('track')->name('editor.preview');
-    Route::post('/editor/{track}/restaurar', [EditorController::class, 'restore'])->whereUuid('track')->name('editor.restore');
+    Route::post('/editor/{track}/muestra', [EditorController::class, 'preview'])->whereUuid('track')->middleware('throttle:30,1')->name('editor.preview');
+    Route::post('/editor/{track}/restaurar', [EditorController::class, 'restore'])->whereUuid('track')->middleware('throttle:20,1')->name('editor.restore');
 });
 
 Route::middleware('studio.can:episodes.manage')->group(function () {

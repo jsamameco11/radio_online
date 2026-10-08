@@ -13,12 +13,51 @@ export function EpisodePlayer({ episode, className }: { episode: EpisodeCard; cl
   const audio = useRef<HTMLAudioElement>(null);
   const live = usePlayer();
   const [playing, setPlaying] = useState(false);
+  const [started, setStarted] = useState(false);
   const [position, setPosition] = useState(0);
   const [length, setLength] = useState(episode.duration);
 
   useEffect(() => {
     if (live.active && playing) audio.current?.pause();
   }, [live.active, playing]);
+
+  useEffect(() => {
+    if (!started || !("mediaSession" in navigator)) return;
+    const session = navigator.mediaSession;
+    const element = () => audio.current;
+    const seek = (seconds: number) => {
+      const current = element();
+      if (current) current.currentTime = Math.max(0, Math.min(current.duration || Infinity, seconds));
+    };
+    session.metadata = new MediaMetadata({
+      title: episode.title,
+      artist: episode.program ?? episode.station?.display_name ?? "",
+      artwork: episode.cover_url ? [{ src: episode.cover_url, sizes: "512x512" }] : [],
+    });
+    const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
+      ["play", () => void element()?.play()],
+      ["pause", () => element()?.pause()],
+      ["seekbackward", (details) => seek((element()?.currentTime ?? 0) - (details.seekOffset ?? 15))],
+      ["seekforward", (details) => seek((element()?.currentTime ?? 0) + (details.seekOffset ?? 30))],
+      ["seekto", (details) => details.seekTime !== undefined && seek(details.seekTime)],
+    ];
+    const register = (action: MediaSessionAction, handler: MediaSessionActionHandler | null) => {
+      try {
+        session.setActionHandler(action, handler);
+      } catch {
+        // Browsers throw for the actions they do not support.
+      }
+    };
+    handlers.forEach(([action, handler]) => register(action, handler));
+    return () => {
+      handlers.forEach(([action]) => register(action, null));
+      session.metadata = null;
+    };
+  }, [started, playing, episode.title, episode.program, episode.station?.display_name, episode.cover_url]);
+
+  useEffect(() => {
+    if (started && "mediaSession" in navigator) navigator.mediaSession.playbackState = playing ? "playing" : "paused";
+  }, [started, playing]);
 
   if (!episode.audio_url) {
     return <p className={cn("rounded-2xl bg-raised px-4 py-3 text-sm text-muted", className)}>El audio de este episodio no está disponible por ahora.</p>;
@@ -45,10 +84,19 @@ export function EpisodePlayer({ episode, className }: { episode: EpisodeCard; cl
         ref={audio}
         src={episode.audio_url}
         preload="metadata"
-        onPlay={() => setPlaying(true)}
+        onPlay={() => {
+          setPlaying(true);
+          setStarted(true);
+        }}
         onPause={() => setPlaying(false)}
         onEnded={() => setPlaying(false)}
-        onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)}
+        onTimeUpdate={(event) => {
+          const element = event.currentTarget;
+          setPosition(element.currentTime);
+          if (started && "mediaSession" in navigator && Number.isFinite(element.duration)) {
+            navigator.mediaSession.setPositionState({ duration: element.duration, position: Math.min(element.currentTime, element.duration), playbackRate: element.playbackRate });
+          }
+        }}
         onLoadedMetadata={(event) => Number.isFinite(event.currentTarget.duration) && setLength(event.currentTarget.duration)}
       />
       <button

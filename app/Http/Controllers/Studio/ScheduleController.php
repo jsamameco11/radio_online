@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Studio;
 
+use App\Domain\Studio\Actions\ChooseRotation;
 use App\Domain\Studio\Actions\PlaceAutomaticPeriod;
 use App\Domain\Studio\Actions\PlaceBlocks;
 use App\Domain\Studio\Actions\UpdateBlock;
@@ -15,6 +16,7 @@ use App\Http\Requests\Studio\BlocksRequest;
 use App\Http\Requests\Studio\CopyScheduleDayRequest;
 use App\Http\Requests\Studio\ProgramRangeRequest;
 use App\Http\Requests\Studio\ScheduleBlockRequest;
+use App\Http\Requests\Studio\ScheduleRotationRequest;
 use App\Http\Requests\Studio\UpdateScheduleBlockRequest;
 use App\Models\ScheduleSlot;
 use Illuminate\Http\JsonResponse;
@@ -54,6 +56,7 @@ class ScheduleController extends Controller
             'tracks' => $library->tracks($request),
             'playlists' => $library->playlists(),
             'autopilot' => $broadcast->autopilot(),
+            'crossfade' => (float) $broadcast->config()['crossfade'],
             'layers' => collect(range(ScheduleSlot::MAIN, ScheduleSlot::OVERLAYS))
                 ->map(fn (int $layer) => ['value' => $layer, 'label' => Schedule::layerLabel($layer)])->values()->all(),
             'maxTracks' => BlocksRequest::MAX_TRACKS,
@@ -120,6 +123,16 @@ class ScheduleController extends Controller
 
         return $this->saved("Se copiaron {$copied} bloques a ".count($targets).' día(s).'
             .($skipped ? " {$skipped} no se copiaron porque se cruzaban con bloques ya programados." : ''));
+    }
+
+    /** «Música continua»: exactly the chosen songs repeat in the automatic music. */
+    public function rotation(ScheduleRotationRequest $request, ChooseRotation $choose): JsonResponse
+    {
+        $count = $choose->handle($request->tracks());
+
+        return $this->saved($count
+            ? "Música continua: {$count} ".($count === 1 ? 'canción' : 'canciones').' en rotación.'
+            : 'Música continua vacía: ninguna canción se repite por su cuenta.');
     }
 
     private function saved(string $message): JsonResponse

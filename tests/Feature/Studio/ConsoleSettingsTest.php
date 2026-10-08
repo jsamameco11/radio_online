@@ -136,6 +136,41 @@ class ConsoleSettingsTest extends TestCase
     }
 
     #[Test]
+    public function audio_levels_stay_within_their_audible_ranges(): void
+    {
+        $form = ['crossfade' => 4, 'bed_level' => 22, 'fx_level' => 90, 'duck_level' => 25];
+        foreach ([['bed_level', 4], ['bed_level', 61], ['duck_level', 4], ['duck_level', 81], ['fx_level', 9]] as [$field, $value]) {
+            $this->actingAs($this->manager)->from($this->settings('/audio'))
+                ->put($this->settings('/audio'), [...$form, $field => $value])
+                ->assertSessionHasErrors($field);
+        }
+
+        $this->actingAs($this->manager)->from($this->settings('/audio'))
+            ->put($this->settings('/audio'), [...$form, 'bed_level' => 60, 'duck_level' => 5, 'fx_level' => 10])
+            ->assertSessionHasNoErrors();
+        $this->assertSame(60, $this->group('audio')['bed_level']);
+
+        $this->actingAs($this->manager)->get($this->settings('/audio'))
+            ->assertInertia(fn (Assert $page) => $page->where('ranges.bed_level', [5, 60]));
+    }
+
+    #[Test]
+    public function external_links_must_be_https(): void
+    {
+        $this->actingAs($this->manager)->from($this->settings('/transmision'))
+            ->put($this->settings('/transmision'), $this->broadcastForm(['live_source' => 'external', 'live_url' => 'http://stream.example.com/vivo', 'stream_url' => 'http://stream.example.com/radio']))
+            ->assertSessionHasErrors([
+                'live_url' => 'El enlace de la señal en vivo debe empezar con https:// (los navegadores bloquean http en una web segura).',
+                'stream_url' => 'El enlace de transmisión externa debe empezar con https:// (los navegadores bloquean http en una web segura).',
+            ]);
+
+        $this->actingAs($this->manager)->from($this->settings('/transmision'))
+            ->put($this->settings('/transmision'), $this->broadcastForm(['live_source' => 'external', 'live_url' => 'https://stream.example.com/vivo']))
+            ->assertSessionHasNoErrors();
+        $this->assertSame('https://stream.example.com/vivo', $this->group('broadcast')['live_url']);
+    }
+
+    #[Test]
     public function automation_settings_turn_the_automatic_music_off_and_stop_repeating(): void
     {
         $this->actingAs($this->manager)->from($this->settings('/automatizacion'))

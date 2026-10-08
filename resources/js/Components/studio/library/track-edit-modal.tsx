@@ -1,4 +1,4 @@
-import { FileAudio, Sparkles } from "lucide-react";
+import { FileAudio, Search } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { ProgressBar } from "@/Components/studio/upload/progress-bar";
@@ -6,12 +6,12 @@ import { Button } from "@/Components/ui/button";
 import { Modal } from "@/Components/ui/modal";
 import { useStudioUrl } from "@/Layouts/StudioLayout";
 import { duration as formatDuration } from "@/lib/format";
-import { http } from "@/lib/http";
 import { probeDuration } from "@/lib/media/duration";
 import { fieldErrors } from "@/lib/media/errors";
 import { sendAudio } from "@/lib/media/upload";
-import type { GenreBrief, Identification, LibraryLimits, LibraryTrack, Option, TrackKind } from "@/types/media";
-import { applyIdentification, draftForm, draftFromTrack } from "./track-draft";
+import type { GenreBrief, LibraryLimits, LibraryTrack, Option, TrackKind } from "@/types/media";
+import { identifySong, LookupBadge, type LookupState } from "./song-tools";
+import { applyLookup, draftForm, draftFromTrack } from "./track-draft";
 import { TrackFields } from "./track-fields";
 
 interface Props {
@@ -32,25 +32,14 @@ export function TrackEditModal({ track, kinds, genres, families, limits, onClose
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
-  const [identifying, setIdentifying] = useState(false);
+  const [lookup, setLookup] = useState<LookupState | null>(null);
 
-  const identify = async () => {
-    setIdentifying(true);
-    setMessage(null);
-    try {
-      const found = await http.post<Identification>(url("/biblioteca/identificar"), {
-        title: draft.title,
-        artist: draft.artist,
-        featured: draft.featured,
-        duration: file?.duration ?? track.duration,
-      });
-      setDraft((current) => applyIdentification(current, found, limits.max_genres));
-      if (!found.found) setMessage("No encontramos esta canción en los catálogos de música. Completa los datos a mano.");
-    } catch (error) {
-      setMessage(fieldErrors(error).message);
-    } finally {
-      setIdentifying(false);
-    }
+  /** Asked on purpose: a sure answer replaces the album, year, genres and guests; a doubtful one only fills what is empty. */
+  const lookUp = async () => {
+    setLookup({ status: "searching" });
+    const state = await identifySong(url("/biblioteca/identificar"), { title: draft.title, artist: draft.artist, featured: draft.featured, duration: file?.duration ?? track.duration });
+    setLookup(state);
+    if (state.status === "found") setDraft((current) => applyLookup(current, state.result, limits, Boolean(track.cover_url)));
   };
 
   const submit = async (event: FormEvent) => {
@@ -79,6 +68,7 @@ export function TrackEditModal({ track, kinds, genres, families, limits, onClose
   };
 
   const saving = progress !== null;
+  const searching = lookup?.status === "searching";
 
   return (
     <Modal
@@ -86,24 +76,37 @@ export function TrackEditModal({ track, kinds, genres, families, limits, onClose
       onClose={saving ? () => undefined : onClose}
       size="lg"
       title="Editar audio"
-      description={`${track.kind_label} · ${formatDuration(track.duration)}`}
+      description={`${track.kind_label} · ${formatDuration(track.duration)}${track.upcoming ? ` · en ${track.upcoming} ${track.upcoming === 1 ? "bloque programado" : "bloques programados"}` : ""}`}
       footer={
         <>
-          {draft.kind === "song" && (
-            <Button variant="ghost" className="mr-auto" icon={<Sparkles className="size-4" />} loading={identifying} disabled={saving || !draft.title.trim()} onClick={identify}>
-              Identificar
-            </Button>
-          )}
           <Button variant="ghost" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
           <Button type="submit" form="track-edit" loading={saving}>
-            Guardar
+            Guardar cambios
           </Button>
         </>
       }
     >
       <form id="track-edit" onSubmit={submit} className="space-y-5">
+        {draft.kind === "song" && (
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Search className="size-3.5" />}
+              loading={searching}
+              disabled={saving || draft.title.trim().length < 2}
+              onClick={lookUp}
+              title="Busca la canción en internet (Apple Music, Deezer, MusicBrainz y Wikidata) con el nombre y el autor de abajo, y completa autor, invitados, álbum, año, géneros y portada."
+            >
+              Buscar datos en internet
+            </Button>
+            <LookupBadge state={lookup} />
+            {lookup?.status === "error" && <span className="text-danger">{lookup.error}</span>}
+          </div>
+        )}
+
         <TrackFields draft={draft} onChange={setDraft} kinds={kinds} genres={genres} families={families} limits={limits} currentCover={track.cover_url} errors={errors} />
 
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-line-strong p-3 text-sm">

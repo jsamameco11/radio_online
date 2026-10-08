@@ -94,4 +94,5 @@ export interface DjState extends MixerSettings {
 }
 
 /** A track to put on a deck: from the library (an address) or from this computer (a file). */
-export type TrackSource = { id: string | null; title: string; artist: string | null } & ({ src: string } | { file: File });
+/** An audio for a deck; `bpm` is given only when the tempo is known exactly and the first beat starts the file. */
+export type TrackSource = { id: string | null; title: string; artist: string | null; bpm?: number } & ({ src: string } | { file: File });

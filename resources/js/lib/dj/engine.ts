@@ -122,7 +122,8 @@ export class DjEngine {
       const buffer = await decodeAudio(this.ctx, "file" in source ? source.file : source.src);
       // Lets the interface show «Cargando» before the analysis holds the main thread.
       await new Promise((resolve) => window.setTimeout(resolve, 0));
-      const analysis = analyze(buffer);
+      const detected = analyze(buffer);
+      const analysis = source.bpm ? { ...detected, bpm: source.bpm, grid: 0 } : detected;
       const cue = analysis.bpm ? analysis.grid : 0;
       const player = this.players[id];
       player.load(buffer);

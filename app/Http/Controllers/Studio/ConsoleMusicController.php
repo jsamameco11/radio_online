@@ -2,17 +2,20 @@
 
 namespace App\Http\Controllers\Studio;
 
+use App\Domain\Studio\Actions\DropFromRotation;
 use App\Domain\Studio\Actions\GoLive;
 use App\Domain\Studio\Actions\ReturnToMusic;
 use App\Domain\Studio\Actions\StartAutomaticMusic;
 use App\Domain\Studio\Actions\SwitchAutomaticMusic;
 use App\Domain\Studio\Broadcast\MusicControls;
 use App\Domain\Studio\Broadcast\StationBroadcast;
+use App\Domain\Studio\Enums\TrackKind;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Studio\Concerns\RespondsWithSnapshot;
 use App\Http\Requests\Studio\ConsoleResumeRequest;
 use App\Http\Requests\Studio\ConsoleToggleRequest;
 use App\Http\Requests\Studio\MusicSourceRequest;
+use App\Models\Track;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -53,6 +56,17 @@ class ConsoleMusicController extends Controller
     public function repeat(ConsoleToggleRequest $request, MusicControls $controls): JsonResponse
     {
         return $this->snapshot($controls->repeat($request->on()));
+    }
+
+    /** «No repetir»: the song the automatic music plays leaves the rotation and its playlists. */
+    public function drop(string $track, DropFromRotation $drop): JsonResponse
+    {
+        $song = Track::query()->where('kind', TrackKind::Song->value)->find($track);
+        if (! $song) {
+            return response()->json(['message' => 'Esa canción ya no está en la biblioteca.'], 404);
+        }
+
+        return $this->snapshot($drop->handle($song));
     }
 
     /** «Ir al vivo»: the automatic music gives way to the live signal. */

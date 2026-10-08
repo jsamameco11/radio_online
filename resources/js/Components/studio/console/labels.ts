@@ -11,6 +11,18 @@ export const KIND_LABEL: Record<ProgramKind, string> = {
   fill: "Música automática",
 };
 
+/** Colour that tells each kind of audio apart in the console. */
+export const KIND_DOT: Record<ProgramKind, string> = {
+  song: "bg-signal",
+  jingle: "bg-gold",
+  effect: "bg-royal",
+  commercial: "bg-info",
+  program: "bg-onair",
+  live: "bg-danger",
+  auto: "bg-signal",
+  fill: "bg-signal",
+};
+
 export function kindLabel(kind: string): string {
   return KIND_LABEL[kind as ProgramKind] ?? kind;
 }

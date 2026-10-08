@@ -2,15 +2,13 @@
 
 namespace App\Http\Requests\Studio;
 
-use App\Domain\Studio\Enums\TrackKind;
+use App\Domain\Studio\Library\Duplicates;
+use App\Models\Track;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
-/** The audios of an upload batch, to tell which are already in the library. */
+/** The songs of an upload, in order, and which of them to judge against the library and the songs before them. */
 class LibraryDuplicatesRequest extends FormRequest
 {
-    public const MAX_ITEMS = 100;
-
     public function authorize(): bool
     {
         return true;
@@ -22,14 +20,40 @@ class LibraryDuplicatesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'items' => ['required', 'array', 'max:'.self::MAX_ITEMS],
-            'items.*.key' => ['required', 'string', 'max:64', 'distinct'],
-            'items.*.kind' => ['required', Rule::enum(TrackKind::class)],
-            'items.*.title' => ['required', 'string', 'max:200'],
-            'items.*.artist' => ['nullable', 'string', 'max:300'],
-            'items.*.duration' => ['nullable', 'numeric', 'min:0', 'max:86400'],
-            'ignore' => ['nullable', 'uuid'],
+            'songs' => ['required', 'array', 'max:'.Duplicates::MAX_SONGS],
+            'songs.*.key' => ['required', 'string', 'max:200', 'distinct'],
+            'songs.*.title' => ['required', 'string', 'max:200'],
+            'songs.*.artist' => ['nullable', 'string', 'max:300'],
+            'songs.*.featured' => ['nullable', 'array', 'max:'.Track::MAX_FEATURED],
+            'songs.*.featured.*' => ['nullable', 'string', 'max:120'],
+            'songs.*.album' => ['nullable', 'string', 'max:200'],
+            'songs.*.year' => ['nullable', 'integer', 'between:1900,2100'],
+            'songs.*.duration' => ['nullable', 'numeric', 'min:0', 'max:86400'],
+            'songs.*.ids' => ['nullable', 'array:musicbrainz,deezer,itunes,isrc'],
+            'songs.*.ids.*' => ['nullable', 'string', 'max:64'],
+            'judge' => ['nullable', 'array', 'max:'.Duplicates::MAX_SONGS],
+            'judge.*' => ['string', 'max:200'],
         ];
+    }
+
+    /**
+     * The songs by their key, ready to be judged.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function songs(): array
+    {
+        return collect($this->validated('songs'))
+            ->mapWithKeys(fn (array $song) => [(string) $song['key'] => [
+                'title' => trim((string) $song['title']),
+                'artist' => trim((string) ($song['artist'] ?? '')),
+                'featured' => array_values(array_filter(array_map(fn ($name) => trim((string) $name), $song['featured'] ?? []))),
+                'album' => trim((string) ($song['album'] ?? '')),
+                'year' => $song['year'] ?? null,
+                'duration' => $song['duration'] ?? null,
+                'ids' => array_filter($song['ids'] ?? []),
+            ]])
+            ->all();
     }
 
     /**
@@ -38,11 +62,11 @@ class LibraryDuplicatesRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'items.required' => 'No hay audios para revisar.',
-            'items.max' => 'Revisa como máximo '.self::MAX_ITEMS.' audios a la vez.',
-            'items.*' => 'Uno de los audios no tiene datos válidos.',
-            'items.*.*' => 'Uno de los audios no tiene datos válidos.',
-            'ignore.*' => 'El audio no es válido.',
+            'songs.required' => 'No hay canciones para revisar.',
+            'songs.max' => 'Revisa como máximo '.Duplicates::MAX_SONGS.' canciones a la vez.',
+            'songs.*' => 'Una de las canciones no tiene datos válidos.',
+            'songs.*.*' => 'Una de las canciones no tiene datos válidos.',
+            'judge.*' => 'La lista de canciones a revisar no es válida.',
         ];
     }
 }

@@ -28,6 +28,6 @@ class LibraryIdentifyController extends Controller
 
     public function duplicates(LibraryDuplicatesRequest $request, Duplicates $duplicates): JsonResponse
     {
-        return response()->json(['results' => $duplicates->check($request->validated('items'), $request->validated('ignore'))]);
+        return response()->json(['results' => (object) $duplicates->review($request->songs(), $request->validated('judge'))]);
     }
 }

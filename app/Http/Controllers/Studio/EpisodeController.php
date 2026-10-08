@@ -32,6 +32,15 @@ class EpisodeController extends Controller
     {
         $status = EpisodeStatus::tryFrom((string) $request->query('estado'));
         $search = trim((string) $request->query('buscar'));
+        $counts = Episode::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
+        $audios = Track::query()
+            ->where('active', true)
+            ->orderByRaw('case kind when ? then 0 when ? then 1 when ? then 2 when ? then 3 else 4 end', [
+                TrackKind::Program->value, TrackKind::Song->value, TrackKind::Jingle->value, TrackKind::Commercial->value,
+            ])
+            ->latest()
+            ->get(['id', 'kind', 'title', 'artist', 'featured', 'duration']);
+        $prefill = $audios->firstWhere('id', $request->query('audio'));
 
         return Inertia::render('Studio/Episodes', [
             'episodes' => Episode::query()
@@ -46,12 +55,17 @@ class EpisodeController extends Controller
             'filters' => ['status' => $status?->value, 'search' => $search],
             'statuses' => collect(EpisodeStatus::cases())->map(fn (EpisodeStatus $case) => ['value' => $case->value, 'label' => $case->label()])->values(),
             'programs' => Episode::query()->whereNotNull('program')->distinct()->orderBy('program')->pluck('program'),
-            'audios' => Track::query()
-                ->whereIn('kind', [TrackKind::Program->value, TrackKind::Song->value])
-                ->orderByRaw('kind = ? desc', [TrackKind::Program->value])->latest()
-                ->limit(500)
-                ->get(['id', 'kind', 'title', 'artist', 'featured', 'duration'])
-                ->map(fn (Track $track) => ['id' => $track->id, 'title' => $track->title, 'kind' => $track->kind->label(), 'duration' => (float) $track->duration]),
+            'stats' => collect(EpisodeStatus::cases())->mapWithKeys(fn (EpisodeStatus $case) => [$case->value => (int) ($counts[$case->value] ?? 0)]),
+            'audios' => $audios->map(fn (Track $track) => [
+                'id' => $track->id,
+                'title' => $track->title,
+                'artist' => $track->credit(),
+                'kind' => $track->kind->value,
+                'duration' => (float) $track->duration,
+            ])->values(),
+            'kinds' => collect([TrackKind::Program, TrackKind::Song, TrackKind::Jingle, TrackKind::Commercial, TrackKind::Effect])
+                ->map(fn (TrackKind $kind) => ['value' => $kind->value, 'label' => $kind->label()]),
+            'prefill' => $prefill?->id,
             'recordings' => Recording::query()
                 ->where('status', RecordingStatus::Ready->value)
                 ->latest('started_at')
@@ -68,6 +82,7 @@ class EpisodeController extends Controller
                 'max_duration' => AudioFile::maxDuration(),
                 'max_hashtags' => (int) config('platform.media.max_episode_hashtags'),
                 'hashtag_length' => Hashtags::MAX_LENGTH,
+                'max_description' => EpisodeRequest::MAX_DESCRIPTION,
                 'types' => AudioFile::TYPES,
             ],
         ]);

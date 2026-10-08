@@ -25,14 +25,14 @@ export function DeckLoader({ engine, id, deck, library }: { engine: DjEngine; id
   return (
     <div className="space-y-1">
       <div className="flex gap-1.5">
-        <TrackPicker library={library} value={trackId} onChange={setTrackId} kinds={DJ_KINDS} placeholder="Elige una pista…" className="h-9 min-w-0 flex-1" label={`Pista para el deck ${id + 1}`} />
+        <TrackPicker library={library} value={trackId} onChange={setTrackId} kinds={DJ_KINDS} placeholder="Elige una pista…" className="h-9 min-w-0 flex-1 rounded-lg text-xs" label={`Pista para el deck ${id + 1}`} />
         <Button size="sm" variant="secondary" icon={<Upload className="size-3.5" />} disabled={!trackId || deck.loading} onClick={loadPicked} className="h-9">
           Cargar
         </Button>
-        <Button size="icon" variant="ghost" onClick={() => file.current?.click()} title="Cargar un archivo de tu equipo" aria-label={`Cargar un archivo en el deck ${id + 1}`} className="size-9">
+        <Button size="icon" variant="ghost" onClick={() => file.current?.click()} title="Cargar un archivo de tu equipo" aria-label={`Cargar un archivo en el deck ${id + 1}`} className="size-9 rounded-lg">
           <FolderOpen className="size-4" />
         </Button>
-        <Button size="icon" variant="ghost" disabled={!deck.track || deck.playing} onClick={() => engine.eject(id)} title="Expulsar" aria-label={`Expulsar el deck ${id + 1}`} className="size-9">
+        <Button size="icon" variant="ghost" disabled={!deck.track || deck.playing} onClick={() => engine.eject(id)} title="Expulsar" aria-label={`Expulsar el deck ${id + 1}`} className="size-9 rounded-lg">
           <Eject className="size-4" />
         </Button>
         <input ref={file} type="file" accept="audio/*" className="hidden" onChange={(event) => loadFile(event.target.files?.[0])} />

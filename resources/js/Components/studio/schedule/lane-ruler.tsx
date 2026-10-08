@@ -3,6 +3,7 @@ import { KIND_LABEL } from "@/Components/studio/console/labels";
 import { cn } from "@/lib/cn";
 import { clock } from "@/lib/radio/format";
 import type { Option, ProgramItem, ProgramKind, ScheduleBlock } from "@/types/studio";
+import { KIND_TONE } from "./kind-tone";
 
 const HOUR = 3_600_000;
 
@@ -28,16 +29,6 @@ const MINOR_GAP = 10;
 
 /** A block or song is labelled once it is this wide. */
 const LABEL_WIDTH = 70;
-
-const KIND_TONE: Partial<Record<ProgramKind, string>> = {
-  song: "bg-signal/70",
-  jingle: "bg-gold/70",
-  effect: "bg-info/70",
-  commercial: "bg-warning/70",
-  program: "bg-info/50",
-  live: "bg-onair/70",
-  auto: "bg-raised border border-dashed border-line-strong",
-};
 
 const LEGEND: ProgramKind[] = ["song", "jingle", "effect", "commercial", "program", "live"];
 
