@@ -25,15 +25,15 @@ export default function Dial({ stations, band, counts }: DialProps) {
   const listed = useMemo(() => (show === "all" ? stations : stations.filter((station) => station.stream_status.audible)), [show, stations]);
 
   return (
-    <SiteLayout title="Dial">
+    <SiteLayout title="Canales">
       <div className="space-y-8">
         <PageHeader
-          eyebrow="Dial"
-          title="Gira el dial y descubre"
-          description={`${count(stations.length)} radios repartidas en ${count(counts.frequencies)} frecuencias del ${band.name} ${band.min.toFixed(1)}–${band.max.toFixed(1)}. ${count(counts.on_air)} están al aire ahora.`}
+          eyebrow="Streaming"
+          title="Elige un canal"
+          description={`${count(stations.length)} canales en el ${band.name} ${band.min.toFixed(1)}–${band.max.toFixed(1)}. ${count(counts.on_air)} están al aire ahora.`}
           actions={
             <ButtonLink href="/obten-tu-frecuencia" variant="secondary">
-              {count(counts.available)} frecuencias libres
+              {count(counts.available)} canales libres
             </ButtonLink>
           }
         />
@@ -41,13 +41,13 @@ export default function Dial({ stations, band, counts }: DialProps) {
         {stations.length > 0 ? (
           <FmDial stations={stations} band={band} initial={initial} />
         ) : (
-          <EmptyState icon={<Disc3 className="size-6" />} title="El dial está en silencio" description="Todavía no hay radios publicadas." />
+          <EmptyState icon={<Disc3 className="size-6" />} title="Todavía no hay canales" description="Todavía no hay canales publicados." />
         )}
 
         {stations.length > 0 && (
           <section className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="font-display text-xl font-semibold">Todas las frecuencias</h2>
+              <h2 className="font-display text-xl font-semibold">Todos los canales</h2>
               <Tabs<Show>
                 value={show}
                 onChange={setShow}

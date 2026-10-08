@@ -9,6 +9,7 @@ use App\Domain\Access\Actions\SuspendUser;
 use App\Domain\Access\Enums\Permission;
 use App\Domain\Access\Enums\PlatformRole;
 use App\Domain\Access\Enums\UserStatus;
+use App\Domain\Integrity\Actions\UnflagAccount;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ChangeUserRoleRequest;
 use App\Http\Requests\Admin\SuspensionRequest;
@@ -142,6 +143,13 @@ class UserController extends Controller
         $reactivate->handle($user, $request->user());
 
         return back()->with('success', "La cuenta de {$user->name} está activa otra vez.");
+    }
+
+    public function unflag(Request $request, User $user, UnflagAccount $unflag): RedirectResponse
+    {
+        $unflag->handle($user, $request->user());
+
+        return back()->with('success', "Quitamos la marca a {$user->name}: sus suscripciones vuelven a verificarse.");
     }
 
     public function role(ChangeUserRoleRequest $request, User $user, ChangePlatformRole $change): RedirectResponse

@@ -3,7 +3,9 @@
 namespace App\Domain\Stations\Actions;
 
 use App\Domain\Audit\AuditTrail;
+use App\Domain\Marketplace\Enums\ListingStatus;
 use App\Domain\Stations\Enums\StationRole;
+use App\Models\FrequencyListing;
 use App\Models\Station;
 use App\Models\StationMember;
 use App\Models\User;
@@ -12,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Hands the station to another member of its team. The previous owner stays
- * on the team as a station manager.
+ * on the team as a station manager and a listing they published is withdrawn.
  */
 final class TransferStationOwnership
 {
@@ -20,7 +22,7 @@ final class TransferStationOwnership
 
     public function handle(Station $station, int $newOwnerId, User $actor): Station
     {
-        $station = DB::transaction(function () use ($station, $newOwnerId) {
+        $station = DB::transaction(function () use ($station, $newOwnerId, $actor) {
             $station = Station::query()->lockForUpdate()->findOrFail($station->id);
 
             if ($station->owner_id === $newOwnerId) {
@@ -44,6 +46,12 @@ final class TransferStationOwnership
                 ->each->update(['role' => StationRole::Manager]);
             $incoming->update(['role' => StationRole::Owner]);
             $station->forceFill(['owner_id' => $newOwnerId])->save();
+
+            FrequencyListing::query()->active()->where('station_id', $station->id)->update([
+                'status' => ListingStatus::Cancelled->value,
+                'cancelled_by' => $actor->id,
+                'cancelled_at' => now(),
+            ]);
 
             return $station;
         });

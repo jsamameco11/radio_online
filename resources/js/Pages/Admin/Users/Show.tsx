@@ -87,6 +87,20 @@ export default function UserShow({ user, memberships, wallet, requests, audit, r
           </div>
         )}
 
+        {user.flagged_at && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-warning/30 bg-warning-soft px-5 py-4 text-sm text-warning">
+            <div>
+              <p className="font-semibold">Marcada como granja de bots el {dateTime(user.flagged_at)}</p>
+              <p className="mt-1">Sus suscripciones y su escucha no cuentan en ninguna radio.{user.flag_reason ? ` ${user.flag_reason}` : ""}</p>
+            </div>
+            {can.manage && (
+              <Button variant="secondary" size="sm" icon={<RotateCcw className="size-3.5" />} onClick={() => router.post(`/admin/usuarios/${user.id}/quitar-marca`, {}, { preserveScroll: true })}>
+                Quitar la marca
+              </Button>
+            )}
+          </div>
+        )}
+
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
             <Panel title="Radios" padded={memberships.length === 0}>

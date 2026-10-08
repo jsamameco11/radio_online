@@ -3,7 +3,6 @@
 namespace App\Policies;
 
 use App\Domain\Frequencies\Actions\SubmitFrequencyRequest;
-use App\Domain\Frequencies\Enums\FrequencyRequestStatus;
 use App\Models\FrequencyRequest;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
@@ -21,9 +20,15 @@ class FrequencyRequestPolicy
             : Response::allow();
     }
 
-    /** Only the applicant, and only while it is under review. */
+    /** Only the applicant, and only while it is open (in review or waiting for their payment). */
     public function cancel(User $user, FrequencyRequest $request): bool
     {
-        return $request->user_id === $user->id && $request->status === FrequencyRequestStatus::Pending;
+        return $request->user_id === $user->id && $request->status->isOpen();
+    }
+
+    /** The applicant registers the card of a priced frequency, or pays it after a decline. */
+    public function pay(User $user, FrequencyRequest $request): bool
+    {
+        return $request->user_id === $user->id && $request->status->isOpen();
     }
 }

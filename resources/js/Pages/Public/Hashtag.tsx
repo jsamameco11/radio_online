@@ -29,8 +29,8 @@ export default function Hashtag({ hashtag, talkingNow, stations, episodes }: Has
           <div className="space-y-1">
             <h1 className="font-display text-3xl font-semibold sm:text-4xl">#{hashtag.name}</h1>
             <p className="text-sm text-muted">
-              {talkingNow.length > 0 ? `${talkingNow.length} ${talkingNow.length === 1 ? "radio habla" : "radios hablan"} de esto ahora · ` : ""}
-              {count(stations.total)} {stations.total === 1 ? "radio" : "radios"} · {episodes.length} {episodes.length === 1 ? "episodio" : "episodios"}
+              {talkingNow.length > 0 ? `${talkingNow.length} ${talkingNow.length === 1 ? "canal habla" : "canales hablan"} de esto ahora · ` : ""}
+              {count(stations.total)} {stations.total === 1 ? "canal" : "canales"} · {episodes.length} {episodes.length === 1 ? "episodio" : "episodios"}
             </p>
           </div>
         </header>

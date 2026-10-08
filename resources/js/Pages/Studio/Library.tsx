@@ -1,10 +1,9 @@
 import { router } from "@inertiajs/react";
 import { Clapperboard, Library as LibraryIcon, Megaphone, Music, Repeat, Search, ShieldCheck } from "lucide-react";
-import type { DragEvent, FormEvent } from "react";
+import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { artistShelves, type LibraryView, longDuration, ShelfBrowser, ShelfHeader, styleShelves } from "@/Components/studio/library/shelves";
 import { plain } from "@/Components/studio/library/song-tools";
-import { uploadQueue } from "@/Components/studio/library/upload-queue";
 import { TrackEditModal } from "@/Components/studio/library/track-edit-modal";
 import { TrackRow } from "@/Components/studio/library/track-row";
 import { UploadPanel } from "@/Components/studio/library/upload-panel";
@@ -16,7 +15,6 @@ import { Pagination } from "@/Components/ui/pagination";
 import { Stat } from "@/Components/ui/panel";
 import { Tabs } from "@/Components/ui/tabs";
 import StudioLayout, { useStudioCan, useStudioUrl } from "@/Layouts/StudioLayout";
-import { cn } from "@/lib/cn";
 import { count } from "@/lib/format";
 import type { Paginated } from "@/types";
 import type { GenreBrief, LibraryLimits, LibraryStats, LibraryTrack, Option, TrackKind } from "@/types/media";
@@ -55,10 +53,7 @@ export default function Library({ tracks, filters, kinds, stats, problems, style
   const [inShelf, setInShelf] = useState("");
   const [editing, setEditing] = useState<LibraryTrack | null>(null);
   const [playing, setPlaying] = useState<string | null>(null);
-  const [fileOver, setFileOver] = useState(false);
   const player = useRef<HTMLAudioElement | null>(null);
-  const dropDepth = useRef(0);
-  const dropKind: TrackKind = filters.kind ?? "song";
 
   useEffect(() => () => player.current?.pause(), []);
 
@@ -106,32 +101,6 @@ export default function Library({ tracks, filters, kinds, stats, problems, style
   };
 
   const reload = () => router.reload({ only: ["tracks", "kinds", "stats", "problems", "styles", ...(songs ? ["songs"] : [])] });
-
-  /** Files dropped on the list join the same upload as the box above, as music unless a type tab is open. */
-  function onFileDrag(event: DragEvent, entering: boolean | null) {
-    if (!Array.from(event.dataTransfer.types).includes("Files")) return;
-    event.preventDefault();
-    if (entering === true) dropDepth.current += 1;
-    if (entering === false) dropDepth.current = Math.max(0, dropDepth.current - 1);
-    setFileOver(dropDepth.current > 0);
-  }
-
-  function onFileDrop(event: DragEvent) {
-    if (!Array.from(event.dataTransfer.types).includes("Files")) return;
-    event.preventDefault();
-    dropDepth.current = 0;
-    setFileOver(false);
-    uploadQueue.configure(url(), limits, canEpisodes);
-    uploadQueue.addFiles(event.dataTransfer.files, dropKind);
-    document.getElementById("biblioteca-subida")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  const fileDrop = {
-    onDragEnter: (event: DragEvent) => onFileDrag(event, true),
-    onDragOver: (event: DragEvent) => onFileDrag(event, null),
-    onDragLeave: (event: DragEvent) => onFileDrag(event, false),
-    onDrop: onFileDrop,
-  };
 
   const remove = (track: LibraryTrack) => {
     const warnings = [
@@ -223,29 +192,19 @@ export default function Library({ tracks, filters, kinds, stats, problems, style
             </div>
 
             {tracks.data.length === 0 ? (
-              <div {...fileDrop} className={cn("relative rounded-2xl", fileOver && "ring-2 ring-signal")}>
-                {fileOver ? (
-                  <div className="grid place-items-center gap-2 rounded-2xl border-2 border-dashed border-signal bg-signal-soft/40 px-6 py-16 text-center">
-                    <Music className="size-7 text-signal" />
-                    <p className="text-base font-semibold text-signal">Suelta la música aquí</p>
-                    <p className="max-w-md text-sm text-muted">Entran como canciones: las leemos, identificamos cada una y te avisamos si alguna ya estaba.</p>
-                  </div>
-                ) : (
-                  <EmptyState
-                    icon={<Music className="size-6" />}
-                    title={filtered ? "No encontramos audios con esa búsqueda" : filters.problems ? "Todos los archivos están bien" : "Todavía no hay audios aquí"}
-                    description={
-                      filters.problems
-                        ? "Ningún audio tiene problemas con su archivo."
-                        : filtered
-                          ? "Prueba con otras palabras o quita los filtros. También puedes soltar canciones en esta zona."
-                          : "Arrastra tus canciones aquí. Las leemos, identificamos cada una y te avisamos si alguna ya estaba."
-                    }
-                  />
-                )}
-              </div>
+              <EmptyState
+                icon={<Music className="size-6" />}
+                title={filtered ? "No encontramos audios con esa búsqueda" : filters.problems ? "Todos los archivos están bien" : "Todavía no hay audios aquí"}
+                description={
+                  filters.problems
+                    ? "Ningún audio tiene problemas con su archivo."
+                    : filtered
+                      ? "Prueba con otras palabras o quita los filtros. También puedes soltar canciones en cualquier parte de esta página."
+                      : "Arrastra tus canciones a cualquier parte de esta página. Las leemos, identificamos cada una y te avisamos si alguna ya estaba."
+                }
+              />
             ) : (
-              <ul {...fileDrop} className={cn("divide-y divide-line rounded-2xl border border-line bg-surface", fileOver && "ring-2 ring-signal")}>
+              <ul className="divide-y divide-line rounded-2xl border border-line bg-surface">
                 {tracks.data.map((track) => row(track, activeTab === "all" || activeTab === "revision"))}
               </ul>
             )}

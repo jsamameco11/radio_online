@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Domain\Integrity\Support\RequestSignals;
 use App\Domain\Streaming\Audience;
 use App\Domain\Streaming\PlaybackHealth;
 use App\Domain\Streaming\Support\Tuner;
@@ -40,7 +41,7 @@ class ListenController extends Controller
     public function heartbeat(ListenerRequest $request, string $frequency, Audience $audience): JsonResponse
     {
         $station = $this->tuner->tune($frequency);
-        $audience->heartbeat($station, (string) $request->listener(), $request->user(), Tuner::device($request), Tuner::country($request));
+        $audience->heartbeat($station, (string) $request->listener(), $request->user(), Tuner::device($request), Tuner::country($request), RequestSignals::from($request));
 
         return response()->json(['listeners' => $station->listener_count]);
     }

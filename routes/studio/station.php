@@ -5,6 +5,7 @@ use App\Http\Controllers\Studio\AnalyticsController;
 use App\Http\Controllers\Studio\Settings\FrequencySettingsController;
 use App\Http\Controllers\Studio\Settings\GeneralSettingsController;
 use App\Http\Controllers\Studio\Settings\PreferenceSettingsController;
+use App\Http\Controllers\Studio\Settings\SaleController;
 use App\Http\Controllers\Studio\Settings\SecuritySettingsController;
 use App\Http\Controllers\Studio\Settings\TeamController;
 use App\Http\Controllers\Studio\StationDashboardController;
@@ -57,6 +58,12 @@ Route::middleware('studio.can:station.settings')->group(function () {
     Route::get('/configuracion/seguridad', [SecuritySettingsController::class, 'show'])->name('settings.security');
     Route::post('/configuracion/seguridad/transferir', [SecuritySettingsController::class, 'transfer'])->name('settings.security.transfer');
     Route::post('/configuracion/seguridad/cerrar', [SecuritySettingsController::class, 'close'])->name('settings.security.close');
+});
+
+Route::middleware('studio.can:station.sell')->group(function () {
+    Route::get('/vender', [SaleController::class, 'show'])->name('sale');
+    Route::post('/vender', [SaleController::class, 'store'])->middleware('throttle:10,1')->name('sale.store');
+    Route::delete('/vender', [SaleController::class, 'destroy'])->name('sale.destroy');
 });
 
 Route::middleware('studio.can:station.members')->group(function () {

@@ -46,7 +46,7 @@ function Spotlight({ station }: { station: Station }) {
         <div className="mt-auto flex flex-wrap items-center gap-3">
           <ListenButton station={station} size="lg" />
           <Link href={`/radio/${station.frequency.slug}`} className="text-sm font-medium text-surface/85 underline-offset-4 hover:underline">
-            Ver la radio
+            Ver el canal
           </Link>
           <span className="ml-auto flex items-center gap-3 text-xs text-surface/80 tabular">
             <span>
@@ -74,18 +74,18 @@ export default function Home({ onAir, popular, trending, categories, episodes, s
             <div className="space-y-4">
               <p className="inline-flex items-center gap-2 rounded-full bg-signal-soft px-3 py-1 text-xs font-semibold text-signal">
                 <span className="size-1.5 rounded-full bg-signal animate-onair" aria-hidden />
-                {count(stats.on_air)} radios al aire ahora
+                {count(stats.on_air)} canales al aire ahora
               </p>
               <h1 className="font-display text-4xl leading-[1.05] font-semibold text-ink sm:text-5xl">
-                {firstName ? `Hola, ${firstName}.` : "Hola."} <span className="text-muted">¿Qué sintonizamos hoy?</span>
+                {firstName ? `Hola, ${firstName}.` : "Hola."} <span className="text-muted">¿Qué escuchamos hoy?</span>
               </h1>
               <p className="max-w-lg text-muted">
-                Cada radio tiene su frecuencia en el dial. Busca un número, un tema o un estilo y empieza a escuchar al instante.
+                Cada canal transmite en vivo. Busca un tema, un estilo o un número y empieza a escuchar al instante.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <ButtonLink href="/dial" size="lg" icon={<Disc3 className="size-5" />}>
-                Girar el dial
+                Ver canales
               </ButtonLink>
               <ButtonLink href="/en-vivo" size="lg" variant="secondary" icon={<Radio className="size-5" />}>
                 Ver qué suena
@@ -93,7 +93,7 @@ export default function Home({ onAir, popular, trending, categories, episodes, s
             </div>
             <dl className="grid grid-cols-3 gap-4 border-t border-line pt-6">
               <div>
-                <dt className="text-xs text-muted">Radios</dt>
+                <dt className="text-xs text-muted">Canales</dt>
                 <dd className="font-display text-2xl font-semibold tabular">{count(stats.stations)}</dd>
               </div>
               <div>
@@ -101,7 +101,7 @@ export default function Home({ onAir, popular, trending, categories, episodes, s
                 <dd className="font-display text-2xl font-semibold text-signal tabular">{count(stats.on_air)}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted">Frecuencias libres</dt>
+                <dt className="text-xs text-muted">Canales libres</dt>
                 <dd className="font-display text-2xl font-semibold tabular">{count(stats.free_frequencies)}</dd>
               </div>
             </dl>
@@ -109,12 +109,12 @@ export default function Home({ onAir, popular, trending, categories, episodes, s
           {spotlight ? (
             <Spotlight station={spotlight} />
           ) : (
-            <EmptyState icon={<Radio className="size-6" />} title="Ninguna radio está al aire ahora" description="Explora el catálogo y sigue tus favoritas para no perderte su próxima transmisión." />
+            <EmptyState icon={<Radio className="size-6" />} title="Ningún canal está al aire ahora" description="Explora el catálogo y sigue tus favoritos para no perderte su próxima transmisión." />
           )}
         </section>
 
         {trending.length > 0 && (
-          <Section title="Tendencias" icon={<Flame className="size-5 text-signal" />} description="Los temas que suenan ahora en el dial.">
+            <Section title="Tendencias" icon={<Flame className="size-5 text-signal" />} description="Los temas que suenan ahora en la plataforma.">
             <div className="flex flex-wrap gap-2">
               {trending.map((tag) => (
                 <HashtagChip key={tag.slug} name={tag.name} live={tag.on_air > 0} hint={tag.on_air > 0 ? `${tag.on_air} al aire` : undefined} />
@@ -124,7 +124,7 @@ export default function Home({ onAir, popular, trending, categories, episodes, s
         )}
 
         {restOnAir.length > 0 && (
-          <Section title="Al aire ahora" href="/en-vivo" description="Locutores en vivo y programación sonando en este momento.">
+          <Section title="Al aire ahora" href="/en-vivo" description="Transmisiones en vivo y programación sonando en este momento.">
             <StationGrid stations={restOnAir} />
           </Section>
         )}
@@ -144,7 +144,7 @@ export default function Home({ onAir, popular, trending, categories, episodes, s
                   <span className="relative block text-xs text-muted">{category.group}</span>
                   <span className="relative mt-1 block font-display text-lg font-semibold">{category.name}</span>
                   <span className="relative mt-3 block text-xs text-faint tabular">
-                    {category.station_count} {category.station_count === 1 ? "radio" : "radios"}
+                    {category.station_count} {category.station_count === 1 ? "canal" : "canales"}
                   </span>
                 </Link>
               ))}
@@ -156,7 +156,7 @@ export default function Home({ onAir, popular, trending, categories, episodes, s
           {popular.length > 0 ? (
             <StationGrid stations={popular} />
           ) : (
-            <EmptyState icon={<Radio className="size-6" />} title="Aún no hay radios publicadas" description="Sé la primera persona en tener su frecuencia." />
+            <EmptyState icon={<Radio className="size-6" />} title="Aún no hay canales publicados" description="Sé la primera persona en abrir su canal." />
           )}
         </Section>
 
@@ -177,11 +177,11 @@ export default function Home({ onAir, popular, trending, categories, episodes, s
             ))}
           </div>
           <div className="relative max-w-xl space-y-4">
-            <p className="text-xs font-semibold tracking-[0.18em] text-signal uppercase">Tu propia frecuencia</p>
-            <h2 className="font-display text-3xl font-semibold sm:text-4xl">Quedan {count(stats.free_frequencies)} frecuencias libres en el dial.</h2>
-            <p className="text-surface/70">Elige la tuya, transmite en vivo desde tu navegador con un estudio profesional y gana dinero por hacerlo.</p>
+            <p className="text-xs font-semibold tracking-[0.18em] text-signal uppercase">Tu propio canal</p>
+            <h2 className="font-display text-3xl font-semibold sm:text-4xl">Quedan {count(stats.free_frequencies)} canales libres.</h2>
+            <p className="text-surface/70">Elige el tuyo, transmite en vivo desde tu navegador con un estudio profesional y gana dinero por hacerlo.</p>
             <ButtonLink href="/obten-tu-frecuencia" variant="signal" size="lg" icon={<Mic2 className="size-5" />}>
-              Obtén tu frecuencia <ArrowRight className="size-4" />
+              Obtén tu canal <ArrowRight className="size-4" />
             </ButtonLink>
           </div>
         </section>

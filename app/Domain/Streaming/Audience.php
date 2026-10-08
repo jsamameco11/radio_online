@@ -2,6 +2,7 @@
 
 namespace App\Domain\Streaming;
 
+use App\Domain\Integrity\Support\RequestSignals;
 use App\Domain\Streaming\Events\ListenerCountChanged;
 use App\Models\ListenerSession;
 use App\Models\Station;
@@ -10,12 +11,19 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 
 /**
  * Who is listening to each station. Every play opens a listener session (keyed by the token the
  * player draws when it starts) that its heartbeat keeps alive; it ends when the player says
  * goodbye or stops beating for the listener window. The station keeps the current count and its
  * peak, and the open live transmission its own peak.
+ *
+ * The count resists bot swarms (config('platform.integrity')): a player counts only after it
+ * kept playing warmup_seconds, every signed-in account counts once however many players it
+ * opens, guests count up to guests_per_network per network, and the players of automated
+ * clients, flagged accounts or networks that open sessions non-stop are kept as suspect and
+ * never count.
  */
 final class Audience
 {
@@ -30,8 +38,14 @@ final class Audience
         return (int) config('platform.streaming.listener_window', 45);
     }
 
+    /** Seconds a player keeps playing before it counts. */
+    public static function warmup(): int
+    {
+        return (int) config('platform.integrity.warmup_seconds', 20);
+    }
+
     /** The player of $token is still playing $station. */
-    public function heartbeat(Station $station, string $token, ?User $user, ?string $device, ?string $country): void
+    public function heartbeat(Station $station, string $token, ?User $user, ?string $device, ?string $country, RequestSignals $signals): void
     {
         $now = CarbonImmutable::now();
         $session = ListenerSession::query()->where('token', $token)->first();
@@ -43,6 +57,8 @@ final class Audience
                     'token' => $token,
                     'device' => $device,
                     'country' => $country,
+                    'network' => $signals->network,
+                    'suspect' => $this->suspect($station, $user, $signals),
                     'started_at' => $now,
                     'last_seen_at' => $now,
                 ]);
@@ -61,6 +77,7 @@ final class Audience
                 'last_seen_at' => $now,
                 'seconds' => (int) $session->started_at->diffInSeconds($now, true),
                 'user_id' => $session->user_id ?? $user?->id,
+                'network' => $session->network ?? $signals->network,
             ])->save();
         }
         $this->refresh($station);
@@ -81,8 +98,37 @@ final class Audience
     /** People listening to a station now. */
     public function count(Station $station): int
     {
-        return ListenerSession::query()->where('station_id', $station->id)->whereNull('ended_at')
-            ->where('last_seen_at', '>=', CarbonImmutable::now()->subSeconds(self::window()))->count();
+        $playing = ListenerSession::query()->toBase()
+            ->where('station_id', $station->id)
+            ->whereNull('ended_at')
+            ->where('last_seen_at', '>=', CarbonImmutable::now()->subSeconds(self::window()))
+            ->where('suspect', false)
+            ->where('seconds', '>=', self::warmup());
+        $perNetwork = (int) config('platform.integrity.guests_per_network', 4);
+
+        $members = (clone $playing)->whereNotNull('user_id')->distinct()->count('user_id');
+        $guests = (clone $playing)->whereNull('user_id')
+            ->selectRaw('network, count(*) as players')
+            ->groupBy('network')
+            ->pluck('players')
+            ->sum(fn (mixed $players) => min((int) $players, $perNetwork));
+
+        return $members + (int) $guests;
+    }
+
+    /** A new player that will never count: automated, of a flagged account or of a network that opens players non-stop. */
+    private function suspect(Station $station, ?User $user, RequestSignals $signals): bool
+    {
+        if ($user?->isFlagged() || $signals->automated) {
+            return true;
+        }
+        $key = "audience:{$station->id}:{$signals->network}";
+        if (RateLimiter::tooManyAttempts($key, (int) config('platform.integrity.sessions_per_network', 20))) {
+            return true;
+        }
+        RateLimiter::hit($key, 600);
+
+        return false;
     }
 
     /**

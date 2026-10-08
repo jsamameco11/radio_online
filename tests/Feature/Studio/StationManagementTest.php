@@ -119,7 +119,7 @@ class StationManagementTest extends TestCase
             ->get($this->studioUrl($station))
             ->assertInertia(fn (Assert $page) => $page
                 ->where('missingDescription', ['started' => false, 'min' => 80])
-                ->where('studio.setup.2', ['key' => 'description', 'label' => 'Escribe la descripción de tu radio (obligatoria)', 'done' => false, 'href' => '/perfil#descripcion']));
+                ->where('studio.setup.2', ['key' => 'description', 'label' => 'Escribe la descripción de tu canal (obligatoria)', 'done' => false, 'href' => '/perfil#descripcion']));
 
         $station->update(['description' => 'Cumbia y salsa.']);
         $this->actingAs($station->owner)

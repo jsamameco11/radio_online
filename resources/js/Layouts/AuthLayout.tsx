@@ -1,5 +1,6 @@
 import { Head, Link, usePage } from "@inertiajs/react";
 import type { ReactNode } from "react";
+import { ContentDisclaimer } from "@/Components/legal/platform-policies";
 import { BrandMark, BrandName } from "@/Components/site/brand";
 import { SiteFlash } from "@/Components/site/site-flash";
 import type { SharedProps } from "@/types";
@@ -10,21 +11,21 @@ const showcase = ["89.30", "92.10", "95.50", "97.30", "101.70", "103.30", "105.1
 const pitch: Record<SharedProps["app"]["host"], { area: string | null; eyebrow: string; heading: string; text: string }> = {
   public: {
     area: null,
-    eyebrow: "Radio por internet",
-    heading: "Cientos de frecuencias. Una sola señal: la tuya.",
-    text: "Sintoniza radios en vivo, descubre programas y apoya a tus locutores favoritos. ¿Quieres estar al micrófono? Obtén tu frecuencia y gana dinero por hacerlo.",
+    eyebrow: "Plataforma de streaming",
+    heading: "Cientos de canales. Una sola plataforma: la tuya.",
+    text: "Entra a transmisiones en vivo, descubre programas y apoya a tus creadores favoritos. ¿Quieres tu propio canal? Solicítalo y gana dinero por transmitir.",
   },
   studio: {
     area: "Consola de creadores",
-    eyebrow: "Tu frecuencia, tu estudio",
+    eyebrow: "Tu canal, tu estudio",
     heading: "Tu cabina te está esperando.",
-    text: "Consola en vivo, programación, biblioteca, chat con tu audiencia y ganancias de tu emisora en un solo lugar.",
+    text: "Consola en vivo, programación, biblioteca, chat con tu audiencia y ganancias de tu canal en un solo lugar.",
   },
   control: {
     area: "Administración",
     eyebrow: "Operación de la plataforma",
     heading: "Toda la señal, bajo control.",
-    text: "Frecuencias, emisoras, solicitudes, pagos y moderación de toda la red.",
+    text: "Canales, estudios, solicitudes, pagos y moderación de toda la red.",
   },
 };
 
@@ -76,7 +77,7 @@ export default function AuthLayout({ title, heading, description, footer, childr
           </div>
         </div>
 
-        <p className="text-xs text-faint">© {new Date().getFullYear()} {app.name}</p>
+        <ContentDisclaimer />
       </aside>
 
       <main className="flex flex-col px-5 py-8 sm:px-10">
@@ -94,6 +95,7 @@ export default function AuthLayout({ title, heading, description, footer, childr
           </div>
           <div className="mt-8">{children}</div>
           {footer && <div className="mt-8 border-t border-line pt-6 text-center text-sm text-muted">{footer}</div>}
+          <ContentDisclaimer className="mt-8 lg:hidden" />
         </div>
       </main>
 

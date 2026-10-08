@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Access\Enums\Permission;
 use App\Domain\Audit\AuditTrail;
 use App\Domain\Frequencies\Enums\FrequencyRequestKind;
 use App\Domain\Storage\MediaStorage;
@@ -21,7 +22,7 @@ class StationApplicationController extends Controller
 {
     public function show(Request $request, FrequencyRequest $frequencyRequest): Response
     {
-        $frequencyRequest->load(['user', 'reviewer', 'frequency.station', 'station.frequency', 'application']);
+        $frequencyRequest->load(['user', 'reviewer', 'frequency.station', 'station.frequency', 'application', 'payment']);
         $application = $frequencyRequest->application ?? abort(404);
         $user = $frequencyRequest->user;
 
@@ -31,6 +32,7 @@ class StationApplicationController extends Controller
         return Inertia::render('Admin/Applications/Show', [
             'request' => $summary,
             'freeFrequencies' => Frequency::freeOptions(),
+            'canSettlePayments' => $request->user()->can(Permission::ManagePayouts->value),
             'application' => StationApplicationResource::make($application)->resolve($request),
             'account' => [
                 'id' => $user->id,

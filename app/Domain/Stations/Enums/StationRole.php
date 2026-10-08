@@ -31,7 +31,7 @@ enum StationRole: string
             self::Owner => StationPermission::cases(),
             self::Manager => array_values(array_filter(
                 StationPermission::cases(),
-                fn (StationPermission $permission) => ! in_array($permission, [StationPermission::ManageMembers, StationPermission::ViewFinance, StationPermission::WithdrawEarnings], true),
+                fn (StationPermission $permission) => ! in_array($permission, [StationPermission::ManageMembers, StationPermission::ViewFinance, StationPermission::WithdrawEarnings, StationPermission::SellStation], true),
             )),
             self::Host => [
                 StationPermission::OperateConsole,

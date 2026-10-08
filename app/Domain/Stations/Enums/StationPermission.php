@@ -18,4 +18,5 @@ enum StationPermission: string
     case ViewFinance = 'finance.view';
     case WithdrawEarnings = 'finance.withdraw';
     case ViewAnalytics = 'analytics.view';
+    case SellStation = 'station.sell';
 }

@@ -312,6 +312,8 @@ class UploadQueue {
   /** Keys of the songs uploaded, in the order they went up. */
   private uploadOrder: string[] = [];
   private tally = { uploaded: 0, replaced: 0, unsynced: 0 };
+  /** Same drop can reach the page twice in one turn; the second one is ignored. */
+  private lastDrop = "";
 
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -426,6 +428,14 @@ class UploadQueue {
 
   addFiles(list: FileList | File[] | null, kind: TrackKind) {
     if (!list?.length) return;
+    const signature = Array.from(list)
+      .map((file) => `${file.name}:${file.size}:${file.lastModified}`)
+      .join("|");
+    if (signature === this.lastDrop) return;
+    this.lastDrop = signature;
+    queueMicrotask(() => {
+      if (this.lastDrop === signature) this.lastDrop = "";
+    });
     const { queue } = this.state;
     const { types, max_mb: maxMb } = this.limits;
     const files = Array.from(list);

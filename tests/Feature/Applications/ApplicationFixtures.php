@@ -67,6 +67,7 @@ trait ApplicationFixtures
             'accept_terms' => '1',
             'declare_truthful' => '1',
             'consent_data_processing' => '1',
+            'accept_broadcast_policy' => '1',
             ...$overrides,
         ];
     }

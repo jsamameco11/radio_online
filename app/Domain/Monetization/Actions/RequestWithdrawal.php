@@ -8,6 +8,7 @@ use App\Domain\Monetization\Enums\WithdrawalStatus;
 use App\Domain\Wallet\Enums\WalletTransactionType;
 use App\Domain\Wallet\Support\LedgerEntry;
 use App\Domain\Wallet\WalletLedger;
+use App\Models\FrequencyListing;
 use App\Models\Station;
 use App\Models\User;
 use App\Models\Wallet;
@@ -49,6 +50,10 @@ final class RequestWithdrawal
                 ->exists();
             if ($inProcess) {
                 throw ValidationException::withMessages(['amount_cents' => 'Ya tienes un retiro en proceso. Podrás pedir otro cuando lo paguemos.']);
+            }
+
+            if (FrequencyListing::query()->active()->where('station_id', $station->id)->exists()) {
+                throw ValidationException::withMessages(['amount_cents' => 'Tu radio está en venta: su saldo se te pagará junto con la venta. Si quieres retirarlo ahora, primero retira la publicación.']);
             }
 
             if ($amountCents > $locked->balance_cents) {

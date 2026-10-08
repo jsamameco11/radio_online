@@ -47,6 +47,12 @@ class FrequencyRequest extends Model
         return $this->belongsTo(Station::class);
     }
 
+    /** Only for requests of a priced frequency. */
+    public function payment(): HasOne
+    {
+        return $this->hasOne(FrequencyPayment::class);
+    }
+
     /** The applicant's dossier, for "Obtén tu frecuencia" requests sent with the full form. */
     public function application(): HasOne
     {

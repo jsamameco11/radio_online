@@ -14,7 +14,9 @@ export type WalletTransactionType =
   | "withdrawal"
   | "withdrawal_reversal"
   | "highlight_purchase"
-  | "highlight_earning";
+  | "highlight_earning"
+  | "station_purchase"
+  | "sale_settlement";
 
 /** App\Http\Resources\WalletTransactionResource */
 export interface WalletTransaction {

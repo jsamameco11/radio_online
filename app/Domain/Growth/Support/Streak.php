@@ -60,7 +60,7 @@ final readonly class Streak
             },
             StreakState::AtRisk => "Sal en vivo o publica un episodio antes de la medianoche para llegar a {$tomorrow}.",
             StreakState::Broken => 'Hoy es un gran día para volver: sal en vivo o publica un episodio. Tu mejor racha fue de '.self::days($this->best).', ¡puedes superarla!',
-            StreakState::Fresh => 'Sal en vivo o publica un episodio hoy y suma tu primer día. Las radios que crecen aparecen todos los días.',
+            StreakState::Fresh => 'Sal en vivo o publica un episodio hoy y suma tu primer día. Los canales que crecen aparecen todos los días.',
         };
     }
 

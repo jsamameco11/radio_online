@@ -23,13 +23,13 @@ export function DescriptionNotice({ missing }: { missing: MissingDescription }) 
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <h2 id="description-notice-title" className="font-display text-base font-semibold text-ink">
-            {missing.started ? "La descripción de tu radio es muy corta" : "A tu radio le falta la descripción"}
+            {missing.started ? "La descripción de tu canal es muy corta" : "A tu canal le falta la descripción"}
           </h2>
           <Badge tone="warning">Obligatoria</Badge>
         </div>
         <p className="text-sm text-muted">
-          Es lo primero que leen tus oyentes en la página de tu radio y nos ayuda a mostrarla en la búsqueda y en las recomendaciones. Escribe al menos {missing.min} caracteres: qué transmites, para quién y qué la hace única.
-          {!canEdit && " Pídele al propietario o a un administrador de la radio que la complete."}
+          Es lo primero que lee la audiencia en la página de tu canal y nos ayuda a mostrarlo en la búsqueda y en las recomendaciones. Escribe al menos {missing.min} caracteres: qué transmites, para quién y qué lo hace único.
+          {!canEdit && " Pídele al propietario o a un administrador del canal que la complete."}
         </p>
       </div>
       {canEdit && (

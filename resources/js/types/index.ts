@@ -62,7 +62,8 @@ export type StationPermission =
   | "gifts.view"
   | "finance.view"
   | "finance.withdraw"
-  | "analytics.view";
+  | "analytics.view"
+  | "station.sell";
 
 export interface StudioContext {
   station: Station;

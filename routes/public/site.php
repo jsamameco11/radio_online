@@ -10,6 +10,7 @@ use App\Http\Controllers\Public\HashtagController;
 use App\Http\Controllers\Public\HistoryController;
 use App\Http\Controllers\Public\HomeController;
 use App\Http\Controllers\Public\LiveController;
+use App\Http\Controllers\Public\MarketplaceController;
 use App\Http\Controllers\Public\ReportController;
 use App\Http\Controllers\Public\SearchController;
 use App\Http\Controllers\Public\StationController;
@@ -44,6 +45,13 @@ Route::name('site.')->group(function () {
             Route::post('/episodios/{episode}/reportar', [ReportController::class, 'episode'])->whereUuid('episode')->middleware('throttle:10,1')->name('episodes.report');
         });
     });
+
+    Route::get('/frecuencias-en-venta', [MarketplaceController::class, 'index'])->name('marketplace.index');
+    Route::get('/frecuencias-en-venta/{listing}', [MarketplaceController::class, 'show'])->whereNumber('listing')->name('marketplace.show');
+    Route::post('/frecuencias-en-venta/{listing}/comprar', [MarketplaceController::class, 'buy'])
+        ->whereNumber('listing')
+        ->middleware(['auth', 'verified', 'throttle:10,1'])
+        ->name('marketplace.buy');
 
     Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/mis-radios', FollowingController::class)->name('following');

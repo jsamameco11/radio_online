@@ -34,6 +34,8 @@ class UserRowResource extends JsonResource
             'status_label' => $this->status->label(),
             'suspended_at' => $this->suspended_at?->toIso8601String(),
             'suspension_reason' => $this->suspension_reason,
+            'flagged_at' => $this->flagged_at?->toIso8601String(),
+            'flag_reason' => $this->flag_reason,
             'email_verified' => $this->email_verified_at !== null,
             'two_factor_enabled' => $this->hasTwoFactorEnabled(),
             'last_login_at' => $this->last_login_at?->toIso8601String(),

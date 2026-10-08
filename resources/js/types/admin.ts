@@ -1,4 +1,5 @@
 import type { StreamStatusValue } from "@/types";
+import type { FrequencyPaymentInfo, FrequencyRequestStatus } from "@/types/site";
 
 export interface Option<T extends string = string> {
   value: T;
@@ -55,12 +56,48 @@ export interface UserRow {
   status_label: string;
   suspended_at: string | null;
   suspension_reason: string | null;
+  flagged_at: string | null;
+  flag_reason: string | null;
   email_verified: boolean;
   two_factor_enabled: boolean;
   last_login_at: string | null;
   last_login_ip: string | null;
   memberships_count?: number;
   created_at: string;
+}
+
+export type IntegrityAlertStatus = "open" | "purged" | "dismissed";
+
+/** App\Http\Resources\Admin\IntegrityAlertResource */
+export interface IntegrityAlertRow {
+  id: number;
+  kind: { value: string; label: string; description: string };
+  concerns_accounts: boolean;
+  purgeable: boolean;
+  severity: { value: "low" | "medium" | "high"; label: string };
+  status: { value: IntegrityAlertStatus; label: string };
+  figures: { label: string; value: string }[];
+  accounts: number;
+  station: { id: number; display_name: string; status: string; follower_count: number } | null;
+  since: string | null;
+  detected_at: string;
+  last_detected_at: string;
+  resolved_at: string | null;
+  resolver: string | null;
+  note: string | null;
+}
+
+/** Admin\IntegrityController::accounts */
+export interface IntegrityAccount {
+  id: number;
+  name: string;
+  email: string;
+  created_at: string | null;
+  verified: boolean;
+  flagged: boolean;
+  suspended: boolean;
+  listened_minutes: number;
+  follow: { value: "pending" | "counted" | "discarded"; label: string } | null;
 }
 
 /** App\Http\Resources\Admin\AuditLogResource */
@@ -81,11 +118,12 @@ export interface FrequencyRequestRow {
   id: number;
   kind: "new_station" | "frequency_change";
   kind_label: string;
-  status: "pending" | "approved" | "rejected" | "cancelled";
+  status: FrequencyRequestStatus;
   status_label: string;
   user: { id: number; name: string; email: string };
   frequency: FrequencyRef & { status: FrequencyStatusValue; status_label: string };
   conflict: boolean;
+  payment?: FrequencyPaymentInfo | null;
   station_name: string;
   pitch: string | null;
   categories: string[];

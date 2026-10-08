@@ -58,10 +58,10 @@ function FrequencyResult({ tuned }: { tuned: Tuned }) {
         <p className="font-display text-3xl font-semibold tabular">{tuned.display}</p>
         <p className="text-sm text-muted">
           {tuned.available
-            ? "Esta frecuencia está libre. Puede ser la de tu radio."
+            ? "Este canal está libre. Puede ser el de tu transmisión."
             : tuned.exists
-              ? "No hay una radio pública en esta frecuencia ahora."
-              : "Esta frecuencia no está en el dial de la plataforma."}
+              ? "No hay un canal público en este número ahora."
+              : "Este número no está en la plataforma."}
         </p>
       </div>
       {tuned.available && (
@@ -83,17 +83,17 @@ export default function Search({ query, kind, tuned, hashtag, stations, categori
         <div className="space-y-4">
           <h1 className="font-display text-2xl font-semibold sm:text-3xl">{query ? <>Resultados para «{query}»</> : "¿Qué quieres escuchar?"}</h1>
           <SiteSearch className="max-w-xl" autoFocus={kind === "empty"} />
-          <p className="text-xs text-muted">Prueba con un nombre, una frecuencia como «89.3», un #hashtag o una categoría como «salsa».</p>
+          <p className="text-xs text-muted">Prueba con un nombre, un número como «89.3», un #hashtag o una categoría como «salsa».</p>
         </div>
 
-        {kind === "empty" && <EmptyState icon={<SearchIcon className="size-6" />} title="Escribe algo para buscar" description="Encuentra radios por nombre, frecuencia, tema o estilo." />}
+        {kind === "empty" && <EmptyState icon={<SearchIcon className="size-6" />} title="Escribe algo para buscar" description="Encuentra canales por nombre, número, tema o estilo." />}
 
         {tuned && (
-          <Section title="Frecuencia" icon={<Radio className="size-5 text-signal" />}>
+          <Section title="Canal" icon={<Radio className="size-5 text-signal" />}>
             <FrequencyResult tuned={tuned} />
             {tuned.nearby.length > 0 && (
               <div className="space-y-3 pt-2">
-                <h3 className="text-sm font-semibold text-muted">Cerca en el dial</h3>
+                <h3 className="text-sm font-semibold text-muted">Números cercanos</h3>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {tuned.nearby.map((station) => (
                     <StationRow key={station.id} station={station} />
@@ -106,7 +106,7 @@ export default function Search({ query, kind, tuned, hashtag, stations, categori
 
         {hashtag && (
           <Section title={`#${hashtag.name}`} icon={<Hash className="size-5 text-muted" />} href={hashtag.exists ? `/hashtag/${hashtag.slug}` : undefined} linkLabel="Ver hashtag">
-            {!hasStations && <p className="text-sm text-muted">Ninguna radio usa este hashtag por ahora.</p>}
+            {!hasStations && <p className="text-sm text-muted">Ningún canal usa este hashtag por ahora.</p>}
           </Section>
         )}
 
@@ -124,13 +124,13 @@ export default function Search({ query, kind, tuned, hashtag, stations, categori
         )}
 
         {stations && hasStations && (
-          <Section title={kind === "frequency" ? "También coinciden" : "Radios"} description={`${count(stations.total)} ${stations.total === 1 ? "resultado" : "resultados"}`}>
+          <Section title={kind === "frequency" ? "También coinciden" : "Canales"} description={`${count(stations.total)} ${stations.total === 1 ? "resultado" : "resultados"}`}>
             <StationGrid stations={stations.data} />
             <Pagination page={stations} />
           </Section>
         )}
 
-        {nothing && <EmptyState icon={<SearchIcon className="size-6" />} title="Sin resultados" description="No encontramos radios con esa búsqueda. Revisa la ortografía o prueba con el dial." action={<ButtonLink href="/dial" variant="secondary">Abrir el dial</ButtonLink>} />}
+        {nothing && <EmptyState icon={<SearchIcon className="size-6" />} title="Sin resultados" description="No encontramos canales con esa búsqueda. Revisa la ortografía o prueba en el listado." action={<ButtonLink href="/dial" variant="secondary">Ver canales</ButtonLink>} />}
       </div>
     </SiteLayout>
   );

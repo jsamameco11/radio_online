@@ -12,15 +12,15 @@ export default function Following({ stations }: { stations: Paginated<Station> }
   const offAir = stations.data.filter((station) => !station.stream_status.audible);
 
   return (
-    <SiteLayout title="Mis radios">
+    <SiteLayout title="Mis canales">
       <div className="space-y-8">
-        <PageHeader eyebrow="Tu colección" title="Mis radios" description="Tus suscripciones, con las radios al aire primero." />
+        <PageHeader eyebrow="Tu colección" title="Mis canales" description="Tus suscripciones, con los canales al aire primero." />
         {stations.total === 0 ? (
           <EmptyState
             icon={<BellPlus className="size-6" />}
             title="Todavía no tienes suscripciones"
-            description="Pulsa «Suscribirme» en la página de una radio para tenerla siempre a mano."
-            action={<ButtonLink href="/explorar">Explorar radios</ButtonLink>}
+            description="Pulsa «Suscribirme» en la página de un canal para tenerlo siempre a mano."
+            action={<ButtonLink href="/explorar">Explorar canales</ButtonLink>}
           />
         ) : (
           <>

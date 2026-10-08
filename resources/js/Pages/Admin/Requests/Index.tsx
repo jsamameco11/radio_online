@@ -1,8 +1,9 @@
 import { Link, router, useForm } from "@inertiajs/react";
-import { AlertTriangle, Check, Inbox, X } from "lucide-react";
+import { AlertTriangle, Check, CreditCard, Inbox, Tag, X } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { ApprovalFields, approvalDefaults } from "@/Components/admin/approval-fields";
+import { PaymentSummary, PricedApprovalForm, SettlePaymentModal, canCharge, chargesOnApproval } from "@/Components/admin/frequency-payment";
 import { ReasonModal } from "@/Components/admin/reason-modal";
 import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
@@ -17,8 +18,9 @@ import AdminLayout from "@/Layouts/AdminLayout";
 import { ago, dateTime } from "@/lib/format";
 import type { Paginated } from "@/types";
 import type { FreeFrequency, FrequencyRequestRow, Option } from "@/types/admin";
+import type { FrequencyPaymentInfo } from "@/types/site";
 
-type Tab = "pending" | "approved" | "rejected";
+type Tab = "pending" | "payment" | "approved" | "rejected";
 
 interface Props {
   requests: Paginated<FrequencyRequestRow>;
@@ -27,11 +29,13 @@ interface Props {
   counts: Record<Tab, number>;
   kinds: Option[];
   freeFrequencies: FreeFrequency[];
+  canSettlePayments: boolean;
 }
 
-export default function RequestsIndex({ requests, tab, kind, counts, kinds, freeFrequencies }: Props) {
+export default function RequestsIndex({ requests, tab, kind, counts, kinds, freeFrequencies, canSettlePayments }: Props) {
   const [approving, setApproving] = useState<FrequencyRequestRow | null>(null);
   const [rejecting, setRejecting] = useState<FrequencyRequestRow | null>(null);
+  const [settling, setSettling] = useState<(FrequencyRequestRow & { payment: FrequencyPaymentInfo }) | null>(null);
 
   const visit = (next: { tab?: Tab; kind?: string }) =>
     router.get("/admin/solicitudes", Object.fromEntries(Object.entries({ tab, kind, ...next }).filter(([, value]) => value)), { preserveState: true, replace: true });
@@ -47,6 +51,7 @@ export default function RequestsIndex({ requests, tab, kind, counts, kinds, free
             onChange={(value) => visit({ tab: value })}
             items={[
               { value: "pending", label: "Pendientes", count: counts.pending },
+              { value: "payment", label: "Pago pendiente", count: counts.payment },
               { value: "approved", label: "Aprobadas", count: counts.approved },
               { value: "rejected", label: "Rechazadas y retiradas", count: counts.rejected },
             ]}
@@ -62,7 +67,17 @@ export default function RequestsIndex({ requests, tab, kind, counts, kinds, free
         </div>
 
         {requests.data.length === 0 ? (
-          <EmptyState icon={<Inbox className="size-6" />} title={tab === "pending" ? "No hay solicitudes pendientes" : "Nada por aquí"} description={tab === "pending" ? "Cuando alguien pida una frecuencia aparecerá aquí." : undefined} />
+          <EmptyState
+            icon={<Inbox className="size-6" />}
+            title={tab === "pending" ? "No hay solicitudes pendientes" : tab === "payment" ? "Ningún pago pendiente" : "Nada por aquí"}
+            description={
+              tab === "pending"
+                ? "Cuando alguien pida una frecuencia aparecerá aquí."
+                : tab === "payment"
+                  ? "Aquí aparecen las frecuencias con precio que aprobaste y cuyo cobro fue rechazado."
+                  : undefined
+            }
+          />
         ) : (
           <div className="space-y-3">
             {requests.data.map((item) => (
@@ -74,7 +89,12 @@ export default function RequestsIndex({ requests, tab, kind, counts, kinds, free
                       <span className="text-faint">·</span>
                       <span className="font-semibold">{item.station ? item.station.display_name : item.station_name}</span>
                       <Badge tone={item.kind === "frequency_change" ? "info" : "neutral"}>{item.kind_label}</Badge>
-                      {tab !== "pending" && <Badge tone={item.status === "approved" ? "onair" : "neutral"}>{item.status_label}</Badge>}
+                      {item.payment && (
+                        <Badge tone="gold" className="tabular">
+                          <Tag className="size-3" /> {item.payment.amount}
+                        </Badge>
+                      )}
+                      {tab !== "pending" && <Badge tone={item.status === "approved" ? "onair" : item.status === "awaiting_payment" ? "warning" : "neutral"}>{item.status_label}</Badge>}
                     </div>
                     <p className="text-xs text-muted">
                       {item.user.name} · {item.user.email} · enviada {ago(item.created_at)}
@@ -87,10 +107,12 @@ export default function RequestsIndex({ requests, tab, kind, counts, kinds, free
                         ))}
                       </div>
                     )}
+                    {item.payment && item.status !== "cancelled" && item.status !== "rejected" && <PaymentSummary payment={item.payment} className="max-w-xl" />}
                     {item.conflict && (
                       <p className="flex items-center gap-2 text-sm text-warning">
                         <AlertTriangle className="size-4" />
-                        {item.frequency.display} ya no está libre ({item.frequency.status_label.toLowerCase()}). Aprueba con otra frecuencia.
+                        {item.frequency.display} ya no está libre ({item.frequency.status_label.toLowerCase()}).{" "}
+                        {item.payment && item.payment.status.value !== "paid" ? "Rechaza la solicitud: no se cobró nada." : "Aprueba con otra frecuencia."}
                       </p>
                     )}
                     {item.reviewed_at && (
@@ -110,14 +132,23 @@ export default function RequestsIndex({ requests, tab, kind, counts, kinds, free
                       </Link>
                     )}
                   </div>
-                  {item.status === "pending" && (
-                    <div className="flex gap-2">
-                      <Button variant="ghost" icon={<X className="size-4" />} onClick={() => setRejecting(item)}>
-                        Rechazar
-                      </Button>
-                      <Button icon={<Check className="size-4" />} onClick={() => setApproving(item)}>
-                        Aprobar
-                      </Button>
+                  {(item.status === "pending" || item.status === "awaiting_payment") && (
+                    <div className="flex flex-wrap justify-end gap-2">
+                      {item.payment?.status.value === "unconfirmed" && canSettlePayments && (
+                        <Button variant="secondary" icon={<AlertTriangle className="size-4" />} onClick={() => setSettling({ ...item, payment: item.payment! })}>
+                          Resolver cobro
+                        </Button>
+                      )}
+                      {item.payment?.status.value !== "unconfirmed" && item.payment?.status.value !== "paid" && (
+                        <Button variant="ghost" icon={<X className="size-4" />} onClick={() => setRejecting(item)}>
+                          {item.status === "awaiting_payment" ? "Cerrar solicitud" : "Rechazar"}
+                        </Button>
+                      )}
+                      {(item.status === "pending" || item.payment?.status.value === "paid") && item.payment?.status.value !== "unconfirmed" && (
+                        <Button icon={chargesOnApproval(item) ? <CreditCard className="size-4" /> : <Check className="size-4" />} onClick={() => setApproving(item)}>
+                          {chargesOnApproval(item) ? "Aprobar y cobrar" : "Aprobar"}
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -128,7 +159,13 @@ export default function RequestsIndex({ requests, tab, kind, counts, kinds, free
         )}
       </div>
 
-      {approving && <ApproveModal item={approving} free={freeFrequencies} onClose={() => setApproving(null)} />}
+      {approving &&
+        (chargesOnApproval(approving) ? (
+          <PricedApproveModal item={approving} onClose={() => setApproving(null)} />
+        ) : (
+          <ApproveModal item={approving} free={freeFrequencies} onClose={() => setApproving(null)} />
+        ))}
+      {settling && <SettlePaymentModal request={settling} onClose={() => setSettling(null)} />}
       {rejecting && (
         <ReasonModal
           open
@@ -142,6 +179,32 @@ export default function RequestsIndex({ requests, tab, kind, counts, kinds, free
         />
       )}
     </AdminLayout>
+  );
+}
+
+function PricedApproveModal({ item, onClose }: { item: FrequencyRequestRow & { payment: FrequencyPaymentInfo }; onClose: () => void }) {
+  const [processing, setProcessing] = useState(false);
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      size="lg"
+      title={`Aprobar ${item.station_name}`}
+      description={`${item.frequency.display} tiene precio. Se cobrará a la tarjeta que registró ${item.user.name}; si el banco lo aprueba, la radio se crea al instante.`}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="approve-priced-request" disabled={!canCharge(item)} loading={processing} icon={<CreditCard className="size-4" />}>
+            {processing ? "Cobrando…" : `Aprobar y cobrar ${item.payment.amount}`}
+          </Button>
+        </>
+      }
+    >
+      <PricedApprovalForm request={item} formId="approve-priced-request" onSuccess={onClose} onProcessing={setProcessing} />
+    </Modal>
   );
 }
 

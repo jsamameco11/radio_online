@@ -7,17 +7,21 @@ use App\Domain\Frequencies\Actions\AssignFrequency;
 use App\Domain\Frequencies\Actions\ReleaseFrequency;
 use App\Domain\Frequencies\Actions\ReserveFrequency;
 use App\Domain\Frequencies\Actions\SetFrequencyMaintenance;
+use App\Domain\Frequencies\Actions\SetFrequencyPrice;
 use App\Domain\Frequencies\DialMap;
 use App\Domain\Frequencies\Enums\FrequencyStatus;
+use App\Domain\Wallet\WalletLedger;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AssignFrequencyRequest;
 use App\Http\Requests\Admin\ReserveFrequencyRequest;
+use App\Http\Requests\Admin\SetFrequencyPriceRequest;
 use App\Http\Resources\Admin\AuditLogResource;
 use App\Http\Resources\Admin\FrequencyRequestResource;
 use App\Http\Resources\Admin\StationRowResource;
 use App\Models\AuditLog;
 use App\Models\Category;
 use App\Models\Frequency;
+use App\Models\FrequencyListing;
 use App\Models\FrequencyRequest;
 use App\Models\Station;
 use Illuminate\Database\Eloquent\Builder;
@@ -61,6 +65,7 @@ class FrequencyController extends Controller
                 'display' => $frequency->display(),
                 'status' => $frequency->status->value,
                 'status_label' => $frequency->status->label(),
+                'price_cents' => $frequency->isPriced() ? $frequency->price_cents : null,
                 'reserved_at' => $frequency->reserved_at?->toIso8601String(),
                 'activated_at' => $frequency->activated_at?->toIso8601String(),
                 'station' => $frequency->station === null ? null : [
@@ -96,7 +101,7 @@ class FrequencyController extends Controller
         $station = $frequency->station()->with(['frequency', 'owner'])->first();
         $requests = FrequencyRequest::query()
             ->where('frequency_id', $frequency->id)
-            ->with(['user', 'reviewer', 'frequency.station', 'station.frequency'])
+            ->with(['user', 'reviewer', 'frequency.station', 'station.frequency', 'payment'])
             ->latest()
             ->limit(20)
             ->get();
@@ -112,9 +117,16 @@ class FrequencyController extends Controller
                 'mhz' => (float) $frequency->frequency,
                 'status' => $frequency->status->value,
                 'status_label' => $frequency->status->label(),
+                'price_cents' => $frequency->isPriced() ? $frequency->price_cents : null,
                 'reserved_at' => $frequency->reserved_at?->toIso8601String(),
                 'activated_at' => $frequency->activated_at?->toIso8601String(),
                 'created_at' => $frequency->created_at?->toIso8601String(),
+            ],
+            'onSale' => FrequencyListing::query()->active()->where('frequency_id', $frequency->id)->exists(),
+            'pricing' => [
+                'minPriceCents' => (int) config('platform.marketplace.min_price_cents'),
+                'maxPriceCents' => (int) config('platform.marketplace.max_price_cents'),
+                'processorFeePercent' => (int) config('platform.marketplace.processor_fee_percent'),
             ],
             'station' => $station === null ? null : StationRowResource::make($station)->resolve($request),
             'closedStations' => Station::onlyTrashed()
@@ -150,9 +162,20 @@ class FrequencyController extends Controller
 
     public function reserve(ReserveFrequencyRequest $request, Frequency $frequency, ReserveFrequency $reserve): RedirectResponse
     {
-        $reserve->handle($frequency, $request->validated('note'), $request->user());
+        $frequency = $reserve->handle($frequency, $request->validated('note'), $request->user(), $request->priceCents());
 
-        return back()->with('success', "Reservaste la frecuencia {$frequency->display()}.");
+        return back()->with('success', $frequency->isPriced()
+            ? "Reservaste {$frequency->display()} por ".FrequencyListing::money($frequency->price_cents, WalletLedger::currency()).'. Ya se puede solicitar en “Obtén tu frecuencia”.'
+            : "Reservaste la frecuencia {$frequency->display()}.");
+    }
+
+    public function price(SetFrequencyPriceRequest $request, Frequency $frequency, SetFrequencyPrice $price): RedirectResponse
+    {
+        $frequency = $price->handle($frequency, $request->priceCents(), $request->user());
+
+        return back()->with('success', $frequency->isPriced()
+            ? "{$frequency->display()} ahora cuesta ".FrequencyListing::money($frequency->price_cents, WalletLedger::currency()).'.'
+            : "{$frequency->display()} ya no tiene precio: queda reservada y nadie puede solicitarla.");
     }
 
     public function assign(AssignFrequencyRequest $request, Frequency $frequency, AssignFrequency $assign): RedirectResponse

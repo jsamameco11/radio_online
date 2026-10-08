@@ -45,6 +45,7 @@ export interface ApplicationForm {
   accept_terms: boolean;
   declare_truthful: boolean;
   consent_data_processing: boolean;
+  accept_broadcast_policy: boolean;
 }
 
 export type Errors = Partial<Record<string, string>>;
@@ -68,9 +69,9 @@ export interface ValidationContext {
 }
 
 export const steps = [
-  { key: "person", title: "Responsable", description: "Quién administrará la radio." },
+  { key: "person", title: "Responsable", description: "Quién administrará el canal." },
   { key: "documents", title: "Documentos", description: "Foto, identidad y estudios." },
-  { key: "station", title: "Tu radio", description: "Nombre, frecuencia y categorías." },
+  { key: "station", title: "Tu canal", description: "Nombre, número y categorías." },
   { key: "content", title: "Contenido y propósito", description: "Qué transmitirás y para quién." },
   { key: "review", title: "Revisión y envío", description: "Confirma y envía tu expediente." },
 ] as const;
@@ -81,7 +82,7 @@ const stepFields: string[][] = [
   ["photo", "document_front", "document_back", "resume", "certificates"],
   ["station_name", "frequency_id", "category_ids", "languages", "represents_organization", "organization_name", "organization_tax_id", "organization_website"],
   ["content_types", "purpose", "audience_ages", "audience_tags", "hours_per_week", "broadcast_days", "schedule_start_hour", "schedule_end_hour", "social_links", "demo_url"],
-  ["accept_terms", "declare_truthful", "consent_data_processing"],
+  ["accept_terms", "declare_truthful", "consent_data_processing", "accept_broadcast_policy"],
 ];
 
 export function stepOf(errorKey: string): number {
@@ -173,6 +174,7 @@ export function emptyForm(frequencyId: number | null, socialNetworks: string[]):
     accept_terms: false,
     declare_truthful: false,
     consent_data_processing: false,
+    accept_broadcast_policy: false,
   };
 }
 
@@ -260,7 +262,7 @@ export function validateStep(step: number, data: ApplicationForm, { limits, opti
     else if (!new RegExp(type.pattern).test(normalizeDocument(data.document_number))) errors.document_number = `El número de ${type.label} no es válido: ${type.hint}`;
     required("nationality", "Elige tu nacionalidad.");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(data.birth_date)) errors.birth_date = "Escribe tu fecha de nacimiento.";
-    else if (data.birth_date > adultCutoff(limits.minAge)) errors.birth_date = `Debes ser mayor de edad (${limits.minAge} años o más) para administrar una radio.`;
+    else if (data.birth_date > adultCutoff(limits.minAge)) errors.birth_date = `Debes ser mayor de edad (${limits.minAge} años o más) para administrar un canal.`;
     if (!/^\+[1-9][0-9]{6,14}$/.test(normalizePhone(data.phone))) errors.phone = "Escribe el teléfono con el código de país, por ejemplo +51 987 654 321.";
     required("country", "Elige tu país de residencia.");
     required("region", "Escribe tu región o departamento.");
@@ -290,8 +292,8 @@ export function validateStep(step: number, data: ApplicationForm, { limits, opti
   }
 
   if (step === 2) {
-    if (data.station_name.trim().length < 3) errors.station_name = "El nombre de la radio debe tener al menos 3 caracteres.";
-    if (data.frequency_id === null) errors.frequency_id = "Elige la frecuencia que quieres para tu radio.";
+    if (data.station_name.trim().length < 3) errors.station_name = "El nombre del canal debe tener al menos 3 caracteres.";
+    if (data.frequency_id === null) errors.frequency_id = "Elige el canal que quieres.";
     if (data.category_ids.length === 0) errors.category_ids = "Elige al menos una categoría.";
     else if (data.category_ids.length > maxCategories) errors.category_ids = `Puedes elegir hasta ${maxCategories} categorías.`;
     if (data.languages.length === 0) errors.languages = "Elige al menos un idioma.";
@@ -306,7 +308,7 @@ export function validateStep(step: number, data: ApplicationForm, { limits, opti
 
   if (step === 3) {
     if (data.content_types.length === 0) errors.content_types = "Elige al menos un tipo de contenido.";
-    if (data.purpose.trim().length < limits.purposeMin) errors.purpose = `Cuéntanos con más detalle para qué quieres tu radio: al menos ${limits.purposeMin} caracteres.`;
+    if (data.purpose.trim().length < limits.purposeMin) errors.purpose = `Cuéntanos con más detalle para qué quieres tu canal: al menos ${limits.purposeMin} caracteres.`;
     if (data.audience_ages.length === 0) errors.audience_ages = "Elige al menos un rango de edad.";
     else if (data.audience_ages.length > 1 && data.audience_ages.includes(ALL_AGES)) errors.audience_ages = "Si eliges «Todas las edades», no marques otros rangos.";
     if (data.audience_tags.length === 0) errors.audience_tags = "Elige al menos un tipo de público.";
@@ -327,6 +329,7 @@ export function validateStep(step: number, data: ApplicationForm, { limits, opti
     if (!data.accept_terms) errors.accept_terms = "Debes aceptar los términos y condiciones.";
     if (!data.declare_truthful) errors.declare_truthful = "Debes declarar que la información es verdadera.";
     if (!data.consent_data_processing) errors.consent_data_processing = "Debes autorizar el tratamiento de tus datos personales.";
+    if (!data.accept_broadcast_policy) errors.accept_broadcast_policy = "Debes aceptar las políticas de trabajo, privacidad y derechos de autor.";
   }
 
   return errors;

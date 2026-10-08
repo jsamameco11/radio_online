@@ -163,6 +163,7 @@ class SubmitStationApplicationTest extends TestCase
             'bad social link' => [['social_links' => ['facebook' => 'facebook radio']], 'social_links.facebook'],
             'terms not accepted' => [['accept_terms' => '0'], 'accept_terms'],
             'no data consent' => [['consent_data_processing' => null], 'consent_data_processing'],
+            'broadcast policy not accepted' => [['accept_broadcast_policy' => '0'], 'accept_broadcast_policy'],
         ];
     }
 

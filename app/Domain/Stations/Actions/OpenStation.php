@@ -4,11 +4,13 @@ namespace App\Domain\Stations\Actions;
 
 use App\Domain\Discovery\Hashtags;
 use App\Domain\Frequencies\Enums\FrequencyStatus;
+use App\Domain\Marketplace\Enums\ListingStatus;
 use App\Domain\Stations\Enums\StationRole;
 use App\Domain\Stations\Enums\StationStatus;
 use App\Domain\Stations\Enums\StationVisibility;
 use App\Domain\Streaming\Enums\StreamStatus;
 use App\Models\Frequency;
+use App\Models\FrequencyListing;
 use App\Models\Station;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -16,8 +18,9 @@ use InvalidArgumentException;
 
 /**
  * Puts a new station on an available or reserved frequency: the frequency
- * becomes active, the owner joins the team and the station keeps up to three
- * categories and its permanent hashtags.
+ * becomes active (and leaves the market if the platform was selling it), the
+ * owner joins the team and the station keeps up to three categories and its
+ * permanent hashtags.
  */
 final class OpenStation
 {
@@ -57,7 +60,11 @@ final class OpenStation
 
             Hashtags::sync($station->hashtags(), $hashtags, (int) config('platform.stations.max_permanent_hashtags'));
 
-            $frequency->forceFill(['status' => FrequencyStatus::Active, 'activated_at' => now()])->save();
+            $frequency->forceFill(['status' => FrequencyStatus::Active, 'price_cents' => null, 'activated_at' => now()])->save();
+            FrequencyListing::query()->active()->where('frequency_id', $frequency->id)->update([
+                'status' => ListingStatus::Cancelled->value,
+                'cancelled_at' => now(),
+            ]);
 
             return $station->setRelation('frequency', $frequency);
         });

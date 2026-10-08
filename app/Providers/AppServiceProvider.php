@@ -18,10 +18,12 @@ use App\Models\ChatMessage;
 use App\Models\CurrentTopic;
 use App\Models\Episode;
 use App\Models\Frequency;
+use App\Models\FrequencyListing;
 use App\Models\FrequencyRequest;
 use App\Models\Gift;
 use App\Models\GiftMessage;
 use App\Models\GiftTransaction;
+use App\Models\IntegrityAlert;
 use App\Models\MonetizationRequest;
 use App\Models\Payment;
 use App\Models\Report;
@@ -81,7 +83,9 @@ class AppServiceProvider extends ServiceProvider
             'chat_message' => ChatMessage::class,
             'monetization_request' => MonetizationRequest::class,
             'withdrawal_request' => WithdrawalRequest::class,
+            'frequency_listing' => FrequencyListing::class,
             'station_story' => StationStory::class,
+            'integrity_alert' => IntegrityAlert::class,
         ]);
 
         Frequency::observe(PublishMonitorChanges::class);

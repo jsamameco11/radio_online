@@ -42,10 +42,15 @@ class StationApplicationController extends Controller
 
         return Inertia::render('Public/CreateStation', [
             'frequencies' => Frequency::query()
-                ->available()
+                ->requestable()
                 ->onDial()
-                ->get(['id', 'label', 'slug', 'frequency'])
-                ->map(fn (Frequency $frequency) => ['id' => $frequency->id, 'label' => $frequency->label, 'slug' => $frequency->slug])
+                ->get(['id', 'label', 'slug', 'frequency', 'status', 'price_cents'])
+                ->map(fn (Frequency $frequency) => [
+                    'id' => $frequency->id,
+                    'label' => $frequency->label,
+                    'slug' => $frequency->slug,
+                    'price_cents' => $frequency->isPriced() ? $frequency->price_cents : null,
+                ])
                 ->values()
                 ->all(),
             'band' => [
@@ -76,7 +81,7 @@ class StationApplicationController extends Controller
             'requests' => FrequencyRequestResource::collection(
                 $user->frequencyRequests()
                     ->where('kind', FrequencyRequestKind::NewStation->value)
-                    ->with('frequency')
+                    ->with(['frequency', 'payment'])
                     ->latest()
                     ->latest('id')
                     ->limit(10)
@@ -104,7 +109,12 @@ class StationApplicationController extends Controller
     public function store(SubmitStationApplicationRequest $request, SubmitStationApplication $submit): RedirectResponse
     {
         $submission = $request->submission();
-        $submit->handle($request->user(), $submission, (string) $request->ip(), $request->userAgent());
+        $frequencyRequest = $submit->handle($request->user(), $submission, (string) $request->ip(), $request->userAgent());
+
+        if ($frequencyRequest->payment()->exists()) {
+            return redirect()->route('site.station-requests.payment', $frequencyRequest)
+                ->with('success', "Recibimos tu solicitud para {$submission->frequency->display()}. Registra tu tarjeta para completarla: solo la cobraremos si la aprobamos.");
+        }
 
         return redirect()->route('site.station-requests.create')
             ->with('success', "¡Listo! Recibimos tu solicitud para {$submission->frequency->display()}. Te avisaremos por correo cuando la revisemos.");

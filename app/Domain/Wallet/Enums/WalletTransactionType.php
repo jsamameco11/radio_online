@@ -13,6 +13,8 @@ enum WalletTransactionType: string
     case WithdrawalReversal = 'withdrawal_reversal';
     case HighlightPurchase = 'highlight_purchase';
     case HighlightEarning = 'highlight_earning';
+    case StationPurchase = 'station_purchase';
+    case SaleSettlement = 'sale_settlement';
 
     public function label(): string
     {
@@ -26,6 +28,8 @@ enum WalletTransactionType: string
             self::WithdrawalReversal => 'Retiro devuelto',
             self::HighlightPurchase => 'Mensaje destacado enviado',
             self::HighlightEarning => 'Mensaje destacado recibido',
+            self::StationPurchase => 'Compra de radio',
+            self::SaleSettlement => 'Saldo liquidado al vendedor por la venta',
         };
     }
 }

@@ -4,6 +4,7 @@ export interface AudienceSummary {
   hours: number;
   average_minutes: number;
   new_followers: number;
+  pending_followers: number;
   peak_listeners: number;
   listeners_now: number;
   followers: number;

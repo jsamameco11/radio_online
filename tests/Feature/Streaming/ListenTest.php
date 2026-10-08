@@ -39,6 +39,13 @@ class ListenTest extends TestCase
         $this->listener = User::factory()->create();
     }
 
+    /** A player beats again once it played long enough to count. */
+    private function keepListening(?User $user = null): void
+    {
+        $this->travel(Audience::warmup() + 1)->seconds();
+        ($user ? $this->actingAs($user) : $this)->postJson($this->radio('/escucha'), ['oyente' => self::LISTENER])->assertOk();
+    }
+
     private function radio(string $path, ?Station $station = null): string
     {
         return $this->publicUrl('/radio/'.($station ?? $this->station)->frequency->slug.$path);
@@ -105,9 +112,13 @@ class ListenTest extends TestCase
 
         $this->postJson($this->radio('/escucha'), ['oyente' => self::LISTENER])
             ->assertOk()
+            ->assertJsonPath('listeners', 0);
+        $this->travel(Audience::warmup() + 1)->seconds();
+        $this->postJson($this->radio('/escucha'), ['oyente' => self::LISTENER])
+            ->assertOk()
             ->assertJsonPath('listeners', 1);
 
-        $this->assertDatabaseHas(ListenerSession::class, ['station_id' => $this->station->id, 'user_id' => null, 'token' => self::LISTENER, 'ended_at' => null]);
+        $this->assertDatabaseHas(ListenerSession::class, ['station_id' => $this->station->id, 'user_id' => null, 'token' => self::LISTENER, 'ended_at' => null, 'suspect' => false]);
 
         $this->postJson($this->radio('/salir'), ['oyente' => self::LISTENER])->assertOk();
         $this->assertSame(0, $this->station->refresh()->listener_count);
@@ -118,9 +129,8 @@ class ListenTest extends TestCase
     {
         Event::fake([ListenerCountChanged::class]);
 
-        $this->actingAs($this->listener)->postJson($this->radio('/escucha'), ['oyente' => self::LISTENER])
-            ->assertOk()
-            ->assertJsonPath('listeners', 1);
+        $this->actingAs($this->listener)->postJson($this->radio('/escucha'), ['oyente' => self::LISTENER])->assertOk();
+        $this->keepListening($this->listener);
 
         $this->assertDatabaseHas(ListenerSession::class, ['station_id' => $this->station->id, 'user_id' => $this->listener->id, 'token' => self::LISTENER, 'ended_at' => null]);
         $this->assertSame(1, $this->station->refresh()->listener_count);
@@ -172,6 +182,7 @@ class ListenTest extends TestCase
     public function the_station_team_sees_its_audience_in_the_state(): void
     {
         $this->actingAs($this->listener)->postJson($this->radio('/escucha'), ['oyente' => self::LISTENER])->assertOk();
+        $this->keepListening($this->listener);
 
         $this->actingAs($this->teamMember($this->station, StationRole::Host))
             ->getJson($this->studioUrl($this->station, '/consola/senal'))

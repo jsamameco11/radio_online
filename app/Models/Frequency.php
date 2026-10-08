@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * A virtual frequency of the dial, e.g. 89.30 FM. Its slug ("89-30") is the
  * public address of the station that broadcasts on it.
  */
-#[Fillable(['frequency', 'label', 'slug', 'band', 'status', 'reserved_at', 'activated_at'])]
+#[Fillable(['frequency', 'label', 'slug', 'band', 'status', 'price_cents', 'reserved_at', 'activated_at'])]
 class Frequency extends Model
 {
     /** @use HasFactory<FrequencyFactory> */
@@ -26,6 +26,7 @@ class Frequency extends Model
         return [
             'frequency' => 'decimal:2',
             'status' => FrequencyStatus::class,
+            'price_cents' => 'integer',
             'reserved_at' => 'datetime',
             'activated_at' => 'datetime',
         ];
@@ -75,9 +76,28 @@ class Frequency extends Model
         return $this->status === FrequencyStatus::Available;
     }
 
+    /** Reserved by the platform with a price: anyone can request it and pays on approval. */
+    public function isPriced(): bool
+    {
+        return $this->status === FrequencyStatus::Reserved && $this->price_cents !== null;
+    }
+
+    /** Free ones and priced ones: what "Obtén tu frecuencia" offers. */
+    public function isRequestable(): bool
+    {
+        return $this->isAvailable() || $this->isPriced();
+    }
+
     public function scopeAvailable(Builder $query): void
     {
         $query->where('status', FrequencyStatus::Available->value);
+    }
+
+    public function scopeRequestable(Builder $query): void
+    {
+        $query->where(fn (Builder $query) => $query
+            ->where('status', FrequencyStatus::Available->value)
+            ->orWhere(fn (Builder $query) => $query->where('status', FrequencyStatus::Reserved->value)->whereNotNull('price_cents')));
     }
 
     public function scopeOnDial(Builder $query): void

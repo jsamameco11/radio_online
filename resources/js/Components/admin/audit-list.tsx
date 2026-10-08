@@ -52,6 +52,10 @@ const ACTION_LABELS: Record<string, string> = {
   "chat.muted": "Silenció a un oyente en el chat",
   "chat.unmuted": "Quitó el silencio a un oyente en el chat",
   "platform.settings_updated": "Cambió la configuración de la plataforma",
+  "integrity.accounts_flagged": "Marcó cuentas como granja de bots",
+  "integrity.account_unflagged": "Quitó la marca de granja de bots a una cuenta",
+  "integrity.alert_purged": "Depuró una alerta de integridad",
+  "integrity.alert_dismissed": "Descartó una alerta de integridad",
 };
 
 export function actionLabel(action: string): string {

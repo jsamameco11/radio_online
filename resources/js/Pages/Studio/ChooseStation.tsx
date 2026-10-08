@@ -39,7 +39,7 @@ export default function ChooseStation({ stations, createUrl }: Props) {
         <div className="space-y-2">
           <p className="text-xs font-semibold tracking-[0.2em] text-signal uppercase">Hola, {firstName}</p>
           <h1 className="font-display text-3xl font-semibold sm:text-4xl">¿A qué estudio entras hoy?</h1>
-          <p className="max-w-xl text-muted">Cada emisora tiene su propia consola en vivo, programación, biblioteca, chat y ganancias.</p>
+          <p className="max-w-xl text-muted">Cada canal tiene su propia consola en vivo, programación, biblioteca, chat y ganancias.</p>
         </div>
 
         {stations.length === 0 ? (
@@ -48,11 +48,11 @@ export default function ChooseStation({ stations, createUrl }: Props) {
               <Mic2 className="size-6" />
             </span>
             <div className="space-y-2">
-              <h2 className="font-display text-xl font-semibold">Todavía no formas parte de ninguna emisora</h2>
-              <p className="max-w-md text-sm text-muted">Solicita tu propia frecuencia o pide al equipo de una radio que te invite: su estudio aparecerá aquí.</p>
+              <h2 className="font-display text-xl font-semibold">Todavía no formas parte de ningún canal</h2>
+              <p className="max-w-md text-sm text-muted">Solicita tu propio canal o pide al equipo de uno que te invite: su estudio aparecerá aquí.</p>
             </div>
             <a href={createUrl} className={buttonClasses("primary")}>
-              <Mic2 className="size-4" /> Obtén tu frecuencia
+              <Mic2 className="size-4" /> Obtén tu canal
             </a>
           </section>
         ) : (

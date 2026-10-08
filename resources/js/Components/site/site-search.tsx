@@ -30,8 +30,8 @@ export function SiteSearch({ className, autoFocus = false }: { className?: strin
         name="q"
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        placeholder="Radio, 89.3, #hashtag o categoría"
-        aria-label="Buscar radios"
+        placeholder="Canal, 89.3, #hashtag o categoría"
+        aria-label="Buscar canales"
         autoFocus={autoFocus}
         maxLength={80}
         className="h-10 w-full rounded-full border border-line bg-raised pr-4 pl-10 text-sm text-ink placeholder:text-faint transition focus:border-ink focus:bg-surface focus:outline-none"

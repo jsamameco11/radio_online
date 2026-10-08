@@ -2,6 +2,7 @@
 
 namespace App\Domain\Stations\Analytics;
 
+use App\Domain\Integrity\Enums\FollowStatus;
 use App\Domain\Storage\MediaStorage;
 use App\Models\ListenerSession;
 use App\Models\Station;
@@ -36,7 +37,8 @@ final class StationAnalytics
             'listeners' => (int) $totals->listeners,
             'hours' => round($seconds / 3600, 1),
             'average_minutes' => $sessions > 0 ? round($seconds / $sessions / 60, 1) : 0,
-            'new_followers' => DB::table('follows')->where('station_id', $station->id)->where('created_at', '>=', $from)->count(),
+            'new_followers' => $this->follows($station)->where('created_at', '>=', $from)->count(),
+            'pending_followers' => DB::table('follows')->where('station_id', $station->id)->where('status', FollowStatus::Pending->value)->count(),
             'peak_listeners' => (int) StreamSession::acrossStations()->where('station_id', $station->id)->where('started_at', '>=', $from)->max('peak_listeners'),
             'listeners_now' => $station->listener_count,
             'followers' => $station->follower_count,
@@ -118,7 +120,7 @@ final class StationAnalytics
      */
     public function followerGrowth(Station $station, CarbonImmutable $from): array
     {
-        $follows = DB::table('follows')->where('station_id', $station->id);
+        $follows = $this->follows($station);
         $total = (clone $follows)->where('created_at', '<', $from)->count();
 
         $rows = (clone $follows)
@@ -147,6 +149,7 @@ final class StationAnalytics
             ->where('station_id', $station->id)
             ->where('started_at', '>=', $from)
             ->whereNotNull('user_id')
+            ->where('suspect', false)
             ->selectRaw('user_id, count(*) as sessions, coalesce(sum(seconds), 0) as seconds')
             ->groupBy('user_id');
 
@@ -154,6 +157,7 @@ final class StationAnalytics
             ->join('users', 'users.id', '=', 'follows.user_id')
             ->leftJoinSub($listening, 'listening', 'listening.user_id', '=', 'follows.user_id')
             ->where('follows.station_id', $station->id)
+            ->where('follows.status', FollowStatus::Counted->value)
             ->select('users.id', 'users.name', 'users.avatar_path', 'follows.created_at as followed_at')
             ->selectRaw('coalesce(listening.seconds, 0) as seconds, coalesce(listening.sessions, 0) as sessions')
             ->orderByRaw('coalesce(listening.seconds, 0) desc')
@@ -196,6 +200,12 @@ final class StationAnalytics
 
     private function sessions(Station $station, CarbonImmutable $from): Builder
     {
-        return ListenerSession::query()->toBase()->where('station_id', $station->id)->where('started_at', '>=', $from);
+        return ListenerSession::query()->toBase()->where('station_id', $station->id)->where('started_at', '>=', $from)->where('suspect', false);
+    }
+
+    /** The subscriptions that count. */
+    private function follows(Station $station): Builder
+    {
+        return DB::table('follows')->where('station_id', $station->id)->where('status', FollowStatus::Counted->value);
     }
 }

@@ -26,6 +26,18 @@ final class PaymentGateways
         return $this->named($payment->provider);
     }
 
+    /** Cards on file go through the same providers as top-ups. */
+    public function cards(?string $name = null): CardGateway
+    {
+        $gateway = $this->named($name ?? (string) config('platform.payments.driver'));
+
+        if (! $gateway instanceof CardGateway) {
+            throw new InvalidArgumentException("Payment gateway [{$gateway->name()}] cannot keep cards on file.");
+        }
+
+        return $gateway;
+    }
+
     public function named(string $name): PaymentGateway
     {
         return match ($name) {

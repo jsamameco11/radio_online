@@ -1,10 +1,11 @@
-import { Camera, Headphones, Heart, Mic2, TrendingUp } from "lucide-react";
+import { Link } from "@inertiajs/react";
+import { Camera, Headphones, Heart, Mic2, Tag, TrendingUp } from "lucide-react";
 import type { ReactNode } from "react";
 import { ListenButton, usePlayer } from "@/Components/player";
 import { Equalizer, FrequencyTitle, StreamStatusBadge } from "@/Components/station/station-identity";
 import { StoryLogo } from "@/Components/stories/story-logo";
 import { buttonClasses } from "@/Components/ui/button";
-import { count } from "@/lib/format";
+import { count, money } from "@/lib/format";
 import type { StationContext } from "@/types/site";
 import { HashtagChip } from "./hashtag-chip";
 import { FollowButton, ReportButton, ShareButton } from "./station-actions";
@@ -57,6 +58,17 @@ export function StationHero({ context, peak, extra }: { context: StationContext;
           </h1>
           {station.tagline && <p className="text-lg text-muted">{station.tagline}</p>}
         </div>
+        {context.forSale && (
+          <Link
+            href={context.forSale.url}
+            className="flex flex-wrap items-center gap-3 rounded-2xl border border-gold/40 bg-gold-soft px-4 py-3 transition-colors hover:border-gold"
+          >
+            <Tag className="size-4 text-gold" aria-hidden />
+            <span className="text-xs font-bold tracking-[0.14em] text-gold uppercase">En venta</span>
+            <span className="font-medium text-ink">Esta radio y su frecuencia se venden por {money(context.forSale.price_cents, context.forSale.currency)}</span>
+            <span className="ml-auto text-sm font-semibold text-gold">Ver la oferta →</span>
+          </Link>
+        )}
         <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
           <div className="flex items-center gap-1.5">
             {tunedHere ? <Equalizer className="text-signal" /> : <Headphones className="size-4" />}

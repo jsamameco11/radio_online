@@ -1,5 +1,5 @@
 import { useForm } from "@inertiajs/react";
-import { ArrowLeft, ArrowRight, Building2, Lock, Pencil, Save, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, CreditCard, Lock, Pencil, Save, Send, Trash2 } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ApplicationForm, Errors } from "@/Components/applications/application-form";
@@ -10,6 +10,7 @@ import { FileDrop } from "@/Components/applications/file-drop";
 import { WizardProgress } from "@/Components/applications/wizard-progress";
 import { CategoryPicker } from "@/Components/forms/category-picker";
 import { fieldError } from "@/Components/forms/field-error";
+import { PoliciesLink } from "@/Components/legal/platform-policies";
 import type { FreeFrequency } from "@/Components/site/frequency-picker";
 import { FrequencyPicker } from "@/Components/site/frequency-picker";
 import { ProgressBar } from "@/Components/studio/upload/progress-bar";
@@ -17,7 +18,7 @@ import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 import { Checkbox, Field, Input, Select, Switch, Textarea } from "@/Components/ui/field";
 import { cn } from "@/lib/cn";
-import { bytes, dateTime } from "@/lib/format";
+import { bytes, dateTime, money } from "@/lib/format";
 import type { ApplicationLimits, ApplicationOptions } from "@/types/applications";
 import type { CategoryGroup, DialBand } from "@/types/site";
 
@@ -84,7 +85,7 @@ function Item({ label, value, wide = false }: { label: string; value: ReactNode;
   );
 }
 
-/** "Obtén tu frecuencia" in five steps: the person in charge, documents, the station, its content and a final review. */
+/** "Obtén tu canal" in five steps: the person in charge, documents, the channel, its content and a final review. */
 export function ApplicationWizard({ frequencies, band, categories, maxCategories, options, limits, preselected, draftKey }: ApplicationWizardProps) {
   const context = { limits, options, maxCategories };
   const preselectedId = frequencies.find((frequency) => frequency.slug === preselected)?.id ?? null;
@@ -261,7 +262,7 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
             </Field>
           </Section>
 
-          <Section title="Formación y experiencia" description="Nos ayuda a conocer a quien estará al frente de la radio.">
+          <Section title="Formación y experiencia" description="Nos ayuda a conocer a quien estará al frente del canal.">
             <Field label="Profesión u ocupación" error={error("occupation")}>
               {(id, invalid) => <Input id={id} invalid={invalid} value={data.occupation} onChange={text("occupation")} maxLength={100} placeholder="Comunicador, docente, músico…" />}
             </Field>
@@ -283,7 +284,7 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
             <Field label="Carrera o especialidad" hint="Opcional." error={error("field_of_study")}>
               {(id, invalid) => <Input id={id} invalid={invalid} value={data.field_of_study} onChange={text("field_of_study")} maxLength={150} />}
             </Field>
-            <Field label="Años de experiencia en radio o comunicación" error={error("experience_years")}>
+            <Field label="Años de experiencia en comunicación o streaming" error={error("experience_years")}>
               {(id, invalid) => <Input id={id} invalid={invalid} type="number" min={0} max={60} value={data.experience_years} onChange={text("experience_years")} className="max-w-32 tabular" />}
             </Field>
             <Field
@@ -388,10 +389,10 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
 
       {step === 2 && (
         <div className="space-y-8">
-          <Field label="Nombre de la radio" error={error("station_name")} hint="Así aparecerá junto a tu frecuencia.">
+          <Field label="Nombre del canal" error={error("station_name")} hint="Así aparecerá junto al número de tu canal.">
             {(id, invalid) => <Input id={id} invalid={invalid} value={data.station_name} onChange={text("station_name")} maxLength={80} placeholder="Radio Aurora" />}
           </Field>
-          <Field label="Frecuencia" error={error("frequency_id")} hint={`${frequencies.length} frecuencias libres ahora mismo. Queda libre hasta que aprobemos tu solicitud.`}>
+          <Field label="Canal" error={error("frequency_id")} hint={`${frequencies.length} canales libres ahora mismo. Queda libre hasta que aprobemos tu solicitud.`}>
             {(_, invalid) => <FrequencyPicker frequencies={frequencies} band={band} value={data.frequency_id} onChange={(id) => patch({ frequency_id: id })} invalid={invalid} />}
           </Field>
           <Field label={`Categorías (hasta ${maxCategories})`} error={error("category_ids")}>
@@ -434,7 +435,7 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
             {(_, invalid) => <ChoiceChips label="Tipos de contenido" options={options.contentTypes} value={data.content_types} onChange={(value) => patch({ content_types: value })} invalid={invalid} />}
           </Field>
           <Field
-            label="¿Para qué quieres tu radio?"
+            label="¿Para qué quieres tu canal?"
             error={error("purpose")}
             hint={
               <span className="flex justify-between gap-3">
@@ -445,7 +446,7 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
           >
             {(id, invalid) => <Textarea id={id} invalid={invalid} rows={6} maxLength={limits.purposeMax} value={data.purpose} onChange={text("purpose")} />}
           </Field>
-          <Section title="¿A quién te diriges?" description="Define a tu audiencia: nos ayuda a evaluar tu propuesta y a recomendar tu radio a quien le interesa.">
+          <Section title="¿A quién te diriges?" description="Define a tu audiencia: nos ayuda a evaluar tu propuesta y a recomendar tu canal a quien le interesa.">
             <Field label="Edades" hint="Elige todos los rangos que apliquen." error={error("audience_ages")} className="sm:col-span-2">
               {(_, invalid) => (
                 <ChoiceChips label="Rangos de edad" options={options.audienceAges} value={data.audience_ages} onChange={(value) => patch({ audience_ages: pickAges(data.audience_ages, value) })} invalid={invalid} />
@@ -536,9 +537,9 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
               </ul>
             </div>
           </Summary>
-          <Summary title="Tu radio" onEdit={() => go(2)}>
+          <Summary title="Tu canal" onEdit={() => go(2)}>
             <Item label="Nombre" value={data.station_name} />
-            <Item label="Frecuencia" value={frequency ? `${frequency.label} ${band.name}` : ""} />
+            <Item label="Canal" value={frequency ? `${frequency.label} ${band.name}${frequency.price_cents !== null ? ` · premium ${money(frequency.price_cents)}` : ""}` : ""} />
             <Item
               label="Categorías"
               value={
@@ -561,7 +562,7 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
           <Summary title="Contenido y propósito" onEdit={() => go(3)}>
             <Item label="Contenido" value={data.content_types.map((type) => label(options.contentTypes, type)).join(", ")} />
             <Item label="Emisión" value={[data.hours_per_week && `${data.hours_per_week} h por semana`, data.broadcast_days.map((day) => label(options.weekdays, day)).join(", "), schedule].filter(Boolean).join(" · ")} />
-            <Item label="Para qué quieres tu radio" value={data.purpose} wide />
+            <Item label="Para qué quieres tu canal" value={data.purpose} wide />
             <Item label="Edades" value={data.audience_ages.map((age) => label(options.audienceAges, age)).join(", ")} wide />
             <Item
               label="Público"
@@ -583,16 +584,30 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
             />
           </Summary>
 
+          {frequency && frequency.price_cents !== null && (
+            <div className="flex gap-3 rounded-2xl border border-gold/30 bg-gold-soft p-5">
+              <CreditCard className="mt-0.5 size-5 shrink-0 text-gold" aria-hidden />
+              <div className="space-y-1 text-sm">
+                <p className="font-semibold text-ink">
+                  {frequency.label} {band.name} es un canal premium de {money(frequency.price_cents)}
+                </p>
+                <p className="text-muted">
+                  Al enviar la solicitud registrarás tu tarjeta en la pasarela segura de Culqi. No te cobramos nada ahora: el cobro se hace solo si aprobamos tu solicitud, y en ese momento se abre tu canal. Si la rechazamos o la cancelas, eliminamos tu tarjeta.
+                </p>
+              </div>
+            </div>
+          )}
+
           <fieldset className="space-y-4 rounded-2xl border border-line bg-raised p-5">
             <legend className="sr-only">Declaraciones y consentimiento</legend>
             <details className="text-sm text-muted">
               <summary className="cursor-pointer font-medium text-ink">Términos de la solicitud y tratamiento de datos personales</summary>
               <div className="mt-3 space-y-2">
                 <p>
-                  Tu solicitud no garantiza la asignación de una frecuencia. El equipo de la plataforma evalúa cada expediente y puede pedirte información adicional, aprobarlo o rechazarlo con una nota.
+                  Tu solicitud no garantiza la asignación de un canal. El equipo de la plataforma evalúa cada expediente y puede pedirte información adicional, aprobarlo o rechazarlo con una nota.
                 </p>
                 <p>
-                  Conforme a la Ley N.º 29733, Ley de Protección de Datos Personales, y su reglamento, tus datos y documentos se usan solo para verificar tu identidad, evaluar la solicitud y administrar la radio si es aprobada. Se guardan en un almacenamiento
+                  Conforme a la Ley N.º 29733, Ley de Protección de Datos Personales, y su reglamento, tus datos y documentos se usan solo para verificar tu identidad, evaluar la solicitud y administrar el canal si es aprobado. Se guardan en un almacenamiento
                   privado al que accede únicamente el personal autorizado y no se comparten con terceros salvo obligación legal.
                 </p>
                 <p>
@@ -616,6 +631,32 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
                 )}
               </div>
             ))}
+            <div className="space-y-1">
+              <div className="flex items-start gap-2.5 text-sm text-ink">
+                <input
+                  id="accept_broadcast_policy"
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 rounded border-line-strong accent-[var(--ink)]"
+                  checked={data.accept_broadcast_policy}
+                  onChange={(event) => patch({ accept_broadcast_policy: event.target.checked })}
+                  aria-invalid={Boolean(errors.accept_broadcast_policy) || undefined}
+                />
+                <p>
+                  <label htmlFor="accept_broadcast_policy" className="cursor-pointer">
+                    Acepto las
+                  </label>{" "}
+                  <PoliciesLink>políticas de trabajo, privacidad y derechos de autor</PoliciesLink>
+                  <label htmlFor="accept_broadcast_policy" className="cursor-pointer">
+                    . Como empresa de canales, no nos hacemos responsables de la música, los audios ni las licencias que requiera lo que emita cada administrador.
+                  </label>
+                </p>
+              </div>
+              {errors.accept_broadcast_policy && (
+                <p className="pl-6.5 text-xs text-danger" role="alert">
+                  {errors.accept_broadcast_policy}
+                </p>
+              )}
+            </div>
           </fieldset>
         </div>
       )}
@@ -650,7 +691,7 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
             </Button>
           ) : (
             <Button type="submit" variant="signal" loading={form.processing} icon={<Send className="size-4" />}>
-              Enviar solicitud
+              {frequency?.price_cents != null ? "Enviar y registrar tarjeta" : "Enviar solicitud"}
             </Button>
           )}
         </div>

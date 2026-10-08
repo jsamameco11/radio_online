@@ -2,13 +2,28 @@
 
 namespace App\Domain\Monetization\Enums;
 
-/** Where the platform sends the money of a withdrawal. */
+/** Where the platform sends money it owes: a withdrawal or the payout of a station sale. */
 enum PayoutMethod: string
 {
     case BankTransfer = 'bank_transfer';
     case Yape = 'yape';
     case Plin = 'plin';
     case PayPal = 'paypal';
+
+    /**
+     * Every method as the payout forms render it.
+     *
+     * @return list<array{value: string, label: string, account_label: string, needs_bank: bool}>
+     */
+    public static function options(): array
+    {
+        return array_map(fn (self $method) => [
+            'value' => $method->value,
+            'label' => $method->label(),
+            'account_label' => $method->accountLabel(),
+            'needs_bank' => $method->needsBank(),
+        ], self::cases());
+    }
 
     public function label(): string
     {

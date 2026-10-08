@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Account;
 
 use App\Domain\Access\Actions\UpdateProfile;
+use App\Domain\Frequencies\Enums\FrequencyRequestStatus;
 use App\Domain\Storage\MediaStorage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Account\UpdateProfileRequest;
+use App\Http\Resources\Site\FrequencyRequestResource;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -27,6 +29,14 @@ class ProfileController extends Controller
                 'member_since' => $user->created_at->toIso8601String(),
             ],
             'resendVerificationUrl' => route('verification.send', absolute: false),
+            'frequencyPayments' => FrequencyRequestResource::collection(
+                $user->frequencyRequests()
+                    ->whereIn('status', [FrequencyRequestStatus::Pending->value, FrequencyRequestStatus::AwaitingPayment->value])
+                    ->whereHas('payment')
+                    ->with(['frequency', 'payment'])
+                    ->latest()
+                    ->get(),
+            )->resolve($request),
         ]);
     }
 

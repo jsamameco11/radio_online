@@ -38,6 +38,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'status' => UserStatus::class,
             'suspended_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'flagged_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
         ];
     }
@@ -88,6 +89,12 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isSuspended(): bool
     {
         return $this->status === UserStatus::Suspended;
+    }
+
+    /** Marked by the staff as part of a bot farm: its subscriptions and plays never count. */
+    public function isFlagged(): bool
+    {
+        return $this->flagged_at !== null;
     }
 
     public function isSuperAdmin(): bool

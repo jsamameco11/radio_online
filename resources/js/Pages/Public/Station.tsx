@@ -48,7 +48,7 @@ function NowOnAir({ station }: { station: StationData }) {
   return (
     <Panel title="Sonando ahora">
       <div className="space-y-2 text-sm">
-        <p className="font-medium text-ink">{live ? (liveTitle ?? "Transmisión en vivo") : (nowPlaying?.title ?? "Programación de la radio")}</p>
+        <p className="font-medium text-ink">{live ? (liveTitle ?? "Transmisión en vivo") : (nowPlaying?.title ?? "Programación del canal")}</p>
         {!live && nowPlaying?.artist && <p className="text-muted">{nowPlaying.artist}</p>}
         {next && <p className="text-xs text-faint">Después: {next.title}</p>}
       </div>
@@ -92,9 +92,9 @@ export default function Station({ about, episodes, programs, program, related, c
               </nav>
             )}
             {episodes.total === 0 && program ? (
-              <EmptyState icon={<Podcast className="size-6" />} title="Sin episodios de este programa" description="Elige otro programa o mira todos los episodios de la radio." />
+              <EmptyState icon={<Podcast className="size-6" />} title="Sin episodios de este programa" description="Elige otro programa o mira todos los episodios del canal." />
             ) : episodes.total === 0 ? (
-              <EmptyState icon={<Podcast className="size-6" />} title="Todavía no hay episodios" description="Cuando la radio publique sus programas grabados, podrás escucharlos aquí cuando quieras." />
+              <EmptyState icon={<Podcast className="size-6" />} title="Todavía no hay episodios" description="Cuando el canal publique sus programas grabados, podrás escucharlos aquí cuando quieras." />
             ) : (
               <>
                 {latest && (
@@ -119,9 +119,9 @@ export default function Station({ about, episodes, programs, program, related, c
           <aside className={cn("space-y-4", chat.open && "order-first lg:order-none")}>
             <LiveChat key={station.id} station={station} initial={chat} reportReasons={context.reportReasons} />
             <NowOnAir station={station} />
-            <Panel title="Acerca de la radio">
+            <Panel title="Acerca del canal">
               <div className="space-y-4 text-sm">
-                {about.description ? <p className="whitespace-pre-line text-muted">{about.description}</p> : <p className="text-faint">Esta radio aún no tiene descripción.</p>}
+                {about.description ? <p className="whitespace-pre-line text-muted">{about.description}</p> : <p className="text-faint">Este canal aún no tiene descripción.</p>}
                 {station.categories && station.categories.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {station.categories.map((category) => (

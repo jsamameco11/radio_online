@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources\Admin;
 
-use App\Domain\Frequencies\Enums\FrequencyRequestStatus;
 use App\Domain\Frequencies\Enums\FrequencyStatus;
+use App\Http\Resources\FrequencyPaymentResource;
 use App\Models\Category;
 use App\Models\FrequencyRequest;
 use Illuminate\Http\Request;
@@ -11,7 +11,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * A frequency request as reviewers and station teams see it. Eager load
- * "user", "frequency.station", "reviewer" and "station.frequency"; attach the
+ * "user", "frequency.station", "reviewer" and "station.frequency" (and
+ * "payment" to show the price of priced frequencies); attach the
  * requested categories with ::attachCategories().
  *
  * @mixin FrequencyRequest
@@ -56,7 +57,8 @@ class FrequencyRequestResource extends JsonResource
                 'status' => $this->frequency->status->value,
                 'status_label' => $this->frequency->status->label(),
             ],
-            'conflict' => $this->status === FrequencyRequestStatus::Pending && ! $frequencyFree,
+            'conflict' => $this->status->isOpen() && ! $frequencyFree,
+            'payment' => $this->whenLoaded('payment', fn () => $this->payment === null ? null : FrequencyPaymentResource::make($this->payment)->resolve($request)),
             'station_name' => $this->station_name,
             'pitch' => $this->pitch,
             'categories' => $this->whenLoaded('categories', fn () => $this->getRelation('categories')->map(fn (Category $category) => $category->name)->all(), []),

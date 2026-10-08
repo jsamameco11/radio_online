@@ -22,14 +22,14 @@ export default function Explore({ stations, filters, categories, sorts }: Explor
       <div className="space-y-6">
         <PageHeader
           eyebrow="Explorar"
-          title="Todas las radios del dial"
-          description={`${count(stations.total)} ${stations.total === 1 ? "radio encontrada" : "radios encontradas"}. Filtra por estilo, por tema o solo lo que está al aire.`}
+          title="Todos los canales"
+          description={`${count(stations.total)} ${stations.total === 1 ? "canal encontrado" : "canales encontrados"}. Filtra por estilo, por tema o solo lo que está al aire.`}
         />
         <StationFilterBar url="/explorar" filters={filters} sorts={sorts} categories={categories} />
         {stations.data.length > 0 ? (
           <StationGrid stations={stations.data} />
         ) : (
-          <EmptyState icon={<Compass className="size-6" />} title="No encontramos radios con esos filtros" description="Prueba con otra categoría, quita el hashtag o incluye las radios fuera del aire." />
+          <EmptyState icon={<Compass className="size-6" />} title="No encontramos canales con esos filtros" description="Prueba con otra categoría, quita el hashtag o incluye los canales fuera del aire." />
         )}
         <Pagination page={stations} />
       </div>

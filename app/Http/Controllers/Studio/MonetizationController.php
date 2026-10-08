@@ -56,12 +56,7 @@ class MonetizationController extends Controller
                 ->through(fn (WithdrawalRequest $withdrawal) => WithdrawalRequestResource::make($withdrawal)->resolve($request)),
             'withdrawalInProcess' => WithdrawalRequest::query()->where('status', WithdrawalStatus::Pending->value)->exists(),
             'minWithdrawalCents' => (int) config('platform.monetization.min_withdrawal_cents'),
-            'methods' => collect(PayoutMethod::cases())->map(fn (PayoutMethod $method) => [
-                'value' => $method->value,
-                'label' => $method->label(),
-                'account_label' => $method->accountLabel(),
-                'needs_bank' => $method->needsBank(),
-            ])->all(),
+            'methods' => PayoutMethod::options(),
             'canAct' => $request->user()->canInStation($station, StationPermission::WithdrawEarnings),
         ]);
     }

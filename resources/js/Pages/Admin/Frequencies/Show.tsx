@@ -1,6 +1,6 @@
 import { Link, router, useForm } from "@inertiajs/react";
-import { ArrowLeft, Lock, Radio, Unlock, Wrench } from "lucide-react";
-import type { FormEvent } from "react";
+import { ArrowLeft, Lock, Radio, Tag, Unlock, Wrench } from "lucide-react";
+import type { FormEvent, ReactNode } from "react";
 import { useState } from "react";
 import { AuditList } from "@/Components/admin/audit-list";
 import { frequencyTones } from "@/Components/admin/status-tones";
@@ -16,7 +16,8 @@ import { PageHeader } from "@/Components/ui/page-header";
 import { Panel } from "@/Components/ui/panel";
 import AdminLayout from "@/Layouts/AdminLayout";
 import { useAppUrl } from "@/lib/app-url";
-import { count, dateTime, rating } from "@/lib/format";
+import { cn } from "@/lib/cn";
+import { count, dateTime, money, rating } from "@/lib/format";
 import type { AuditEntry, FrequencyRequestRow, FrequencyStatusValue, StationRow } from "@/types/admin";
 import type { CategoryGroupOption } from "@/types/station-admin";
 
@@ -30,6 +31,7 @@ interface Props {
     mhz: number;
     status: FrequencyStatusValue;
     status_label: string;
+    price_cents: number | null;
     reserved_at: string | null;
     activated_at: string | null;
     created_at: string | null;
@@ -40,13 +42,22 @@ interface Props {
   history: AuditEntry[];
   categories: { id: number; name: string; group: string; group_label: string }[];
   maxCategories: number;
+  onSale: boolean;
+  pricing: Pricing;
   can: { assign: boolean; release: boolean; enterStudio: boolean };
 }
 
-export default function FrequencyShow({ frequency, station, closedStations, requests, history, categories, maxCategories, can }: Props) {
+interface Pricing {
+  minPriceCents: number;
+  maxPriceCents: number;
+  processorFeePercent: number;
+}
+
+export default function FrequencyShow({ frequency, station, closedStations, requests, history, categories, maxCategories, onSale, pricing, can }: Props) {
   const appUrl = useAppUrl();
   const [assigning, setAssigning] = useState(false);
   const [reserving, setReserving] = useState(false);
+  const [pricingOpen, setPricingOpen] = useState(false);
   const free = station === null;
   const url = `/admin/frecuencias/${frequency.slug}`;
 
@@ -66,6 +77,11 @@ export default function FrequencyShow({ frequency, station, closedStations, requ
           description={
             <span className="flex flex-wrap items-center gap-2">
               <Badge tone={frequencyTones[frequency.status]}>{frequency.status_label}</Badge>
+              {frequency.price_cents !== null && (
+                <Badge tone="gold" className="tabular">
+                  <Tag className="size-3" /> Se solicita pagando {money(frequency.price_cents)}
+                </Badge>
+              )}
               {frequency.reserved_at && <span>Reservada el {dateTime(frequency.reserved_at)}</span>}
               {frequency.activated_at && <span>Activa desde el {dateTime(frequency.activated_at)}</span>}
             </span>
@@ -75,6 +91,11 @@ export default function FrequencyShow({ frequency, station, closedStations, requ
               {can.assign && free && frequency.status === "available" && (
                 <Button variant="secondary" icon={<Lock className="size-4" />} onClick={() => setReserving(true)}>
                   Reservar
+                </Button>
+              )}
+              {can.assign && free && frequency.status === "reserved" && !onSale && (
+                <Button variant="secondary" icon={<Tag className="size-4" />} onClick={() => setPricingOpen(true)}>
+                  {frequency.price_cents === null ? "Ponerle precio" : "Cambiar precio"}
                 </Button>
               )}
               {can.assign && free && ["available", "reserved"].includes(frequency.status) && (
@@ -100,7 +121,7 @@ export default function FrequencyShow({ frequency, station, closedStations, requ
           }
         />
 
-        {!assigning && !reserving && <PageErrors />}
+        {!assigning && !reserving && !pricingOpen && <PageErrors />}
 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
@@ -156,7 +177,14 @@ export default function FrequencyShow({ frequency, station, closedStations, requ
                           {item.kind_label} · {item.user.name} · {dateTime(item.created_at, { dateStyle: "medium" })}
                         </span>
                       </span>
-                      <Badge tone={item.status === "approved" ? "onair" : item.status === "pending" ? "warning" : "neutral"}>{item.status_label}</Badge>
+                      <span className="flex flex-wrap items-center justify-end gap-1.5">
+                        {item.payment && (
+                          <Badge tone={item.payment.status.value === "paid" ? "onair" : item.payment.needs_attention ? "danger" : "gold"} className="tabular">
+                            {item.payment.amount} · {item.payment.status.label}
+                          </Badge>
+                        )}
+                        <Badge tone={item.status === "approved" ? "onair" : item.status === "pending" || item.status === "awaiting_payment" ? "warning" : "neutral"}>{item.status_label}</Badge>
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -185,14 +213,21 @@ export default function FrequencyShow({ frequency, station, closedStations, requ
         </div>
       </div>
 
-      <ReserveModal open={reserving} onClose={() => setReserving(false)} url={`${url}/reservar`} display={frequency.display} />
+      <ReserveModal open={reserving} onClose={() => setReserving(false)} url={`${url}/reservar`} display={frequency.display} pricing={pricing} />
+      {pricingOpen && <PriceModal onClose={() => setPricingOpen(false)} url={`${url}/precio`} display={frequency.display} priceCents={frequency.price_cents} pricing={pricing} />}
       <AssignModal open={assigning} onClose={() => setAssigning(false)} url={`${url}/asignar`} display={frequency.display} categories={categories} maxCategories={maxCategories} />
     </AdminLayout>
   );
 }
 
-function ReserveModal({ open, onClose, url, display }: { open: boolean; onClose: () => void; url: string; display: string }) {
-  const form = useForm({ note: "" });
+const toCents = (price: string) => (price.trim() === "" ? null : Math.round(Number(price.replace(",", ".")) * 100));
+
+function ReserveModal({ open, onClose, url, display, pricing }: { open: boolean; onClose: () => void; url: string; display: string; pricing: Pricing }) {
+  const form = useForm({ note: "", priced: false, price: "" });
+  const errors: Partial<Record<string, string>> = form.errors;
+
+  form.transform(({ note, priced, price }) => ({ note: note.trim() || null, price_cents: priced ? toCents(price) : null }));
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
     form.post(url, { preserveScroll: true, onSuccess: () => (form.reset(), onClose()) });
@@ -203,22 +238,136 @@ function ReserveModal({ open, onClose, url, display }: { open: boolean; onClose:
       open={open}
       onClose={onClose}
       title={`Reservar ${display}`}
-      description="Nadie podrá pedirla mientras esté reservada."
+      description={form.data.priced ? "Cualquiera podrá solicitarlo desde “Obtén tu canal”, pagando este precio solo si apruebas su solicitud." : "Nadie podrá pedirlo mientras esté reservado."}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
-          <Button type="submit" form="reserve-frequency" loading={form.processing}>
-            Reservar
+          <Button type="submit" form="reserve-frequency" loading={form.processing} icon={form.data.priced ? <Tag className="size-4" /> : <Lock className="size-4" />}>
+            {form.data.priced ? "Reservar con precio" : "Reservar"}
           </Button>
         </>
       }
     >
-      <form id="reserve-frequency" onSubmit={submit}>
-        <Field label="Nota interna" hint="Opcional: para quién o por qué se reserva." error={form.errors.note}>
+      <form id="reserve-frequency" onSubmit={submit} className="space-y-4">
+        <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Tipo de reserva">
+          <ReserveOption active={!form.data.priced} onClick={() => form.setData("priced", false)} icon={<Lock className="size-4" />} title="Solo reservar" text="Nadie puede pedirla. Úsala para asignarla tú." />
+          <ReserveOption
+            active={form.data.priced}
+            onClick={() => form.setData("priced", true)}
+            icon={<Tag className="size-4" />}
+            title="Reservar con precio"
+            text="Se solicita con el formulario y se cobra al aprobar."
+          />
+        </div>
+        {form.data.priced && <PriceField value={form.data.price} onChange={(value) => form.setData("price", value)} error={errors.price_cents} pricing={pricing} autoFocus />}
+        <Field label="Nota interna" hint="Opcional: para quién o por qué se reserva." error={errors.note}>
           {(id, invalid) => <Textarea id={id} invalid={invalid} rows={3} maxLength={300} value={form.data.note} onChange={(event) => form.setData("note", event.target.value)} />}
         </Field>
+      </form>
+    </Modal>
+  );
+}
+
+function ReserveOption({ active, onClick, icon, title, text }: { active: boolean; onClick: () => void; icon: ReactNode; title: string; text: string }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={active}
+      onClick={onClick}
+      className={cn(
+        "flex flex-col items-start gap-1 rounded-xl p-3 text-left ring-1 transition",
+        active ? "bg-signal-soft ring-2 ring-signal" : "bg-surface ring-line hover:bg-raised",
+      )}
+    >
+      <span className={cn("flex items-center gap-2 text-sm font-semibold", active ? "text-signal" : "text-ink")}>
+        {icon}
+        {title}
+      </span>
+      <span className="text-xs text-muted">{text}</span>
+    </button>
+  );
+}
+
+function PriceField({ value, onChange, error, pricing, autoFocus }: { value: string; onChange: (value: string) => void; error?: string; pricing: Pricing; autoFocus?: boolean }) {
+  const cents = toCents(value) ?? 0;
+  const fee = Math.round((cents * pricing.processorFeePercent) / 100);
+
+  return (
+    <div className="space-y-2">
+      <Field label="Precio (USD)" hint={`Entre ${money(pricing.minPriceCents)} y ${money(pricing.maxPriceCents)}`} error={error}>
+        {(id, invalid) => (
+          <Input
+            id={id}
+            invalid={invalid}
+            type="number"
+            inputMode="decimal"
+            required
+            min={pricing.minPriceCents / 100}
+            max={pricing.maxPriceCents / 100}
+            step="0.01"
+            placeholder={(pricing.minPriceCents / 100).toFixed(2)}
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            className="tabular"
+            autoFocus={autoFocus}
+          />
+        )}
+      </Field>
+      {cents > 0 && (
+        <p className="rounded-xl bg-raised px-3 py-2 text-sm text-muted tabular">
+          Pasarela de pago ({pricing.processorFeePercent}%) − {money(fee)} · Para la plataforma <strong className="text-ink">{money(cents - fee)}</strong>
+        </p>
+      )}
+    </div>
+  );
+}
+
+function PriceModal({ onClose, url, display, priceCents, pricing }: { onClose: () => void; url: string; display: string; priceCents: number | null; pricing: Pricing }) {
+  const form = useForm({ price: priceCents === null ? "" : (priceCents / 100).toFixed(2) });
+  const errors: Partial<Record<string, string>> = form.errors;
+
+  const save = (price: string) => {
+    form.transform(() => ({ price_cents: toCents(price) }));
+    form.post(url, { preserveScroll: true, onSuccess: onClose });
+  };
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    save(form.data.price);
+  };
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={priceCents === null ? `Ponerle precio a ${display}` : `Precio de ${display}`}
+      description="Con precio, cualquiera puede solicitarlo desde “Obtén tu canal”: registra su tarjeta y se le cobra solo si apruebas. Las solicitudes ya enviadas conservan el precio que aceptaron."
+      footer={
+        <>
+          {priceCents !== null && (
+            <Button
+              variant="ghost"
+              className="mr-auto text-danger"
+              disabled={form.processing}
+              onClick={() => confirm(`¿Quitarle el precio a ${display}? Quedará reservada y nadie podrá solicitarla.`) && save("")}
+            >
+              Quitar precio
+            </Button>
+          )}
+          <Button variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="frequency-price" loading={form.processing} icon={<Tag className="size-4" />}>
+            Guardar precio
+          </Button>
+        </>
+      }
+    >
+      <form id="frequency-price" onSubmit={submit}>
+        <PriceField value={form.data.price} onChange={(value) => form.setData("price", value)} error={errors.price_cents} pricing={pricing} autoFocus />
       </form>
     </Modal>
   );

@@ -116,6 +116,50 @@ return [
         'min_withdrawal_cents' => 5000,
     ],
 
+    /*
+    | Audience integrity. A subscription counts once the account is old enough
+    | and has really listened on the platform; until then it is "en verificación".
+    | In the live audience every signed-in listener counts once and guests count
+    | up to guests_per_network players per network (IP), after warmup_seconds of
+    | playing. The scanner looks back window_hours for bot farms and files
+    | alerts for the staff (Admin > Integridad).
+    */
+    'integrity' => [
+        'subscriber_account_hours' => (int) env('INTEGRITY_SUBSCRIBER_ACCOUNT_HOURS', 24),
+        'subscriber_listen_seconds' => (int) env('INTEGRITY_SUBSCRIBER_LISTEN_SECONDS', 120),
+        'follows_per_hour' => 30,
+        'follows_per_day' => 120,
+        'guests_per_network' => (int) env('INTEGRITY_GUESTS_PER_NETWORK', 4),
+        'warmup_seconds' => 20,
+        // New listening sessions one network may open on one station every 10 minutes.
+        'sessions_per_network' => 20,
+        'scan' => [
+            'window_hours' => 24,
+            'cluster_follows' => 8,
+            'wave_follows' => 20,
+            'wave_share_percent' => 60,
+            'fresh_account_days' => 3,
+            'spike_follows' => 30,
+            'spike_factor' => 8,
+            'swarm_sessions' => 60,
+            'automated_sessions' => 15,
+        ],
+    ],
+
+    /*
+    | Frequencies for sale. An owner lists the whole station (frequency, name,
+    | audience and content) at a fixed price; the first verified listener who
+    | pays it from their wallet gets it at once. The platform keeps
+    | fee_percent of the price and pays the rest to the seller.
+    */
+    'marketplace' => [
+        'processor_fee_percent' => (int) env('FREQUENCY_SALE_PROCESSOR_FEE_PERCENT', 5),
+        'fee_percent' => (int) env('FREQUENCY_SALE_FEE_PERCENT', 10),
+        'tax_percent' => (int) env('FREQUENCY_SALE_TAX_PERCENT', 18),
+        'min_price_cents' => (int) env('FREQUENCY_SALE_MIN_PRICE_CENTS', 5000),
+        'max_price_cents' => 100000000,
+    ],
+
     'payments' => [
         // "culqi" in production; "sandbox" simulates an approved card for local development.
         'driver' => env('PAYMENTS_DRIVER', 'sandbox'),

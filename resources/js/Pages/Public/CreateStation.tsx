@@ -3,6 +3,7 @@ import { ArrowUpRight, ClipboardCheck, FileCheck2, Gift, Mic2, RadioTower, Shiel
 import { useState } from "react";
 import { ApplicationInReview } from "@/Components/applications/application-in-review";
 import { ApplicationWizard } from "@/Components/applications/application-wizard";
+import { FrequencyPaymentNotice } from "@/Components/site/frequency-payment-notice";
 import type { FreeFrequency } from "@/Components/site/frequency-picker";
 import { Badge } from "@/Components/ui/badge";
 import type { Tone } from "@/Components/ui/badge";
@@ -29,39 +30,39 @@ interface CreateStationProps {
   preselected: string | null;
 }
 
-const statusTone: Record<FrequencyRequestItem["status"], Tone> = { pending: "warning", approved: "onair", rejected: "danger", cancelled: "neutral" };
+const statusTone: Record<FrequencyRequestItem["status"], Tone> = { pending: "warning", awaiting_payment: "danger", approved: "onair", rejected: "danger", cancelled: "neutral" };
 
 const perks = [
-  { icon: RadioTower, title: "Tu propia frecuencia", text: "Un número fijo en el dial que tus oyentes recordarán, como en la radio de siempre." },
+  { icon: RadioTower, title: "Tu propio canal", text: "Un número fijo que tu audiencia recordará, dentro de una plataforma de streaming." },
   { icon: Mic2, title: "Estudio en el navegador", text: "Consola en vivo, piloto automático, programación, biblioteca y episodios." },
   { icon: Gift, title: "Gana dinero transmitiendo", text: "Tus oyentes te envían regalos durante tus transmisiones y tú retiras lo que ganas." },
 ];
 
 const process = [
-  { icon: ClipboardCheck, title: "Completa tu expediente", text: "Tus datos, documentos y el proyecto de tu radio, en cinco pasos." },
+  { icon: ClipboardCheck, title: "Completa tu expediente", text: "Tus datos, documentos y el proyecto de tu canal, en cinco pasos." },
   { icon: ShieldCheck, title: "Lo revisamos", text: "Verificamos tu identidad y evaluamos tu propuesta." },
-  { icon: FileCheck2, title: "Sales al aire", text: "Si la aprobamos, tu estudio queda listo en tu frecuencia." },
+  { icon: FileCheck2, title: "Sales al aire", text: "Si la aprobamos, tu estudio queda listo en tu canal." },
 ];
 
 export default function CreateStation({ requests, atLimit, myStations, open, ...wizard }: CreateStationProps) {
   const { auth } = usePage<SharedProps>().props;
-  const pending = requests.filter((request) => request.status === "pending");
+  const pending = requests.filter((request) => request.status === "pending" || request.status === "awaiting_payment");
   const inReview = pending[0];
   // The form reopens for one more application; sending it adds a pending request and shows the review again.
   const [againWith, setAgainWith] = useState<number | null>(null);
   const applyingAgain = againWith === pending.length;
 
   return (
-    <SiteLayout title="Obtén tu frecuencia">
+    <SiteLayout title="Obtén tu canal">
       <div className="space-y-10">
         <section className="relative overflow-hidden rounded-[2rem] bg-ink p-8 text-surface sm:p-12">
           <div className="relative max-w-2xl space-y-4">
             <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.18em] text-signal uppercase">
-              <Sparkles className="size-4" /> Obtén tu frecuencia
+              <Sparkles className="size-4" /> Obtén tu canal
             </p>
-            <h1 className="font-display text-4xl leading-tight font-semibold sm:text-5xl">Tu voz merece una frecuencia.</h1>
+            <h1 className="font-display text-4xl leading-tight font-semibold sm:text-5xl">Tu voz merece un canal.</h1>
             <p className="text-surface/70">
-              Cada radio de la plataforma tiene un responsable verificado. Completa tu solicitud con tus datos, tus documentos y el proyecto de tu radio; nuestro equipo la revisará con cuidado.
+              Cada canal de la plataforma tiene un responsable verificado. Completa tu solicitud con tus datos, tus documentos y el proyecto de tu canal; nuestro equipo la revisará con cuidado.
             </p>
           </div>
           <div className="relative mt-8 grid gap-4 sm:grid-cols-3">
@@ -81,10 +82,10 @@ export default function CreateStation({ requests, atLimit, myStations, open, ...
               <ApplicationInReview request={inReview} email={auth.user?.email ?? ""} onApplyAgain={atLimit || !open ? undefined : () => setAgainWith(pending.length)} />
             ) : !open ? (
               <Panel title="Las solicitudes están cerradas por ahora">
-                <p className="text-sm text-muted">Estamos preparando nuevas frecuencias. Vuelve pronto para enviar tu solicitud.</p>
+                <p className="text-sm text-muted">Estamos preparando nuevos canales. Vuelve pronto para enviar tu solicitud.</p>
               </Panel>
             ) : (
-              <Panel title="Solicitud de radio" description="Todos los campos son obligatorios salvo los marcados como opcionales. Guardamos tu avance en este dispositivo, sin tus documentos.">
+              <Panel title="Solicitud de canal" description="Todos los campos son obligatorios salvo los marcados como opcionales. Guardamos tu avance en este dispositivo, sin tus documentos.">
                 <ApplicationWizard {...wizard} draftKey={`crear-mi-radio:${auth.user?.id ?? "invitado"}`} />
               </Panel>
             )}
@@ -92,7 +93,7 @@ export default function CreateStation({ requests, atLimit, myStations, open, ...
 
           <aside className="space-y-4">
             {myStations.length > 0 && (
-              <Panel title="Tus radios" padded={false}>
+              <Panel title="Tus canales" padded={false}>
                 <ul className="divide-y divide-line">
                   {myStations.map((station) => (
                     <li key={station.id} className="space-y-2 px-5 py-4">
@@ -130,7 +131,8 @@ export default function CreateStation({ requests, atLimit, myStations, open, ...
                         {request.reviewed_at && ` · revisada el ${dateTime(request.reviewed_at, { dateStyle: "medium" })}`}
                       </p>
                       {request.review_note && <p className="rounded-xl bg-raised px-3 py-2 text-xs text-muted">{request.review_note}</p>}
-                      {request.status === "pending" && (
+                      {request.payment && request.status !== "rejected" && request.status !== "cancelled" && <FrequencyPaymentNotice request={request} />}
+                      {(request.status === "pending" || request.status === "awaiting_payment") && request.payment?.status.value !== "unconfirmed" && request.payment?.status.value !== "paid" && (
                         <button
                           type="button"
                           onClick={() => {

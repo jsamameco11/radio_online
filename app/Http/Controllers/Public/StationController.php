@@ -15,6 +15,7 @@ use App\Http\Resources\EpisodeResource;
 use App\Http\Resources\StationResource;
 use App\Models\Episode;
 use App\Models\Frequency;
+use App\Models\FrequencyListing;
 use App\Models\Station;
 use App\Models\StationRating;
 use App\Models\User;
@@ -64,8 +65,8 @@ class StationController extends Controller
     /**
      * What every page of a station needs: the station, whether the viewer (a guest
      * when null) follows it, their star rating, its studio for its team (and where
-     * to change the cover photo for whoever may edit the profile), and how to
-     * share and report it.
+     * to change the cover photo for whoever may edit the profile), whether it is
+     * on sale, and how to share and report it.
      *
      * @return array<string, mixed>
      */
@@ -74,6 +75,7 @@ class StationController extends Controller
         $rating = $user === null
             ? null
             : StationRating::query()->where('station_id', $station->id)->where('user_id', $user->id)->value('stars');
+        $listing = FrequencyListing::query()->active()->where('station_id', $station->id)->first(['id', 'price_cents', 'currency']);
 
         return [
             'station' => StationResource::make($station)->resolve(),
@@ -83,6 +85,11 @@ class StationController extends Controller
             'coverEditUrl' => $user?->canInStation($station, StationPermission::EditProfile)
                 ? SessionHandoff::link(PlatformHost::Studio, '/'.$station->frequency->slug.'/perfil#portada')
                 : null,
+            'forSale' => $listing === null ? null : [
+                'url' => '/frecuencias-en-venta/'.$listing->id,
+                'price_cents' => $listing->price_cents,
+                'currency' => $listing->currency,
+            ],
             'shareUrl' => StationLinks::listen($station),
             'reportReasons' => ReportContentRequest::reasonOptions(),
         ];

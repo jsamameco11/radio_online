@@ -19,6 +19,7 @@ import {
   Radio,
   Scissors,
   Settings2,
+  Tag,
   Trophy,
   Users,
   Wallet,
@@ -92,9 +93,9 @@ export default function StudioLayout({ title, setup = true, wide = false, childr
       ],
     },
     {
-      label: "Emisora",
+      label: "Canal",
       items: [
-        { label: "Perfil de radio", href: url("/perfil"), icon: AudioLines, permission: "station.profile" },
+        { label: "Perfil del canal", href: url("/perfil"), icon: AudioLines, permission: "station.profile" },
         { label: "Estados", href: url("/estados"), icon: CircleDashed, permission: "station.profile" },
         {
           label: "Configuración",
@@ -102,7 +103,7 @@ export default function StudioLayout({ title, setup = true, wide = false, childr
           icon: Settings2,
           permission: "station.settings",
           children: [
-            { label: "Frecuencia", href: url("/configuracion/frecuencia") },
+            { label: "Canal", href: url("/configuracion/frecuencia") },
             { label: "Transmisión", href: url("/configuracion/transmision") },
             { label: "Audio", href: url("/configuracion/audio") },
             { label: "Automatización", href: url("/configuracion/automatizacion") },
@@ -115,6 +116,7 @@ export default function StudioLayout({ title, setup = true, wide = false, childr
             { label: "Seguridad", href: url("/configuracion/seguridad") },
           ],
         },
+        { label: "Vender canal", href: url("/vender"), icon: Tag, permission: "station.sell" },
       ],
     },
   ];
@@ -161,7 +163,7 @@ export default function StudioLayout({ title, setup = true, wide = false, childr
       footer={
         studio.stations.length > 1 ? (
           <div className="space-y-1">
-            <p className="px-3 text-[0.68rem] font-semibold tracking-[0.14em] text-faint uppercase">Mis emisoras</p>
+            <p className="px-3 text-[0.68rem] font-semibold tracking-[0.14em] text-faint uppercase">Mis canales</p>
             {studio.stations.map((own) => (
               <Link key={own.slug} href={`/${own.slug}`} className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted hover:bg-raised hover:text-ink">
                 <span className="font-display tabular">{own.frequency}</span>

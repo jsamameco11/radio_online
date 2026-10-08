@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Http\Requests\Concerns\ValidatesFrequencyPrice;
 use Illuminate\Foundation\Http\FormRequest;
 
-/** Admin > Frecuencias > Reservar. Permission checked by the route. */
+/** Admin > Frecuencias > Reservar, optionally with a price. Permission checked by the route. */
 class ReserveFrequencyRequest extends FormRequest
 {
+    use ValidatesFrequencyPrice;
+
     public function authorize(): bool
     {
         return true;
@@ -17,7 +20,10 @@ class ReserveFrequencyRequest extends FormRequest
      */
     public function rules(): array
     {
-        return ['note' => ['nullable', 'string', 'max:300']];
+        return [
+            'note' => ['nullable', 'string', 'max:300'],
+            'price_cents' => $this->priceRules(),
+        ];
     }
 
     /**
@@ -25,6 +31,9 @@ class ReserveFrequencyRequest extends FormRequest
      */
     public function messages(): array
     {
-        return ['note.*' => 'La nota puede tener como máximo 300 caracteres.'];
+        return [
+            'note.*' => 'La nota puede tener como máximo 300 caracteres.',
+            ...$this->priceMessages(),
+        ];
     }
 }

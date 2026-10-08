@@ -1,5 +1,5 @@
 import { Link, router } from "@inertiajs/react";
-import { Maximize2, RadioTower, Search } from "lucide-react";
+import { Maximize2, RadioTower, Search, Tag } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { frequencyDotClasses, frequencyTones } from "@/Components/admin/status-tones";
@@ -13,7 +13,7 @@ import { Pagination } from "@/Components/ui/pagination";
 import { Panel } from "@/Components/ui/panel";
 import AdminLayout from "@/Layouts/AdminLayout";
 import { cn } from "@/lib/cn";
-import { count, dateTime, rating } from "@/lib/format";
+import { count, dateTime, money, rating } from "@/lib/format";
 import type { Paginated, StreamStatusValue } from "@/types";
 import type { DialSegment, FrequencyStatusValue, Option } from "@/types/admin";
 
@@ -24,6 +24,7 @@ interface FrequencyRow {
   display: string;
   status: FrequencyStatusValue;
   status_label: string;
+  price_cents: number | null;
   reserved_at: string | null;
   activated_at: string | null;
   station: { id: number; name: string; owner: string; stream_status: StreamStatusValue; listeners: number; rating_average: number; rating_count: number } | null;
@@ -140,7 +141,14 @@ export default function FrequenciesIndex({ frequencies, filters, statuses, dial,
                         </Link>
                       </td>
                       <td className="px-5 py-3">
-                        <Badge tone={frequencyTones[frequency.status]}>{frequency.status_label}</Badge>
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          <Badge tone={frequencyTones[frequency.status]}>{frequency.status_label}</Badge>
+                          {frequency.price_cents !== null && (
+                            <Badge tone="gold" className="tabular">
+                              <Tag className="size-3" /> {money(frequency.price_cents)}
+                            </Badge>
+                          )}
+                        </span>
                       </td>
                       <td className="px-5 py-3">
                         {frequency.station ? (

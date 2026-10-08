@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DialController;
 use App\Http\Controllers\Admin\FrequencyController;
 use App\Http\Controllers\Admin\FrequencyRequestController;
+use App\Http\Controllers\Admin\IntegrityController;
 use App\Http\Controllers\Admin\ModerationController;
 use App\Http\Controllers\Admin\MonitorController;
 use App\Http\Controllers\Admin\SettingsController;
@@ -33,6 +34,7 @@ Route::middleware('can:frequencies.view')->group(function () {
     Route::get('/frecuencias/{frequency}', [FrequencyController::class, 'show'])->name('frequencies.show');
     Route::middleware('can:frequencies.assign')->group(function () {
         Route::post('/frecuencias/{frequency}/reservar', [FrequencyController::class, 'reserve'])->name('frequencies.reserve');
+        Route::post('/frecuencias/{frequency}/precio', [FrequencyController::class, 'price'])->name('frequencies.price');
         Route::post('/frecuencias/{frequency}/asignar', [FrequencyController::class, 'assign'])->name('frequencies.assign');
         Route::post('/frecuencias/{frequency}/mantenimiento', [FrequencyController::class, 'maintenance'])->name('frequencies.maintenance');
     });
@@ -45,6 +47,9 @@ Route::middleware('can:frequency_requests.review')->group(function () {
     Route::get('/solicitudes', [FrequencyRequestController::class, 'index'])->name('requests.index');
     Route::post('/solicitudes/{frequencyRequest}/aprobar', [FrequencyRequestController::class, 'approve'])->name('requests.approve');
     Route::post('/solicitudes/{frequencyRequest}/rechazar', [FrequencyRequestController::class, 'reject'])->name('requests.reject');
+    Route::post('/solicitudes/{frequencyRequest}/pago', [FrequencyRequestController::class, 'settle'])
+        ->middleware('can:payouts.manage')
+        ->name('requests.settle');
 });
 
 Route::middleware('can:stations.view')->group(function () {
@@ -63,6 +68,7 @@ Route::middleware('can:users.view')->group(function () {
     Route::middleware('can:users.manage')->group(function () {
         Route::post('/usuarios/{user}/suspender', [UserController::class, 'suspend'])->name('users.suspend');
         Route::post('/usuarios/{user}/reactivar', [UserController::class, 'reactivate'])->name('users.reactivate');
+        Route::post('/usuarios/{user}/quitar-marca', [UserController::class, 'unflag'])->name('users.unflag');
     });
     Route::middleware('can:roles.manage')->group(function () {
         Route::put('/usuarios/{user}/rol', [UserController::class, 'role'])->name('users.role');
@@ -85,6 +91,12 @@ Route::middleware('can:moderation.manage')->group(function () {
         ->middleware('can:stations.suspend')
         ->name('moderation.suspend-station');
     Route::post('/moderacion/{report}/ocultar-mensaje', [ModerationController::class, 'hideMessage'])->name('moderation.hide-message');
+});
+
+Route::middleware('can:moderation.manage')->group(function () {
+    Route::get('/integridad', [IntegrityController::class, 'index'])->name('integrity.index');
+    Route::get('/integridad/{alert}/cuentas', [IntegrityController::class, 'accounts'])->name('integrity.accounts');
+    Route::post('/integridad/{alert}/resolver', [IntegrityController::class, 'resolve'])->name('integrity.resolve');
 });
 
 Route::get('/auditoria', AuditLogController::class)->middleware('can:audit.view')->name('audit');

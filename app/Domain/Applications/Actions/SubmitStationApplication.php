@@ -94,7 +94,7 @@ final class SubmitStationApplication
     {
         $pending = StationApplication::query()
             ->where('document_hash', $hash)
-            ->whereHas('frequencyRequest', fn (Builder $query) => $query->where('status', FrequencyRequestStatus::Pending->value))
+            ->whereHas('frequencyRequest', fn (Builder $query) => $query->whereIn('status', [FrequencyRequestStatus::Pending->value, FrequencyRequestStatus::AwaitingPayment->value]))
             ->exists();
 
         if ($pending) {

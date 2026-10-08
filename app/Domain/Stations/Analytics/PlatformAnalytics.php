@@ -82,6 +82,7 @@ final class PlatformAnalytics
 
         $rows = DB::table('listener_sessions')
             ->where('started_at', '>=', $from)
+            ->where('suspect', false)
             ->selectRaw("'listening' as kind, ".LocalTime::day('started_at').' as day, count(*) as total, coalesce(sum(seconds), 0) as amount, 0 as fee')
             ->groupBy('day')
             ->unionAll(DB::table('users')

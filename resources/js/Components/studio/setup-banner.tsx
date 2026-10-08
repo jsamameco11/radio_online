@@ -19,13 +19,13 @@ export function SetupBanner() {
   const progress = Math.round((done / steps.length) * 100);
 
   return (
-    <section aria-label="Pon a punto tu radio" className="mb-6 rounded-2xl border border-signal/25 bg-surface">
+    <section aria-label="Pon a punto tu canal" className="mb-6 rounded-2xl border border-signal/25 bg-surface">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:px-5">
         <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-signal-soft text-signal">
           <Sparkles className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-display text-sm font-semibold text-ink">Pon a punto tu radio</p>
+          <p className="font-display text-sm font-semibold text-ink">Pon a punto tu canal</p>
           <p className="text-xs text-muted">
             {done} de {steps.length} listos
             {collapsed && next && <span className="hidden sm:inline"> · Siguiente: {next.label}</span>}

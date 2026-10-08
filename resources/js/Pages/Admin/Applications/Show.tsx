@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowLeft, Check, ExternalLink, FileText, Lock, ShieldCh
 import type { FormEvent, ReactNode } from "react";
 import { useState } from "react";
 import { ApprovalFields, approvalDefaults } from "@/Components/admin/approval-fields";
+import { PaymentSummary, PricedApprovalForm, SettlePaymentModal, chargesOnApproval } from "@/Components/admin/frequency-payment";
 import { ReasonModal } from "@/Components/admin/reason-modal";
 import { Avatar } from "@/Components/ui/avatar";
 import { Badge } from "@/Components/ui/badge";
@@ -22,9 +23,10 @@ interface Props {
   account: ApplicantAccount;
   duplicates: DuplicateApplication[];
   freeFrequencies: FreeFrequency[];
+  canSettlePayments: boolean;
 }
 
-const statusTone: Record<FrequencyRequestRow["status"], Tone> = { pending: "warning", approved: "onair", rejected: "danger", cancelled: "neutral" };
+const statusTone: Record<FrequencyRequestRow["status"], Tone> = { pending: "warning", awaiting_payment: "warning", approved: "onair", rejected: "danger", cancelled: "neutral" };
 
 const networkLabels: Record<string, string> = { facebook: "Facebook", instagram: "Instagram", tiktok: "TikTok", youtube: "YouTube", x: "X" };
 
@@ -50,9 +52,12 @@ function ExternalUrl({ href }: { href: string }) {
   );
 }
 
-export default function ApplicationShow({ request, application, account, duplicates, freeFrequencies }: Props) {
+export default function ApplicationShow({ request, application, account, duplicates, freeFrequencies, canSettlePayments }: Props) {
   const { auth } = usePage<SharedProps>().props;
   const [rejecting, setRejecting] = useState(false);
+  const [settling, setSettling] = useState(false);
+  const payment = request.payment ?? null;
+  const unconfirmed = payment?.status.value === "unconfirmed";
   const photo = application.files.find((file) => file.slug === "foto");
   const documents = application.files.filter((file) => file.slug !== "foto");
   const links = Object.entries(application.social_links);
@@ -289,11 +294,31 @@ export default function ApplicationShow({ request, application, account, duplica
 
           <aside className="space-y-6">
             <Panel title="Decisión">
-              {request.status === "pending" ? (
-                <ApproveForm request={request} free={freeFrequencies} onReject={() => setRejecting(true)} />
+              {unconfirmed && payment ? (
+                <div className="space-y-3">
+                  <PaymentSummary payment={payment} />
+                  {canSettlePayments ? (
+                    <Button variant="secondary" className="w-full" icon={<AlertTriangle className="size-4" />} onClick={() => setSettling(true)}>
+                      Resolver cobro
+                    </Button>
+                  ) : (
+                    <p className="text-sm text-muted">Alguien con permiso de pagos debe resolver este cobro.</p>
+                  )}
+                </div>
+              ) : request.status === "pending" && chargesOnApproval(request) ? (
+                <PricedApprovalForm request={request} onCancel={() => setRejecting(true)} />
+              ) : request.status === "pending" || (request.status === "awaiting_payment" && payment?.status.value === "paid") ? (
+                <div className="space-y-4">
+                  {payment && <PaymentSummary payment={payment} />}
+                  <ApproveForm request={request} free={freeFrequencies} onReject={payment?.status.value === "paid" ? undefined : () => setRejecting(true)} />
+                </div>
               ) : (
                 <div className="space-y-2 text-sm">
+                  {payment && request.status !== "cancelled" && request.status !== "rejected" && <PaymentSummary payment={payment} className="mb-3" />}
                   <Badge tone={statusTone[request.status]}>{request.status_label}</Badge>
+                  {request.status === "awaiting_payment" && (
+                    <p className="text-muted">Le avisamos por correo y en su perfil. La radio se abrirá apenas pague con otra tarjeta.</p>
+                  )}
                   {request.reviewed_at && (
                     <p className="text-muted">
                       Por {request.reviewer?.name ?? "—"} el {dateTime(request.reviewed_at)}
@@ -304,6 +329,11 @@ export default function ApplicationShow({ request, application, account, duplica
                     <Link href={`/admin/radios/${request.station.id}`} className="inline-block font-medium text-muted hover:text-ink">
                       Ver la radio →
                     </Link>
+                  )}
+                  {request.status === "awaiting_payment" && (
+                    <Button variant="ghost" size="sm" icon={<X className="size-4" />} onClick={() => setRejecting(true)}>
+                      Cerrar solicitud
+                    </Button>
                   )}
                 </div>
               )}
@@ -356,11 +386,12 @@ export default function ApplicationShow({ request, application, account, duplica
           confirmLabel="Rechazar solicitud"
         />
       )}
+      {settling && payment && <SettlePaymentModal request={{ ...request, payment }} onClose={() => setSettling(false)} />}
     </AdminLayout>
   );
 }
 
-function ApproveForm({ request, free, onReject }: { request: FrequencyRequestRow; free: FreeFrequency[]; onReject: () => void }) {
+function ApproveForm({ request, free, onReject }: { request: FrequencyRequestRow; free: FreeFrequency[]; onReject?: () => void }) {
   const form = useForm(approvalDefaults(request.frequency.label, request.conflict, free));
 
   const submit = (event: FormEvent) => {
@@ -385,9 +416,11 @@ function ApproveForm({ request, free, onReject }: { request: FrequencyRequestRow
         <Button type="submit" loading={form.processing} disabled={form.data.frequency === ""} icon={<Check className="size-4" />} className="flex-1">
           Aprobar
         </Button>
-        <Button variant="ghost" icon={<X className="size-4" />} onClick={onReject}>
-          Rechazar
-        </Button>
+        {onReject && (
+          <Button variant="ghost" icon={<X className="size-4" />} onClick={onReject}>
+            Rechazar
+          </Button>
+        )}
       </div>
     </form>
   );

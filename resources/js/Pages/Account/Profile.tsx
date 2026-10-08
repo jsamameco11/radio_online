@@ -3,11 +3,14 @@ import { Camera, MailWarning, Trash2 } from "lucide-react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useRef } from "react";
 import { AccountShell } from "@/Components/account/account-shell";
+import { FrequencyPaymentNotice } from "@/Components/site/frequency-payment-notice";
 import { Avatar } from "@/Components/ui/avatar";
+import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 import { Field, Input, Select } from "@/Components/ui/field";
 import { Panel } from "@/Components/ui/panel";
 import { dateTime } from "@/lib/format";
+import type { FrequencyRequestItem } from "@/types/site";
 
 interface Profile {
   name: string;
@@ -72,7 +75,33 @@ function AvatarPanel({ profile }: { profile: Profile }) {
   );
 }
 
-export default function Profile({ profile, resendVerificationUrl }: { profile: Profile; resendVerificationUrl: string }) {
+function FrequencyPaymentsPanel({ requests }: { requests: FrequencyRequestItem[] }) {
+  const attention = requests.some((request) => request.payment?.needs_attention);
+
+  return (
+    <Panel
+      title="Pagos de canales"
+      description={attention ? "Tienes un pago pendiente. Complétalo para que tu canal pueda abrirse." : "Canales premium que solicitaste y el estado de su pago."}
+      padded={false}
+    >
+      <ul className="divide-y divide-line">
+        {requests.map((request) => (
+          <li key={request.id} className="space-y-3 px-5 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-medium">
+                <span className="font-display tabular">{request.frequency.display}</span> · {request.station_name}
+              </p>
+              <Badge tone={request.status === "awaiting_payment" ? "danger" : "warning"}>{request.status_label}</Badge>
+            </div>
+            <FrequencyPaymentNotice request={request} />
+          </li>
+        ))}
+      </ul>
+    </Panel>
+  );
+}
+
+export default function Profile({ profile, resendVerificationUrl, frequencyPayments }: { profile: Profile; resendVerificationUrl: string; frequencyPayments: FrequencyRequestItem[] }) {
   const form = useForm({ name: profile.name, email: profile.email, country: profile.country ?? "" });
   const resend = useForm({});
 
@@ -83,6 +112,8 @@ export default function Profile({ profile, resendVerificationUrl }: { profile: P
 
   return (
     <AccountShell title="Perfil" description={`Miembro desde ${dateTime(profile.member_since, { dateStyle: "long" })}.`}>
+      {frequencyPayments.length > 0 && <FrequencyPaymentsPanel requests={frequencyPayments} />}
+
       <AvatarPanel profile={profile} />
 
       {!profile.email_verified && (

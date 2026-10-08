@@ -30,7 +30,7 @@ export default function Category({ category, stations, filters, sorts, related }
             </Link>
           }
           title={category.name}
-          description={`${count(stations.total)} ${stations.total === 1 ? "radio" : "radios"} en esta categoría.`}
+          description={`${count(stations.total)} ${stations.total === 1 ? "canal" : "canales"} en esta categoría.`}
         />
         <StationFilterBar url={`/categorias/${category.slug}`} filters={filters} sorts={sorts} />
         {stations.data.length > 0 ? (
@@ -38,9 +38,9 @@ export default function Category({ category, stations, filters, sorts, related }
         ) : (
           <EmptyState
             icon={<LayoutGrid className="size-6" />}
-            title={`Aún no hay radios de ${category.name}${filters.en_vivo ? " al aire" : ""}`}
-            description="¿Por qué no la primera? Obtén tu frecuencia y sal al aire en esta categoría."
-            action={<ButtonLink href="/obten-tu-frecuencia">Obtén tu frecuencia</ButtonLink>}
+            title={`Aún no hay canales de ${category.name}${filters.en_vivo ? " al aire" : ""}`}
+            description="¿Por qué no el primero? Obtén tu canal y sal al aire en esta categoría."
+            action={<ButtonLink href="/obten-tu-frecuencia">Obtén tu canal</ButtonLink>}
           />
         )}
         <Pagination page={stations} />

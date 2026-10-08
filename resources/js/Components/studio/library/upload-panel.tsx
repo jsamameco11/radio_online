@@ -1,6 +1,6 @@
 import { Link } from "@inertiajs/react";
 import { ArrowLeftRight, CheckCircle2, Music, Pause, Upload as UploadIcon } from "lucide-react";
-import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ProgressBar } from "@/Components/studio/upload/progress-bar";
 import { Badge, type Tone } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
@@ -39,6 +39,25 @@ const EMPTY_BULK: Bulk = { artist: "", album: "", year: "", genreIds: [] };
 
 const plural = (count: number, one: string, many: string) => (count === 1 ? `1 ${one}` : `${count} ${many}`);
 
+/** A drag that carries files from the desktop. */
+function fileDrag(event: DragEvent): boolean {
+  const types = event.dataTransfer?.types;
+  if (!types) return false;
+  return Array.from(types).some((type) => type === "Files" || type === "application/x-moz-file");
+}
+
+/** Files of a drop. `files` is empty in some browsers until each item is read. */
+function droppedFiles(event: DragEvent): File[] {
+  const transfer = event.dataTransfer;
+  if (!transfer) return [];
+  if (transfer.files?.length) return Array.from(transfer.files);
+  return Array.from(transfer.items ?? []).flatMap((item) => {
+    if (item.kind !== "file") return [];
+    const file = item.getAsFile();
+    return file ? [file] : [];
+  });
+}
+
 /**
  * Upload area of the library: drop or pick files, each song is recognized from its tags or its name and searched on the internet.
  * It shows the upload kept in `uploadQueue`, which goes on while the user is in other sections of the studio or other browser tabs.
@@ -55,7 +74,6 @@ export function UploadPanel({ kinds, defaultKind, genres, families, limits, canE
   /** The repeated song open side by side with the ones it may repeat. */
   const [comparing, setComparing] = useState<string | null>(null);
   const picker = useRef<HTMLInputElement>(null);
-  const depth = useRef(0);
   const player = useRef<HTMLAudioElement | null>(null);
   const flashTimer = useRef(0);
   const synced = useRef(onSynced);
@@ -161,6 +179,55 @@ export function UploadPanel({ kinds, defaultKind, genres, families, limits, canE
     uploadQueue.addFiles(list, uploadKind);
   }
 
+  const addFilesRef = useRef(addFiles);
+  addFilesRef.current = addFiles;
+
+  // The dashed box is full of buttons. A file dropped on a button never reaches a React onDrop,
+  // so the page itself accepts the drag and hands the music to the same queue.
+  useEffect(() => {
+    if (!mine) return;
+    let active = false;
+    const show = (on: boolean) => {
+      if (active === on) return;
+      active = on;
+      setDragging(on);
+    };
+    const over = (event: DragEvent) => {
+      const types = event.dataTransfer?.types;
+      const files = fileDrag(event) || !types || types.length === 0;
+      if (!files) return;
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+      if (fileDrag(event)) show(true);
+    };
+    const leave = (event: DragEvent) => {
+      if (event.relatedTarget === null) show(false);
+    };
+    const drop = (event: DragEvent) => {
+      const files = droppedFiles(event);
+      if (!fileDrag(event) && files.length === 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      show(false);
+      if (!files.length) return;
+      addFilesRef.current(files);
+      document.getElementById("biblioteca-subida")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    const end = () => show(false);
+    window.addEventListener("dragenter", over, true);
+    window.addEventListener("dragover", over, true);
+    window.addEventListener("dragleave", leave);
+    window.addEventListener("drop", drop, true);
+    window.addEventListener("dragend", end);
+    return () => {
+      window.removeEventListener("dragenter", over, true);
+      window.removeEventListener("dragover", over, true);
+      window.removeEventListener("dragleave", leave);
+      window.removeEventListener("drop", drop, true);
+      window.removeEventListener("dragend", end);
+    };
+  }, [mine]);
+
   function stopPreview() {
     player.current?.pause();
     if (player.current?.src) uploadQueue.dropUrl(player.current.src);
@@ -239,14 +306,6 @@ export function UploadPanel({ kinds, defaultKind, genres, families, limits, canE
   function stepCompare(from: Upload, direction: -1 | 1) {
     const at = comparable.findIndex((item) => item.key === from.key);
     setComparing(comparable[(at + direction + comparable.length) % comparable.length].key);
-  }
-
-  function onDrag(event: DragEvent, entering: boolean | null) {
-    if (!Array.from(event.dataTransfer.types).includes("Files")) return;
-    event.preventDefault();
-    if (entering === true) depth.current++;
-    if (entering === false) depth.current = Math.max(0, depth.current - 1);
-    setDragging(depth.current > 0);
   }
 
   if (!mine && owner) {
@@ -387,27 +446,25 @@ export function UploadPanel({ kinds, defaultKind, genres, families, limits, canE
     );
   }
 
+  const kindName = (kinds.find((kind) => kind.value === uploadKind)?.label ?? "Canción").toLowerCase();
+
   return (
+    <>
+    {dragging && (
+      <div className="pointer-events-none fixed inset-0 z-[80] grid place-items-center bg-canvas/75 p-6 backdrop-blur-sm">
+        <div className="w-full max-w-md rounded-3xl border-2 border-dashed border-signal bg-surface px-8 py-10 text-center shadow-2xl">
+          <span className="mx-auto grid size-16 place-items-center rounded-full bg-signal-soft text-signal">
+            <Music className="size-8" />
+          </span>
+          <p className="mt-4 font-display text-2xl font-semibold">Suelta la música</p>
+          <p className="mt-2 text-sm text-muted">Se agrega a la subida como {kindName}. La leemos, identificamos cada canción y te avisamos si ya estaba.</p>
+        </div>
+      </div>
+    )}
     <section
       id="biblioteca-subida"
       className={cn("relative rounded-2xl border-2 border-dashed p-5 transition", dragging ? "border-signal bg-signal-soft/40" : "border-line-strong bg-surface")}
-      onDragEnter={(event) => onDrag(event, true)}
-      onDragOver={(event) => onDrag(event, null)}
-      onDragLeave={(event) => onDrag(event, false)}
-      onDrop={(event) => {
-        onDrag(event, null);
-        depth.current = 0;
-        setDragging(false);
-        addFiles(event.dataTransfer.files);
-      }}
     >
-      {dragging && (
-        <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center rounded-2xl bg-canvas/85 backdrop-blur-sm">
-          <p className="flex items-center gap-3 text-lg font-semibold text-signal">
-            <Music className="size-7" /> Suelta aquí tus audios
-          </p>
-        </div>
-      )}
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -449,7 +506,18 @@ export function UploadPanel({ kinds, defaultKind, genres, families, limits, canE
       )}
 
       {queue.length === 0 ? (
-        <button type="button" onClick={() => picker.current?.click()} className="mt-5 grid w-full place-items-center gap-2 rounded-2xl border border-line bg-raised/50 px-6 py-10 text-center transition hover:border-line-strong hover:bg-raised">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => picker.current?.click()}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              picker.current?.click();
+            }
+          }}
+          className="mt-5 grid w-full cursor-pointer place-items-center gap-2 rounded-2xl border border-line bg-raised/50 px-6 py-10 text-center transition hover:border-line-strong hover:bg-raised"
+        >
           <span className="grid size-14 place-items-center rounded-full bg-signal-soft text-signal">
             <Music className="size-7" />
           </span>
@@ -458,7 +526,7 @@ export function UploadPanel({ kinds, defaultKind, genres, families, limits, canE
             Reconocemos solos el nombre, el autor y los invitados de cada canción, y la buscamos en internet para completar su álbum, año, géneros y portada. Si el archivo no trae datos, los tomamos de su nombre («Autor - Canción.mp3»). Antes de
             guardarla te avisamos si ya estaba en la biblioteca.
           </span>
-        </button>
+        </div>
       ) : (
         <div className="mt-5 space-y-3">
           {songs.length > 1 && (
@@ -588,6 +656,7 @@ export function UploadPanel({ kinds, defaultKind, genres, families, limits, canE
         />
       )}
     </section>
+    </>
   );
 }
 

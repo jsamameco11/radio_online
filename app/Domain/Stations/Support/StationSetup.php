@@ -22,10 +22,10 @@ final class StationSetup
         $members = $station->members_count ?? $station->members()->count();
 
         $steps = [
-            ['logo', 'Sube el logo de tu radio', $station->logo_path !== null, '/perfil', StationPermission::EditProfile],
+            ['logo', 'Sube el logo de tu canal', $station->logo_path !== null, '/perfil', StationPermission::EditProfile],
             ['cover', 'Sube tu foto de portada', $station->cover_path !== null, '/perfil#portada', StationPermission::EditProfile],
-            ['description', 'Escribe la descripción de tu radio (obligatoria)', $station->hasDescription(), '/perfil#descripcion', StationPermission::EditProfile],
-            ['categories', 'Elige las categorías de tu radio', $station->categories->isNotEmpty(), '/perfil', StationPermission::EditProfile],
+            ['description', 'Escribe la descripción de tu canal (obligatoria)', $station->hasDescription(), '/perfil#descripcion', StationPermission::EditProfile],
+            ['categories', 'Elige las categorías de tu canal', $station->categories->isNotEmpty(), '/perfil', StationPermission::EditProfile],
             ['hashtags', 'Agrega hashtags para que te encuentren', $station->hashtags->isNotEmpty(), '/perfil', StationPermission::EditProfile],
             ['team', 'Invita a tu equipo', $members > 1, '/configuracion/equipo', StationPermission::ManageMembers],
         ];

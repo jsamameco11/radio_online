@@ -83,7 +83,8 @@ class SubmitStationApplicationRequest extends FormRequest
             'certificates.*' => ['file', 'mimes:pdf', 'mimetypes:application/pdf', 'max:'.Limits::CERTIFICATE_KB],
 
             'station_name' => ['required', 'string', 'min:3', 'max:80'],
-            'frequency_id' => ['required', 'integer', Rule::exists('frequencies', 'id')->where('status', FrequencyStatus::Available->value)],
+            'frequency_id' => ['required', 'integer', Rule::exists('frequencies', 'id')->where(fn ($query) => $query->where('status', FrequencyStatus::Available->value)
+                ->orWhere(fn ($query) => $query->where('status', FrequencyStatus::Reserved->value)->whereNotNull('price_cents')))],
             'category_ids' => ['required', 'array', 'min:1', "max:{$maxCategories}"],
             'category_ids.*' => ['integer', 'distinct', Rule::exists('categories', 'id')->where('active', true)],
             'languages' => ['required', 'array', 'min:1', 'max:'.Limits::MAX_LANGUAGES],
@@ -116,6 +117,7 @@ class SubmitStationApplicationRequest extends FormRequest
             'accept_terms' => ['accepted'],
             'declare_truthful' => ['accepted'],
             'consent_data_processing' => ['accepted'],
+            'accept_broadcast_policy' => ['accepted'],
         ];
     }
 
@@ -135,7 +137,7 @@ class SubmitStationApplicationRequest extends FormRequest
             'country.in' => 'Elige el país de la lista.',
             'birth_date.date_format' => 'Escribe una fecha de nacimiento válida.',
             'birth_date.after' => 'Escribe una fecha de nacimiento válida.',
-            'birth_date.before_or_equal' => 'Debes ser mayor de edad ('.Limits::MIN_AGE.' años o más) para administrar una radio.',
+            'birth_date.before_or_equal' => 'Debes ser mayor de edad ('.Limits::MIN_AGE.' años o más) para administrar un canal.',
             'phone.regex' => 'Escribe el teléfono con el código de país, por ejemplo +51 987 654 321.',
             'education_level.*' => 'Elige tu nivel de estudios.',
             'experience_years.*' => 'Indica tus años de experiencia (entre 0 y 60).',
@@ -167,9 +169,9 @@ class SubmitStationApplicationRequest extends FormRequest
             'certificates.*.max' => 'Cada certificado puede pesar hasta '.(Limits::CERTIFICATE_KB / 1024).' MB.',
             'uploaded' => 'No pudimos recibir :attribute. Inténtalo de nuevo.',
 
-            'station_name.min' => 'El nombre de la radio debe tener al menos 3 caracteres.',
-            'frequency_id.required' => 'Elige la frecuencia que quieres para tu radio.',
-            'frequency_id.exists' => 'Esa frecuencia ya no está disponible. Elige otra.',
+            'station_name.min' => 'El nombre del canal debe tener al menos 3 caracteres.',
+            'frequency_id.required' => 'Elige el canal que quieres.',
+            'frequency_id.exists' => 'Ese canal ya no está disponible. Elige otro.',
             'category_ids.required' => 'Elige al menos una categoría.',
             'category_ids.min' => 'Elige al menos una categoría.',
             'category_ids.max' => "Puedes elegir hasta {$maxCategories} categorías.",
@@ -181,7 +183,7 @@ class SubmitStationApplicationRequest extends FormRequest
 
             'content_types.required' => 'Elige al menos un tipo de contenido.',
             'content_types.*.*' => 'Elige tipos de contenido de la lista.',
-            'purpose.min' => 'Cuéntanos con más detalle para qué quieres tu radio: al menos '.Limits::PURPOSE_MIN.' caracteres.',
+            'purpose.min' => 'Cuéntanos con más detalle para qué quieres tu canal: al menos '.Limits::PURPOSE_MIN.' caracteres.',
             'audience_ages.required' => 'Elige al menos un rango de edad.',
             'audience_ages.min' => 'Elige al menos un rango de edad.',
             'audience_ages.*.*' => 'Elige rangos de edad de la lista.',
@@ -202,6 +204,7 @@ class SubmitStationApplicationRequest extends FormRequest
             'accept_terms.accepted' => 'Debes aceptar los términos y condiciones.',
             'declare_truthful.accepted' => 'Debes declarar que la información es verdadera.',
             'consent_data_processing.accepted' => 'Debes autorizar el tratamiento de tus datos personales.',
+            'accept_broadcast_policy.accepted' => 'Debes aceptar las políticas de trabajo, privacidad y derechos de autor.',
         ];
     }
 
@@ -232,10 +235,10 @@ class SubmitStationApplicationRequest extends FormRequest
             'document_front' => 'el anverso del documento',
             'document_back' => 'el reverso del documento',
             'resume' => 'tu currículum',
-            'station_name' => 'el nombre de la radio',
+            'station_name' => 'el nombre del canal',
             'organization_name' => 'el nombre de la organización',
             'organization_website' => 'la web de la organización',
-            'purpose' => 'para qué quieres tu radio',
+            'purpose' => 'para qué quieres tu canal',
             'hours_per_week' => 'las horas por semana',
             'demo_url' => 'el enlace de muestra',
         ];

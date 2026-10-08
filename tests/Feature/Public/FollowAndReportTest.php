@@ -3,10 +3,12 @@
 namespace Tests\Feature\Public;
 
 use App\Domain\Moderation\Enums\ReportReason;
+use App\Models\ListenerSession;
 use App\Models\Report;
 use App\Models\Station;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -25,7 +27,16 @@ class FollowAndReportTest extends TestCase
 
         $this->withoutVite();
         $this->station = Station::factory()->create();
-        $this->listener = User::factory()->create();
+        $this->listener = User::factory()->create(['created_at' => now()->subDays(3)]);
+        ListenerSession::query()->create([
+            'station_id' => $this->station->id,
+            'user_id' => $this->listener->id,
+            'token' => (string) Str::uuid(),
+            'started_at' => now()->subHour(),
+            'last_seen_at' => now()->subMinutes(50),
+            'ended_at' => now()->subMinutes(50),
+            'seconds' => 600,
+        ]);
     }
 
     private function stationUrl(string $path = ''): string

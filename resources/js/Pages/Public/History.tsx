@@ -32,10 +32,10 @@ export default function History({ sessions, totals }: { sessions: Paginated<List
   return (
     <SiteLayout title="Historial">
       <div className="space-y-8">
-        <PageHeader eyebrow="Tu actividad" title="Historial de escucha" description="Las radios que sintonizaste, de la más reciente a la más antigua." />
+        <PageHeader eyebrow="Tu actividad" title="Historial de escucha" description="Los canales que escuchaste, del más reciente al más antiguo." />
         <div className="grid gap-4 sm:grid-cols-2">
           <Stat label="Tiempo escuchado" value={listened(totals.seconds)} />
-          <Stat label="Radios distintas" value={count(totals.stations)} />
+          <Stat label="Canales distintos" value={count(totals.stations)} />
         </div>
         {days.length === 0 ? (
           <EmptyState

@@ -1,8 +1,9 @@
 import { Head, Link, usePage } from "@inertiajs/react";
-import { Compass, Disc3, Heart, History, Home, LayoutGrid, LogIn, Menu, Mic2, Radio, X } from "lucide-react";
+import { Compass, Disc3, Heart, History, Home, LayoutGrid, LogIn, Menu, Mic2, Radio, Tag, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { ContentDisclaimer } from "@/Components/legal/platform-policies";
 import { PlayerBar, PlayerProvider, usePlayer } from "@/Components/player";
 import { PlatformNotice } from "@/Components/shell/platform-notice";
 import { UserMenu } from "@/Components/shell/user-menu";
@@ -26,12 +27,13 @@ const primary: SiteLink[] = [
   { label: "Inicio", href: "/", icon: Home },
   { label: "Explorar", href: "/explorar", icon: Compass },
   { label: "En vivo", href: "/en-vivo", icon: Radio },
-  { label: "Dial", href: "/dial", icon: Disc3 },
+  { label: "Canales", href: "/dial", icon: Disc3 },
   { label: "Categorías", href: "/categorias", icon: LayoutGrid },
+  { label: "En venta", href: "/frecuencias-en-venta", icon: Tag },
 ];
 
 const personal: SiteLink[] = [
-  { label: "Mis radios", href: "/mis-radios", icon: Heart },
+  { label: "Mis canales", href: "/mis-radios", icon: Heart },
   { label: "Historial", href: "/historial", icon: History },
 ];
 
@@ -51,7 +53,7 @@ function StudioCta({ className }: { className?: string }) {
   }
   return (
     <ButtonLink href="/obten-tu-frecuencia" variant="primary" className={className} icon={<Mic2 className="size-4" />}>
-      Obtén tu frecuencia
+      Obtén tu canal
     </ButtonLink>
   );
 }
@@ -93,7 +95,7 @@ function SiteShell({ children, title }: { children: ReactNode; title?: string })
                 prefetch
                 aria-current={isActive(current, item.href) ? "page" : undefined}
                 className={cn(
-                  "rounded-full px-3 py-1.5 text-sm font-medium transition",
+                  "rounded-full px-3 py-1.5 text-sm font-medium whitespace-nowrap transition",
                   isActive(current, item.href) ? "bg-ink text-surface" : "text-muted hover:bg-raised hover:text-ink",
                 )}
               >
@@ -177,7 +179,7 @@ function SiteShell({ children, title }: { children: ReactNode; title?: string })
               <BrandName />
             </span>
             <p className="max-w-sm text-sm text-muted">
-              Cientos de frecuencias, una sola plataforma. Sintoniza radios en vivo, descubre programas y apoya a tus locutores favoritos. O transmite en tu propia frecuencia y gana dinero por hacerlo.
+              Una plataforma de canales en streaming. Entra a transmisiones en vivo, descubre programas y apoya a tus creadores favoritos. O abre tu propio canal y gana dinero por hacerlo.
             </p>
           </div>
           <nav className="space-y-2 text-sm" aria-label="Descubrir">
@@ -196,16 +198,16 @@ function SiteShell({ children, title }: { children: ReactNode; title?: string })
               </Link>
             ))}
             <Link href="/obten-tu-frecuencia" className="block text-muted hover:text-ink">
-              Obtén tu frecuencia
+              Obtén tu canal
             </Link>
             <Link href="/cuenta/perfil" className="block text-muted hover:text-ink">
               Perfil y seguridad
             </Link>
           </nav>
         </div>
-        <p className="border-t border-line py-5 text-center text-xs text-faint">
-          © {new Date().getFullYear()} {app.name}. Todas las frecuencias son virtuales.
-        </p>
+        <div className="border-t border-line px-4 py-5 sm:px-6">
+          <ContentDisclaimer className="mx-auto max-w-3xl text-center" />
+        </div>
       </footer>
 
       <PlayerBar />

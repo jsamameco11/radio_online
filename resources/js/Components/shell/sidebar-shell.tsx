@@ -3,6 +3,7 @@ import { Menu, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { ContentDisclaimer } from "@/Components/legal/platform-policies";
 import { PlatformNotice } from "@/Components/shell/platform-notice";
 import { Flash } from "@/Components/ui/flash";
 import { cn } from "@/lib/cn";
@@ -122,6 +123,9 @@ export function SidebarShell({ brand, groups, topbar, footer, dark = false, wide
           <div className="flex min-w-0 flex-1 items-center justify-between gap-3">{topbar}</div>
         </header>
         <main className={cn("mx-auto w-full px-4 py-6 sm:px-6", wide ? "max-w-[1920px] lg:py-4" : "max-w-[1600px] lg:py-8")}>{children}</main>
+        <footer className="border-t border-line px-4 py-4 sm:px-6">
+          <ContentDisclaimer className="max-w-3xl" />
+        </footer>
       </div>
       <Flash />
     </div>

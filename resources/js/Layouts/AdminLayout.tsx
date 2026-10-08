@@ -13,6 +13,8 @@ import {
   RadioTower,
   Settings,
   ShieldAlert,
+  ShieldCheck,
+  Tag,
   Tags,
   Users,
 } from "lucide-react";
@@ -39,11 +41,11 @@ export default function AdminLayout({ title, children }: { title: string; childr
       ],
     },
     {
-      label: "Dial",
+      label: "Plataforma",
       items: [
-        { label: "Frecuencias", href: "/admin/frecuencias", icon: RadioTower, permission: "frequencies.view" },
+        { label: "Canales", href: "/admin/frecuencias", icon: RadioTower, permission: "frequencies.view" },
         { label: "Solicitudes", href: "/admin/solicitudes", icon: Inbox, permission: "frequency_requests.review" },
-        { label: "Radios", href: "/admin/radios", icon: Radio, permission: "stations.view" },
+        { label: "Estudios", href: "/admin/radios", icon: Radio, permission: "stations.view" },
         { label: "Categorías", href: "/admin/categorias", icon: Tags, permission: "categories.manage" },
       ],
     },
@@ -52,6 +54,7 @@ export default function AdminLayout({ title, children }: { title: string; childr
       items: [
         { label: "Usuarios", href: "/admin/usuarios", icon: Users, permission: "users.view" },
         { label: "Moderación", href: "/admin/moderacion", icon: ShieldAlert, permission: "moderation.manage" },
+        { label: "Integridad", href: "/admin/integridad", icon: ShieldCheck, permission: "moderation.manage" },
       ],
     },
     {
@@ -62,6 +65,7 @@ export default function AdminLayout({ title, children }: { title: string; childr
         { label: "Movimientos", href: "/admin/movimientos", icon: ArrowLeftRight, permission: "payments.view" },
         { label: "Monetización", href: "/admin/monetizacion", icon: BadgeDollarSign, permission: "monetization.review" },
         { label: "Retiros", href: "/admin/retiros", icon: Banknote, permission: "payouts.manage" },
+        { label: "Ventas de canales", href: "/admin/ventas", icon: Tag, permission: "payouts.manage" },
       ],
     },
     {

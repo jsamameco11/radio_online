@@ -31,7 +31,7 @@ class StationSetupTest extends TestCase
                 ->assertOk()
                 ->assertInertia(fn (Assert $page) => $page
                     ->has('studio.setup', 6)
-                    ->where('studio.setup.0', ['key' => 'logo', 'label' => 'Sube el logo de tu radio', 'done' => false, 'href' => '/perfil'])
+                    ->where('studio.setup.0', ['key' => 'logo', 'label' => 'Sube el logo de tu canal', 'done' => false, 'href' => '/perfil'])
                     ->where('studio.setup.1', ['key' => 'cover', 'label' => 'Sube tu foto de portada', 'done' => false, 'href' => '/perfil#portada'])
                     ->where('studio.setup.2.done', true)
                     ->where('studio.setup.5.key', 'team')

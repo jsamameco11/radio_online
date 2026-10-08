@@ -23,7 +23,7 @@ export default function Live({ stations, trending }: { stations: Paginated<Stati
             </span>
           }
           title="Lo que suena ahora mismo"
-          description={`${count(stations.total)} ${stations.total === 1 ? "radio al aire" : "radios al aire"}${live > 0 ? `, ${live} con locutor en cabina` : ""}. Las transmisiones con locutor aparecen primero.`}
+          description={`${count(stations.total)} ${stations.total === 1 ? "canal al aire" : "canales al aire"}${live > 0 ? `, ${live} con alguien en cabina` : ""}. Las transmisiones en vivo aparecen primero.`}
         />
         {trending.some((tag) => tag.on_air > 0) && (
           <div className="flex flex-wrap items-center gap-2">
@@ -40,11 +40,11 @@ export default function Live({ stations, trending }: { stations: Paginated<Stati
         ) : (
           <EmptyState
             icon={<Radio className="size-6" />}
-            title="Ninguna radio está transmitiendo"
-            description="Vuelve en un rato o sigue a tus radios favoritas para encontrarlas rápido."
+            title="Ningún canal está transmitiendo"
+            description="Vuelve en un rato o sigue a tus canales favoritos para encontrarlos rápido."
             action={
               <ButtonLink href="/explorar" variant="secondary">
-                Explorar radios
+                Explorar canales
               </ButtonLink>
             }
           />

@@ -1,4 +1,4 @@
-import { Users } from "lucide-react";
+import { ShieldCheck, Users } from "lucide-react";
 import { AreaChart } from "@/Components/analytics/area-chart";
 import { BarList } from "@/Components/analytics/bar-list";
 import { dayLabel } from "@/Components/analytics/day-label";
@@ -30,9 +30,21 @@ export default function Audience({ range, ranges, summary, countries, devices, g
         <PageHeader eyebrow="Análisis" title="Audiencia" description="Quiénes te escuchan, desde dónde y cómo crece tu comunidad." actions={<RangeTabs range={range} ranges={ranges} />} />
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <Stat label="Suscriptores" value={count(summary.followers)} hint={`+${count(summary.new_followers)} en ${range} días`} />
+          <Stat
+            label="Suscriptores"
+            value={count(summary.followers)}
+            hint={`+${count(summary.new_followers)} en ${range} días${summary.pending_followers > 0 ? ` · ${count(summary.pending_followers)} en verificación` : ""}`}
+          />
           <Stat label="Oyentes únicos" value={count(summary.listeners)} />
           <Stat label="Países" value={count(countries.filter((country) => country.code).length)} />
+        </div>
+
+        <div className="flex gap-3 rounded-2xl border border-line bg-surface px-5 py-4 text-sm">
+          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-signal" />
+          <p className="text-muted">
+            <span className="font-medium text-ink">Solo cuentan personas reales.</span> Una suscripción suma cuando la cuenta ya escuchó la plataforma unos minutos y no es recién creada; mientras tanto queda en
+            verificación. Los oyentes se cuentan una vez por cuenta y los bots o reproductores automáticos no suman. Comprar suscriptores o audiencia no sirve: se detecta y se descarta.
+          </p>
         </div>
 
         <Panel title="Crecimiento de suscriptores">

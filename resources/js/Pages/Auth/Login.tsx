@@ -23,7 +23,7 @@ export default function Login({ status }: { status: string | null }) {
       title="Ingresar"
       heading={listener ? "Ingresa a tu cuenta" : "Entra a tu consola"}
       description={
-        listener ? "Con tu cuenta de Google puedes enviar regalos, seguir tus radios y escribir en el chat." : "Los creadores ingresan con la cuenta de Google con la que crearon su radio."
+        listener ? "Con tu cuenta de Google puedes enviar regalos, seguir tus canales y escribir en el chat." : "Los creadores ingresan con la cuenta de Google con la que crearon su canal."
       }
       footer={
         listener && (
