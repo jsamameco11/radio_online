@@ -22,7 +22,7 @@ class DialController extends Controller
             'current' => Frequency::query()->count(),
             'configured' => (int) config('platform.dial.size'),
             'capacity' => ExpandDial::capacity(),
-            'band' => ['min' => (float) config('platform.dial.min'), 'max' => (float) config('platform.dial.max'), 'name' => (string) config('platform.dial.band')],
+            'band' => ['min' => (float) config('platform.dial.min'), 'max' => (float) config('platform.dial.max')],
             'history' => AuditLog::query()
                 ->where('action', 'dial.expanded')
                 ->with(['actor', 'station.frequency'])

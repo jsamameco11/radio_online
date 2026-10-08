@@ -178,7 +178,7 @@ class DiscoveryPagesTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Public/Station')
-                ->where('station.display_name', '89.30 FM · Radio Aurora')
+                ->where('station.display_name', '89.30 · Radio Aurora')
                 ->where('isFollowing', false)
                 ->has('reportReasons'));
     }

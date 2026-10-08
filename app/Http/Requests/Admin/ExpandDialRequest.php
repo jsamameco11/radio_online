@@ -37,7 +37,7 @@ class ExpandDialRequest extends FormRequest
             'size.required' => 'Indica cuántas frecuencias debe tener el dial.',
             'size.integer' => 'Indica un número entero de frecuencias.',
             'size.min' => "El dial ya tiene {$current} frecuencias: indica un número mayor.",
-            'size.max' => "La banda FM admite como máximo {$max} frecuencias.",
+            'size.max' => "El dial admite como máximo {$max} frecuencias.",
         ];
     }
 }

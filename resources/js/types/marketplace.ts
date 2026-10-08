@@ -15,7 +15,7 @@ export interface StationListing {
   pitch: string | null;
   listed_at: string | null;
   sold_at: string | null;
-  frequency: { label: string; slug: string; band: string; display: string };
+  frequency: { label: string; slug: string; display: string };
   station: Station | null;
   episode_count: number;
   track_count: number;

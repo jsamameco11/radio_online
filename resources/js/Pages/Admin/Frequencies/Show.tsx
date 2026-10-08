@@ -26,7 +26,6 @@ interface Props {
     id: number;
     label: string;
     slug: string;
-    band: string;
     display: string;
     mhz: number;
     status: FrequencyStatusValue;

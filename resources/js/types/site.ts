@@ -110,7 +110,6 @@ export interface StationContext {
 }
 
 export interface DialBand {
-  name: string;
   min: number;
   max: number;
 }

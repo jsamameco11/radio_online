@@ -30,7 +30,7 @@ export default function Dial({ stations, band, counts }: DialProps) {
         <PageHeader
           eyebrow="Streaming"
           title="Elige un canal"
-          description={`${count(stations.length)} canales en el ${band.name} ${band.min.toFixed(1)}–${band.max.toFixed(1)}. ${count(counts.on_air)} están al aire ahora.`}
+          description={`${count(stations.length)} canales del ${band.min.toFixed(1)} al ${band.max.toFixed(1)}. ${count(counts.on_air)} están al aire ahora.`}
           actions={
             <ButtonLink href="/obten-tu-frecuencia" variant="secondary">
               {count(counts.available)} canales libres

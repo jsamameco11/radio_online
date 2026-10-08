@@ -62,7 +62,7 @@ export default function FrequenciesIndex({ frequencies, filters, statuses, dial,
         <PageHeader
           eyebrow="Dial"
           title="Frecuencias"
-          description={`${count(total)} frecuencias virtuales entre ${band.min.toFixed(2)} y ${band.max.toFixed(2)} FM. Reserva, asigna, libera o pon en mantenimiento.`}
+          description={`${count(total)} frecuencias virtuales entre ${band.min.toFixed(2)} y ${band.max.toFixed(2)}. Reserva, asigna, libera o pon en mantenimiento.`}
           actions={
             canExpand && (
               <ButtonLink href="/admin/frecuencias/ampliar" variant="secondary" icon={<Maximize2 className="size-4" />}>

@@ -36,7 +36,7 @@ final class StreamMonitor
 
         return Frequency::query()
             ->onDial()
-            ->get(['id', 'frequency', 'label', 'slug', 'band', 'status'])
+            ->get(['id', 'frequency', 'label', 'slug', 'status'])
             ->map(fn (Frequency $frequency) => $this->cell($frequency, $stations->get($frequency->id)))
             ->values()
             ->all();

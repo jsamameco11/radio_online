@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
- * A virtual frequency of the dial, e.g. 89.30 FM. Its slug ("89-30") is the
+ * A virtual frequency of the dial, e.g. 89.30. Its slug ("89-30") is the
  * public address of the station that broadcasts on it.
  */
 #[Fillable(['frequency', 'label', 'slug', 'band', 'status', 'price_cents', 'reserved_at', 'activated_at'])]
@@ -47,10 +47,10 @@ class Frequency extends Model
         return $this->hasMany(FrequencyRequest::class);
     }
 
-    /** "89.30 FM" */
+    /** "89.30": the number alone, never a radio band. */
     public function display(): string
     {
-        return $this->label.' '.$this->band;
+        return $this->label;
     }
 
     /**
@@ -63,7 +63,7 @@ class Frequency extends Model
         return self::query()
             ->available()
             ->onDial()
-            ->get(['label', 'band'])
+            ->get(['label'])
             ->map(fn (self $frequency): array => [
                 'label' => $frequency->label,
                 'display' => $frequency->display(),

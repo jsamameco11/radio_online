@@ -74,10 +74,7 @@ function FrequencyOffer({ listing }: { listing: StationListing }) {
     <div className="space-y-6">
       <header className="relative overflow-hidden rounded-[2rem] border border-line bg-gold-soft px-5 py-10 text-center sm:px-8 sm:py-14">
         <RadioTower className="mx-auto size-8 text-gold" aria-hidden />
-        <h1 className="mt-4 font-display text-6xl font-bold text-ink tabular sm:text-7xl">
-          {listing.frequency.label}
-          <span className="ml-2 text-2xl font-semibold text-muted">{listing.frequency.band}</span>
-        </h1>
+        <h1 className="mt-4 font-display text-6xl font-bold text-ink tabular sm:text-7xl">{listing.frequency.label}</h1>
         <p className="mt-3 text-lg text-muted">Un canal libre, listo para tu transmisión.</p>
       </header>
 

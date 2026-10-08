@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** The whole FM band with every public station on its frequency, to tune like a real radio. */
+/** The whole dial with every public station on its frequency, to tune by turning a needle. */
 class DialController extends Controller
 {
     public function __invoke(Request $request, StationDirectory $stations): Response
@@ -24,7 +24,6 @@ class DialController extends Controller
         return Inertia::render('Public/Dial', [
             'stations' => StationResource::collection($onDial)->resolve($request),
             'band' => [
-                'name' => config('platform.dial.band'),
                 'min' => (float) config('platform.dial.min'),
                 'max' => (float) config('platform.dial.max'),
             ],

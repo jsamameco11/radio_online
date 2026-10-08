@@ -14,7 +14,7 @@ export function stationArtwork(station: Pick<Station, "accent_color">): string {
   return `radial-gradient(120% 100% at 0% 0%, ${accent}, transparent 72%), linear-gradient(135deg, var(--ink), color-mix(in oklab, var(--ink) 70%, var(--surface)))`;
 }
 
-/** A station tile: artwork, "89.30 FM · Name", broadcast state, topic and audience. */
+/** A station tile: artwork, "89.30 · Name", broadcast state, topic and audience. */
 export function StationCard({ station, className }: { station: Station; className?: string }) {
   const player = usePlayer();
   const playing = player.isCurrent(station) && player.state.status === "playing";

@@ -35,7 +35,7 @@ export interface Station {
   id: number;
   name: string;
   display_name: string;
-  frequency: { label: string; slug: string; band: string; display: string };
+  frequency: { label: string; slug: string; display: string };
   tagline: string | null;
   logo_url: string | null;
   cover_url: string | null;

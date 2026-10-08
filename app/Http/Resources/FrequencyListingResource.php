@@ -36,7 +36,6 @@ class FrequencyListingResource extends JsonResource
             'frequency' => [
                 'label' => $this->frequency->label,
                 'slug' => $this->frequency->slug,
-                'band' => $this->frequency->band,
                 'display' => $this->frequency->display(),
             ],
             'station' => $station === null ? null : StationResource::make($station)->resolve($request),

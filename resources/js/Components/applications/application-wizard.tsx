@@ -539,7 +539,7 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
           </Summary>
           <Summary title="Tu canal" onEdit={() => go(2)}>
             <Item label="Nombre" value={data.station_name} />
-            <Item label="Canal" value={frequency ? `${frequency.label} ${band.name}${frequency.price_cents !== null ? ` · premium ${money(frequency.price_cents)}` : ""}` : ""} />
+            <Item label="Canal" value={frequency ? `${frequency.label}${frequency.price_cents !== null ? ` · premium ${money(frequency.price_cents)}` : ""}` : ""} />
             <Item
               label="Categorías"
               value={
@@ -589,7 +589,7 @@ export function ApplicationWizard({ frequencies, band, categories, maxCategories
               <CreditCard className="mt-0.5 size-5 shrink-0 text-gold" aria-hidden />
               <div className="space-y-1 text-sm">
                 <p className="font-semibold text-ink">
-                  {frequency.label} {band.name} es un canal premium de {money(frequency.price_cents)}
+                  {frequency.label} es un canal premium de {money(frequency.price_cents)}
                 </p>
                 <p className="text-muted">
                   Al enviar la solicitud registrarás tu tarjeta en la pasarela segura de Culqi. No te cobramos nada ahora: el cobro se hace solo si aprobamos tu solicitud, y en ese momento se abre tu canal. Si la rechazamos o la cancelas, eliminamos tu tarjeta.

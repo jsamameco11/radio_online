@@ -6,9 +6,9 @@ use Random\Engine\Mt19937;
 use Random\Randomizer;
 
 /**
- * The virtual FM dial of the platform.
+ * The virtual dial of the platform. Channels show the number alone, never a band.
  *
- * Frequencies look like real FM stations (89.30, 101.70, 95.50…) instead of a
+ * Frequencies look like memorable numbers (89.30, 101.70, 95.50…) instead of a
  * consecutive series: every candidate between the band limits gets a weight
  * by how "radio-like" its decimals are (odd tenths first, then even tenths,
  * then .x5 and finally other hundredths) and a seeded weighted draw picks the

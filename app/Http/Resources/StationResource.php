@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * A station as every screen shows it: "89.30 FM · Radio Aurora" with its
+ * A station as every screen shows it: "89.30 · Radio Aurora" with its
  * artwork, broadcast state, audience, styles, hashtags and current topic.
  *
  * Eager load "frequency", "categories", "hashtags" and "currentTopic.hashtags"
@@ -31,7 +31,6 @@ class StationResource extends JsonResource
             'frequency' => [
                 'label' => $this->frequency->label,
                 'slug' => $this->frequency->slug,
-                'band' => $this->frequency->band,
                 'display' => $this->frequency->display(),
             ],
             'tagline' => $this->tagline,

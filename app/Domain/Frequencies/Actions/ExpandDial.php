@@ -30,7 +30,7 @@ final class ExpandDial
     {
         if ($size > self::capacity()) {
             throw ValidationException::withMessages([
-                'size' => 'La banda FM admite como máximo '.number_format(self::capacity()).' frecuencias.',
+                'size' => 'El dial admite como máximo '.number_format(self::capacity()).' frecuencias.',
             ]);
         }
 

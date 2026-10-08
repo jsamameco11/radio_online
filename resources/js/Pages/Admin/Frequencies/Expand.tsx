@@ -14,7 +14,7 @@ interface Props {
   current: number;
   configured: number;
   capacity: number;
-  band: { min: number; max: number; name: string };
+  band: { min: number; max: number };
   history: AuditEntry[];
 }
 
@@ -43,7 +43,7 @@ export default function ExpandDial({ current, configured, capacity, band, histor
         <PageHeader
           eyebrow="Dial"
           title="Ampliar el dial"
-          description={`Suma frecuencias nuevas entre ${band.min.toFixed(2)} y ${band.max.toFixed(2)} ${band.name}. Las frecuencias existentes y sus radios nunca cambian de lugar.`}
+          description={`Suma frecuencias nuevas entre ${band.min.toFixed(2)} y ${band.max.toFixed(2)}. Las frecuencias existentes y sus radios nunca cambian de lugar.`}
         />
 
         <div className="grid gap-4 sm:grid-cols-3">

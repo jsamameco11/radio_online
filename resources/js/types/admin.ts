@@ -13,7 +13,6 @@ export type MonitorStatusValue = "free" | "reserved" | "live" | "online" | "conn
 export interface FrequencyRef {
   label: string;
   slug: string;
-  band: string;
   display: string;
 }
 

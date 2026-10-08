@@ -28,7 +28,7 @@ class OpenStationTest extends TestCase
 
         $station = app(OpenStation::class)->handle($owner, $frequency, 'Radio Aurora', $categories, ['#Salsa', 'Perú', 'salsa']);
 
-        $this->assertSame('89.30 FM · Radio Aurora', $station->displayName());
+        $this->assertSame('89.30 · Radio Aurora', $station->displayName());
         $this->assertSame(FrequencyStatus::Active, $frequency->fresh()->status);
         $this->assertSame(StationRole::Owner, $owner->roleIn($station));
         $this->assertCount(3, $station->categories);

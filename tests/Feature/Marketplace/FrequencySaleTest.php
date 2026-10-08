@@ -77,7 +77,7 @@ class FrequencySaleTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('canListFrequencies', true)
                 ->where('sales.data.0.by_platform', true)
-                ->where('sales.data.0.frequency', '99.10 FM')
+                ->where('sales.data.0.frequency', '99.10')
                 ->where('sales.data.0.payout_method', null));
     }
 
@@ -115,7 +115,7 @@ class FrequencySaleTest extends TestCase
                 ->has('listings.data', 1)
                 ->where('listings.data.0.by_platform', true)
                 ->where('listings.data.0.station', null)
-                ->where('listings.data.0.frequency.display', '99.10 FM'));
+                ->where('listings.data.0.frequency.display', '99.10'));
         $this->get($this->publicUrl("/frecuencias-en-venta/{$listing->id}"))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page->component('Public/Marketplace/Show')->where('listenUrl', null));

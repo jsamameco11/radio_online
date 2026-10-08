@@ -93,7 +93,7 @@ class SearchController extends Controller
         return [
             'label' => $label,
             'slug' => FrequencyDial::slug($label),
-            'display' => $label.' '.config('platform.dial.band'),
+            'display' => $label,
             'exists' => $frequency !== null,
             'available' => (bool) $frequency?->isAvailable(),
             'station' => $station === null ? null : StationResource::make($station)->resolve($request),

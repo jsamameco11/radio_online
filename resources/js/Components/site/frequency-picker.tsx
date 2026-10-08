@@ -67,9 +67,7 @@ export function FrequencyPicker({ frequencies, band, value, onChange, invalid = 
           <p className="text-xs text-muted">Tu canal</p>
           <p className="font-display text-3xl font-semibold tabular">
             {selected ? (
-              <>
-                {selected.label} <span className="text-base text-muted">{band.name}</span>
-              </>
+              selected.label
             ) : (
               <span className="text-faint">--.--</span>
             )}

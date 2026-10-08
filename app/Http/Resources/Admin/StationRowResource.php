@@ -20,7 +20,7 @@ class StationRowResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'display_name' => $this->displayName(),
-            'frequency' => ['label' => $this->frequency->label, 'slug' => $this->frequency->slug, 'band' => $this->frequency->band, 'display' => $this->frequency->display()],
+            'frequency' => ['label' => $this->frequency->label, 'slug' => $this->frequency->slug, 'display' => $this->frequency->display()],
             'logo_url' => app(MediaStorage::class)->url($this->logo_path),
             'accent_color' => $this->accent_color,
             'owner' => ['id' => $this->owner->id, 'name' => $this->owner->name, 'email' => $this->owner->email],

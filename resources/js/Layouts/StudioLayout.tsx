@@ -135,7 +135,7 @@ export default function StudioLayout({ title, setup = true, wide = false, childr
           <StationLogo station={station} size="xs" />
           <span className="min-w-0">
             <span className="block truncate font-display text-sm font-semibold tabular">
-              {station.frequency.label} {station.frequency.band}
+              {station.frequency.label}
             </span>
             <span className="block truncate text-xs text-muted">Estudio · {studio.role_label}</span>
           </span>

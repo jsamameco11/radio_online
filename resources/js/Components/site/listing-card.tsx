@@ -18,10 +18,7 @@ export function ListingCard({ listing }: { listing: StationListing }) {
         <div className="relative flex h-28 items-center justify-center bg-gold-soft">
           <RadioTower className="absolute top-3 left-3 size-5 text-gold" aria-hidden />
           <Badge />
-          <span className="font-display text-4xl font-bold text-ink tabular">
-            {listing.frequency.label}
-            <span className="ml-1 text-base font-semibold text-muted">{listing.frequency.band}</span>
-          </span>
+          <span className="font-display text-4xl font-bold text-ink tabular">{listing.frequency.label}</span>
         </div>
         <div className="flex flex-1 flex-col gap-2 p-4">
           <Link href={href} className="min-w-0 font-display text-[0.95rem] font-semibold text-ink before:absolute before:inset-0 before:content-['']">

@@ -1,6 +1,6 @@
 # Tu Radio Online — project guide
 
-Internet radio platform: every station owns an FM-style frequency ("89.30 FM · Radio Aurora"), runs a professional studio (live console, autopilot, schedule, library, episodes, audio editor) and receives gifts from listeners through a wallet.
+Internet radio platform: every station owns a channel number ("89.30 · Radio Aurora", never with FM/AM), runs a professional studio (live console, autopilot, schedule, library, episodes, audio editor) and receives gifts from listeners through a wallet.
 
 ## Hosts
 

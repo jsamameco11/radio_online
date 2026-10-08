@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * A radio station of the platform, always shown together with its
- * frequency: "89.30 FM · Radio Aurora".
+ * frequency: "89.30 · Radio Aurora".
  */
 #[Fillable([
     'frequency_id', 'owner_id', 'name', 'tagline', 'description', 'logo_path', 'cover_path', 'accent_color',
@@ -152,7 +152,7 @@ class Station extends Model
         return $this->morphOne(Wallet::class, 'owner');
     }
 
-    /** "89.30 FM · Radio Aurora" */
+    /** "89.30 · Radio Aurora" */
     public function displayName(): string
     {
         return $this->frequency->display().' · '.$this->name;

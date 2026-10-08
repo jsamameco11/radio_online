@@ -21,7 +21,7 @@ export function StationLogo({ station, size = "md", className }: { station: Pick
 }
 
 /**
- * The station identity everywhere in the platform: "89.30 FM · Radio Aurora".
+ * The station identity everywhere in the platform: "89.30 · Radio Aurora".
  * The frequency leads, in the display face with tabular figures.
  */
 export function FrequencyTitle({ station, size = "md", className }: { station: Pick<Station, "name" | "frequency">; size?: "sm" | "md" | "lg" | "xl"; className?: string }) {
@@ -34,10 +34,7 @@ export function FrequencyTitle({ station, size = "md", className }: { station: P
 
   return (
     <span className={cn("inline-flex min-w-0 flex-wrap items-baseline gap-x-2 font-display font-semibold text-ink", scales[size], className)}>
-      <span className="tabular">
-        {station.frequency.label}
-        <span className="ml-1 text-[0.7em] font-medium text-muted">{station.frequency.band}</span>
-      </span>
+      <span className="tabular">{station.frequency.label}</span>
       <span className="text-faint" aria-hidden>
         ·
       </span>

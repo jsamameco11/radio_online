@@ -120,10 +120,7 @@ export function FmDial({ stations, band, initial }: FmDialProps) {
     <div className="theme-dark overflow-hidden rounded-[2rem] border border-line bg-canvas text-ink shadow-[0_30px_60px_-30px_rgb(0_0_0/0.6)]">
       <div className="grid gap-6 p-6 sm:p-8 md:grid-cols-[1fr_auto] md:items-center">
         <div className="space-y-2" aria-live="polite">
-          <p className="flex items-baseline gap-2 font-display font-semibold tabular">
-            <span className="text-6xl sm:text-7xl">{position.toFixed(2)}</span>
-            <span className="text-xl text-muted">{band.name}</span>
-          </p>
+          <p className="font-display text-6xl font-semibold tabular sm:text-7xl">{position.toFixed(2)}</p>
           {tuned ? (
             <div className="flex flex-wrap items-center gap-3">
               <StationLogo station={tuned} size="sm" />
@@ -175,7 +172,7 @@ export function FmDial({ stations, band, initial }: FmDialProps) {
           aria-valuemin={band.min}
           aria-valuemax={band.max}
           aria-valuenow={Number(position.toFixed(2))}
-          aria-valuetext={tuned ? `${tuned.frequency.display}, ${tuned.name}` : `${position.toFixed(1)} ${band.name}, sin señal`}
+          aria-valuetext={tuned ? `${tuned.frequency.display}, ${tuned.name}` : `${position.toFixed(1)}, sin señal`}
           onScroll={onScroll}
           onKeyDown={onKeyDown}
           onWheel={onWheel}

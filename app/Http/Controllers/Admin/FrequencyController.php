@@ -112,7 +112,6 @@ class FrequencyController extends Controller
                 'id' => $frequency->id,
                 'label' => $frequency->label,
                 'slug' => $frequency->slug,
-                'band' => $frequency->band,
                 'display' => $frequency->display(),
                 'mhz' => (float) $frequency->frequency,
                 'status' => $frequency->status->value,

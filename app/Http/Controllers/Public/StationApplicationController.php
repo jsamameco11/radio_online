@@ -54,7 +54,6 @@ class StationApplicationController extends Controller
                 ->values()
                 ->all(),
             'band' => [
-                'name' => config('platform.dial.band'),
                 'min' => (float) config('platform.dial.min'),
                 'max' => (float) config('platform.dial.max'),
             ],
